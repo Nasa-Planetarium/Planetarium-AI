@@ -1,8 +1,9 @@
-# 백엔드 전달 문서 — Planetarium 통합 화재 데이터 (초안)
+# 백엔드 전달 문서 — Planetarium 통합 화재 데이터 (v1)
 
-작성 2026-11-14 · 데이터 버전 `v1-m2v-2026-11-14` · 저장소 `C:\Planetarium-AI`
+작성 2026-11-14 · 데이터 버전 **`v1-m2v-2026-11-14`** · 저장소 `C:\Planetarium-AI`
 
-> 이 문서는 **계획 기준 초안**이에요. 데이터 담당(Claude Code)이 만드는 `docs/api_contract.md`가 확정본이고, 컬럼 이름이 조금 바뀌면 그쪽을 따라 주세요. 지금 있는 v0 파일(`release_v0-b1-2026-11-14/`)은 구조가 같아서 연결 작업을 바로 시작해도 돼요. v1이 나오면 파일만 교체하면 돼요.
+> v1 기준으로 고쳤어요. API 확정본은 데이터 담당이 만드는 `docs/api_contract.md`이고, 컬럼 이름이 다르면 그쪽을 따라 주세요.
+> v1 파일은 `data/processed/release_v1-m2v-2026-11-14/`에 있어요 (v0는 `release_v0-b1-2026-11-14/`에 그대로 남아 있어요).
 
 ---
 
@@ -14,20 +15,23 @@ MODIS(2000~)와 VIIRS(2012~) 화재 감지를 **VIIRS(S-NPP) 기준 감지량**�
 
 ## 1. 백엔드가 읽을 파일 (`data/processed/`)
 
-| 파일 | 한 행 | 앱 화면 |
-|---|---|---|
-| `harmonized_hotspots/year=YYYY/month=MM/*.parquet` | 감지 1건 (점) | 지도 핫스팟 점, 임의 날짜 범위 합계 |
-| `harmonized_cell_month.parquet` | 0.1° 칸 × 월 | 지도 격자(히트맵) |
-| `aoi_month.parquet` | 지역 × 월 | 연도 × 월 캘린더 |
-| `aoi_month_compare.parquet` | 지역 × 월 | 예년 대비 비교 |
-| `aoi_list.parquet` | 지역 1개 | 지역 선택 목록 |
-| `aoi_boundaries.geojson` | 지역 경계 | 지도 경계선 |
-| `satellite_day_status.parquet` | 위성 × 날짜 | 자료 상태 안내 |
-| `../../models/m2v_meta.json` | — | "방법 설명" 페이지 |
+| 파일 | 한 행 | 크기 | 앱 화면 |
+|---|---|---|---|
+| `harmonized_cell_month.parquet` | 0.1° 칸 × 월 | **444 MB, 51,562,642행** | 지도 격자(히트맵) |
+| `aoi_month.parquet` | 지역 × 월 | 23 MB, 1,580,963행 (지역 5,051 × 313개월) | 연도 × 월 캘린더 |
+| `aoi_month_compare.parquet` | 지역 × 월 | 24 MB, 1,580,963행 | 예년 대비 비교 |
+| `aoi_list.parquet` | 지역 1개 | 5,051행 | 지역 선택 목록 |
+| `aoi_boundaries.geojson` | 지역 경계 | 13 MB | 지도 경계선 |
+| `satellite_day_status.parquet` | 위성 × 날짜 | — | 자료 상태 안내 |
+| `harmonized_hotspots/reference/year=YYYY/month=MM/*.parquet` | 기준 감지 1건 (점) | **4.5 GB, 325,055,860행** (아래 1-1) | 지도 핫스팟 점(기본), 합계 |
+| `harmonized_hotspots/other/year=YYYY/month=MM/*.parquet` | 기준이 아닌 VIIRS 감지 (2012-02~) | 3.0 GB, 228,772,249행 | 지도 '모든 감지' 레이어 |
+| `harmonized_cell_day.parquet` | 0.1° 칸 × 현지 날짜 | 908 MB, 209,765,318행 | 날짜 범위 합계 (`/summary`) |
+| `harmonized_residual_cell_month.parquet` | 기준 점이 없는 칸 × 월 | 109 MB, 19,948,578행 | 합계 보정용 (점으로 안 보이는 추정분) |
+| `../../models/m2v_meta.json` | — | — | "방법 설명" 페이지 |
 
-> `harmonized_hotspots`는 다음 작업에서 만들어져요(아직 없음). 그 전에는 `harmonized_cell_month`, `aoi_month*`로 캘린더·비교·격자부터 연결하면 돼요.
+> 배경 예측(감지가 없는 칸의 작은 m2v 예측값, 0.5 미만)은 `harmonized_cell_month`에 넣지 않고 **`data/interim/harmonized_background/<연도>.parquet`에 따로** 있어요(2000~2012, 9,016만 행). 지역 합계(`aoi_month`)에는 이미 더해져 있으니 **캘린더·비교는 `aoi_month*`만 읽으면 돼요.** 격자 지도에서 이 작은 값까지 그릴 필요는 없어요(2005년 기준 전체의 약 3%).
 
-### 1-1. `harmonized_hotspots` (통합 핫스팟 점)
+### 1-1. `harmonized_hotspots` (통합 핫스팟 점) — 생성·검증 완료 (2026-11-14)
 
 | 컬럼 | 타입 | 설명 |
 |---|---|---|
@@ -36,40 +40,52 @@ MODIS(2000~)와 VIIRS(2012~) 화재 감지를 **VIIRS(S-NPP) 기준 감지량**�
 | date_local | date | 현지 태양시 날짜 (날짜 범위 필터는 이 값 기준) |
 | satellite | str | N(S-NPP) / N20 / N21 / Terra / Aqua |
 | instrument | str | VIIRS / MODIS |
-| frp | float | 화재 복사 에너지(MW), 불의 세기 |
+| frp | float | 화재 복사 에너지(MW) |
 | confidence | str | l / n / h |
 | daynight | str | D / N |
 | cell_id | int | 0.1° 칸 ID |
-| country, adm1 | str | 국가, 1급 행정구역 |
+| adm0_a3, adm1_code | str | 국가(ISO3 계열 코드), 1급 행정구역 코드 (칸 겹침 최대) |
 | **harmonized_weight** | float | 이 감지가 VIIRS(S-NPP) 기준으로 몇 건에 해당하는지 |
-| weight_lo, weight_hi | float | 가중치 범위(10–90%) |
-| weight_source | str | 아래 `value_source`와 같은 값 |
-| **is_reference** | bool | true = 그 기간 기준 위성(합계에 사용), false = 지도 표시용 |
+| weight_lo, weight_hi | float | 가중치 범위(10–90%). **Terra 단독 기간(2000-11~2002-06)은 null** |
+| weight_source | str | 기준 점은 `value_source`와 같은 값, 그 외 `snpp_unit` / `n20_bridge` / `n21_bridge` / `none` |
+| **is_reference** | bool | true = 그 기간 기준 위성(합계에 사용), false = 지도 '모든 감지' 레이어용 |
 | source | str | SP(정식) / NRT(빠른 처리본) |
-| method_version | str | 예: v1-m2v-2026-11-14 |
+| method_version | str | `v1-m2v-2026-11-14` |
+
+- 실제 규모: 기준 점 **3억 2,506만 행, 4.5 GB** (`reference/`), 기준이 아닌 VIIRS 점 2억 2,877만 행, 3.0 GB (`other/`, 2012-02 이후만. MODIS 비기준 점은 만들지 않음).
+- 검증: 점 가중치 합 + residual = 칸 value (최대 차이 0.00015), 지역 합 = `aoi_month.value` (상대 오차 1e-6 미만). 한국 2005-03 = 380.4601, 2025-03 = 2,764 세 방식 모두 일치.
+- residual은 MODIS 기간에만 있어요(칸 값의 약 9%). 2013년 이후는 0.
+- `harmonized_cell_day`: `cell_id, date_local, value, value_lo, value_hi, n_points, value_source, residual_month`. **residual_month는 그 달 1일 행에 칸·월 합계로만 저장**돼 있어요(1일의 값이 아님). 일별 그래프에 그리지 말고 월 합계에만 더하세요. 자세한 규칙은 `docs/api_contract.md`.
+- 기준 점 가중치 합 + `harmonized_residual_cell_month`(점으로 나눌 수 없는 값) = 칸 `value`.
 
 ### 1-2. `harmonized_cell_month` (칸 × 월)
 
 `cell_id, cell_lat, cell_lon, year, month, value, value_lo, value_hi, raw_modis, raw_viirs, value_source, data_source, status, method_version`
 
 - `value` = 그 칸·달의 VIIRS 기준 감지량, `raw_modis`/`raw_viirs` = 원래 감지 수(참고)
-- **0이 아닌 칸·월만 저장**돼 있어요. 행이 없으면 0이에요.
+- **0이 아닌 칸·월만 저장**돼 있어요. 행이 없으면 0이에요 (2000~2012는 0.5 미만 배경 예측도 행이 없어요 — 위 안내 참고).
+- 칸 단위 `value_lo/hi`: MODIS 기간은 M2V Uncertainty Band(칸별 10·90 분위수), 실측 기간은 value와 같아요. **Terra 단독 기간은 null.**
 
 ### 1-3. `aoi_month` (지역 × 월)
 
 `aoi_id, year, month, value, value_lo, value_hi, raw_modis, raw_viirs, value_source, data_source, status, n_cells`
 
+- 칸 값을 지역에 **겹침 면적 비율로 나눠서** 더했어요. 그래서 252개 시군구가 모두 값을 가져요. `KR` 합계 = 시도 합 = 시군구 합.
+- `value_lo/hi`: MODIS 기간(2000-11~2012-01)은 지역 단위로 보정한 구간(아래 표), 실측 기간은 value와 같아요.
+- `status = missing`이면 `value`, `value_lo`, `value_hi`가 null이에요 (v1에서는 2001-06 한 달: Terra 위성 정지).
+
 ### 1-4. `aoi_month_compare` (예년 대비)
 
-`aoi_id, year, month, value, baseline_median, baseline_p25, baseline_p75, percentile, ratio_to_median, n_baseline_years, verdict`
+`aoi_id, year, month, value, baseline_median, baseline_p25, baseline_p75, percentile, ratio_to_median, n_baseline_years, verdict, status, low_sample`
 
 ### 1-5. `aoi_list` / `aoi_boundaries.geojson`
 
-`aoi_id, name_ko, name_en, level, parent_id, n_cells, hidden`
+`aoi_id, name, level, parent_aoi, n_cells, hidden`
 
-- level: `world`, `continent`(8), `country`(248), `adm1`(4,524), `kr_sido`(17), `kr_sgg`(252)
-- aoi_id 예: `KR`, `SIDO_11`, `SGG_11110`
-- `hidden = true`(예: 공해 Seven seas)는 목록에서 숨기기
+- level: `world`(1), `continent`(8), `country`(248), `adm1`(4,524), `kr`(1), `sido`(17), `sgg`(252)
+- aoi_id 예: `WORLD`, `CONT_Asia`, `ADM0_ARG`, `ADM1_ARG-1271`, `KR`, `SIDO_11`, `SGG_11110`
+- 한국은 `ADM0_KOR`가 아니라 **`KR`**을 써요 (시도·시군구가 그 아래에 있어요).
+- **`hidden = true`인 지역(63개)**: 공해(`CONT_Seven_seas__open_ocean`)와 그 아래 작은 섬 국가·행정구역이에요. 칸이 적어 검증이 불안정해서(편향 1.41) **지역 목록·검색에서 빼 주세요.** 데이터 행은 그대로 있고, 비교 판정은 항상 `uncertain`이에요. 직접 `aoi_id`로 요청이 오면 값은 주되 "참고용" 표시를 권해요.
 
 ---
 
@@ -77,7 +93,7 @@ MODIS(2000~)와 VIIRS(2012~) 화재 감지를 **VIIRS(S-NPP) 기준 감지량**�
 
 | API | 요청 파라미터 | 응답 |
 |---|---|---|
-| `GET /aoi` | `level`, `parent_id`, `q`(이름 검색) | 지역 목록 (+ `include_geometry=true`면 경계) |
+| `GET /aoi` | `level`, `parent_aoi`, `q`(이름 검색) | 지역 목록 (`hidden=false`만, `include_geometry=true`면 경계) |
 | `GET /hotspots` | `bbox=서,남,동,북` 또는 `aoi_id`, `start`, `end`(YYYY-MM-DD), `layer=reference\|all`, `limit` | 점 목록 |
 | `GET /summary` | `aoi_id` 또는 `bbox` 또는 `polygon`(GeoJSON), `start`, `end`, `freq=day\|month` | 기간별 value, lo, hi, status, value_source |
 | `GET /calendar` | `aoi_id`, `start_year`, `end_year` | 연도×월 value + verdict, percentile, ratio_to_median, status |
@@ -86,9 +102,9 @@ MODIS(2000~)와 VIIRS(2012~) 화재 감지를 **VIIRS(S-NPP) 기준 감지량**�
 | `GET /export.csv` | `type=summary\|calendar\|hotspots` + 해당 API 파라미터 | CSV 다운로드 |
 | `GET /method` | — | 모델 이름·계수·성능 요약 (`m2v_meta.json`) |
 
-### 응답 예시
+### 응답 예시 (v1 실제 값)
 
-`GET /calendar?aoi_id=KR&start_year=2024&end_year=2025`
+`GET /calendar?aoi_id=KR&start_year=2025&end_year=2025`
 ```json
 {
   "aoi_id": "KR",
@@ -97,22 +113,16 @@ MODIS(2000~)와 VIIRS(2012~) 화재 감지를 **VIIRS(S-NPP) 기준 감지량**�
   "months": [
     {"year": 2025, "month": 3, "value": 2764, "value_lo": 2764, "value_hi": 2764,
      "value_source": "snpp_observed", "status": "ok",
-     "verdict": "above", "percentile": 100, "ratio_to_median": 9.8}
+     "verdict": "above", "percentile": 100, "ratio_to_median": 10.9}
   ]
 }
 ```
 
-`GET /summary?aoi_id=KR&start=2005-03-01&end=2005-03-31&freq=day`
+`GET /calendar?aoi_id=KR&start_year=2005&end_year=2005` 중 3월
 ```json
-{
-  "aoi_id": "KR", "freq": "day",
-  "series": [
-    {"date": "2005-03-01", "value": 12.4, "value_lo": 9.1, "value_hi": 16.0,
-     "value_source": "modis_m2v", "status": "ok"}
-  ]
-}
+{"year": 2005, "month": 3, "value": 380.5, "value_lo": 203.7, "value_hi": 533.4,
+ "value_source": "modis_m2v", "status": "ok"}
 ```
-(숫자는 형식 예시예요.)
 
 ---
 
@@ -123,10 +133,37 @@ MODIS(2000~)와 VIIRS(2012~) 화재 감지를 **VIIRS(S-NPP) 기준 감지량**�
 | 값 | 기간 | 화면 표시 예 |
 |---|---|---|
 | `modis_m2v_terra` | 2000-11 ~ 2002-06 | 추정 (Terra) |
-| `modis_m2v` | 2002-07 ~ 2011-12 | 추정 (MODIS → VIIRS) |
-| `snpp_observed` | 2012-01-20 ~ 2026-11-02 | 실측 |
-| `n20_bridge` | 2026-11-03 ~ | 실측 (NOAA-20 환산 × 1.013) |
-| `n21_bridge` | NOAA-20 결측일 대체 | 대체 위성 (NOAA-21 × 1.053) |
+| `modis_m2v` | 2002-07 ~ **2012-01** | 추정 (MODIS → VIIRS) |
+| `snpp_observed` | 2012-02 ~ 2026-10 (S-NPP 마지막 감지 2026-11-02) | 실측 |
+| `n20_bridge` | 2026-11 ~ (S-NPP 11-01~02 + NOAA-20 11-03~) | 실측 (NOAA-20 환산) |
+| `n21_bridge` | 핫스팟 점에서 NOAA-20 결측일 대체 | 대체 위성 (NOAA-21 환산) |
+
+**2012-01은 `modis_m2v` 값을 써요.** S-NPP가 2012-01-20부터 12일치만 있어 월 환산 오차가 크고, 모델 학습 기간도 2012-02부터라 MODIS 쪽 추정이 더 일관돼요 (`m2v_meta.json` → `harmonization."2012-01"`).
+
+### 구간(value_lo / value_hi) 정책
+
+| 기간 | 칸(`harmonized_cell_month`)·점(`harmonized_hotspots`) | 지역(`aoi_month`) |
+|---|---|---|
+| 2000-11 ~ 2002-06 (Terra 단독) | **null** (칸 단위 분위수 모델 없음) | 있음 (지역 단위 보정) — **이 기간 구간은 지역 단위로만 제공** |
+| 2002-07 ~ 2012-01 | M2V Uncertainty Band (칸별 10·90%) | 있음 (지역 단위 보정) |
+| 2012-02 ~ | value와 같음 (실측) | value와 같음 |
+
+지역 구간은 칸 구간을 단순히 더하지 않고, 과거 검증(연도를 하나씩 빼고 학습한 예측)에서 '실제/예측' 비율의 10·90% 분위수를 지역 유형·크기별로 구해 지역 합계에 곱했어요.
+
+**지역 구간 적중률** (목표 80%, 검증 연도를 뺀 나머지로 구간을 만든 뒤 그 해에 적용):
+
+| 지역 유형 | 지역·월 수 | 적중률 | 구간 폭 중앙값 (폭 ÷ 값) |
+|---|---|---|---|
+| 국가 (KR 포함) | 39,930 | 83.4% | 1.45 |
+| 1급 행정구역 | 738,884 | 86.5% | 2.12 |
+| 시·도 | 2,805 | 87.3% | 3.18 |
+| 시·군·구 | 41,580 | 90.0% | 3.20 |
+| 대륙 | 1,320 | 66.6% | 0.15 |
+| 전 세계 | 165 | 78.8% | 0.07 |
+
+- 예측 10건 이상인 지역·월은 국가·1급 모두 79.9~80.0%로 목표에 맞아요.
+- 작은 지역(예측 10건 미만)은 실제 0인 달이 많아 하한이 0이 되기 쉬워 적중률이 90%로 높고 폭이 넓어요.
+- 대륙이 낮은 건 남극·공해처럼 감지가 거의 없는 대륙 때문이에요(1만 건 이상 대륙·월은 79.2%).
 
 ### status (자료 상태)
 
@@ -135,8 +172,9 @@ MODIS(2000~)와 VIIRS(2012~) 화재 감지를 **VIIRS(S-NPP) 기준 감지량**�
 | `ok` | 정상 | 일반 |
 | `nrt` | 빠른 처리본, 이후 바뀔 수 있음 | 점선/연한 색 + 안내 |
 | `partial` | 진행 중인 달 | "집계 중" |
-| `missing` | 위성 자료 부족 | 회색. **0으로 칠하지 않기** |
-| `low_sample` | 예년 기록이 너무 적음 | 판정 생략 |
+| `missing` | 위성 자료 부족 (v1: 2001-06) | 회색. **0으로 칠하지 않기** |
+
+`low_sample`은 status가 아니라 `aoi_month_compare`의 **별도 컬럼**(true/false)이에요. 예년 같은 달 감지가 거의 0인 지역이라 백분위가 불안정하다는 뜻이고, 이때 verdict는 값이 3 이상이면 `above`, 아니면 `uncertain`이에요.
 
 ### verdict (예년 대비)
 
@@ -145,33 +183,38 @@ MODIS(2000~)와 VIIRS(2012~) 화재 감지를 **VIIRS(S-NPP) 기준 감지량**�
 | `above` | 백분위 ≥ 80 | 예년보다 많음 |
 | `similar` | 20 < 백분위 < 80 | 비슷 |
 | `below` | 백분위 ≤ 20 | 예년보다 적음 |
-| `uncertain` | 비교 연도 < 10년, 결측·진행 중 | 판단 보류 |
+| `uncertain` | 비교 연도 < 10년, 결측·진행 중, `hidden` 지역 | 판단 보류 |
 
 - 기준 분포 = 2001~2025년 같은 달(해당 연도 제외, status=ok인 달만)
 
 ### 계수·버전
 
-- `n20_bridge` = 1.013, `n21_bridge` = 1.053
+- `n20_bridge` = 1.013, `n21_bridge` = 1.053 (전 세계 정식 자료 기준, 실제로는 지역·월별 값과 대체 규칙 적용)
 - `method_version` = `v1-m2v-2026-11-14` (응답에 항상 포함 추천)
+- 모델 이름: `m2v_xgb`(M2V Harmonizer), `m2v_q10_q90`(M2V Uncertainty Band) — `m2v_meta.json`의 `model_names`
 
 ---
 
 ## 4. 꼭 지켜야 할 것
 
 1. **0과 결측 구분**: 칸·월 행이 없으면 0. 그 달이 결측인지는 `aoi_month.status`로 판단.
-2. **합계는 `is_reference = true`인 점만**: `harmonized_weight` 합 = value, `weight_lo/hi` 합 = 범위. `layer=all`은 지도 표시용.
-3. **날짜는 `date_local` 기준**으로 필터. UTC 시각은 `acq_datetime_utc`.
-4. **표기**: "산불 건수"가 아니라 **"위성 화재 감지량 (VIIRS 기준)"**. 2000–2011년은 "추정값"이라고 표시하고 범위를 함께 보여 주기.
-5. **FIRMS 키**: `FIRMS_MAP_KEY`는 서버 `.env`에만. 프론트엔드 코드·GitHub·채팅에 절대 넣지 않기.
-6. **출처 표시**: 앱 하단 또는 About 페이지에 FIRMS 인정 문구와 경계 데이터 출처(CC BY) 표기 → `docs/references.md`.
-7. **성능**: `harmonized_hotspots`는 크기가 커요. 연·월 폴더 단위로 필요한 범위만 읽고(Polars `scan_parquet` + 필터), 점 응답에는 `limit`·`bbox`를 꼭 쓰기.
+2. **합계는 `is_reference = true`인 점만** (+ residual): `harmonized_weight` 합 = value. `layer=all`은 지도 표시용.
+3. **지역 합계는 `aoi_month`를 그대로** 쓰기: 칸에서 다시 더하면 배경 예측(interim)과 면적 가중이 빠져 숫자가 달라져요.
+4. **날짜는 `date_local` 기준**으로 필터. UTC 시각은 `acq_datetime_utc`.
+5. **표기**: "산불 건수"가 아니라 **"위성 화재 감지량 (VIIRS 기준)"**. 2000–2012-01은 "추정값"이라고 표시하고 범위를 함께 보여 주기.
+6. **FIRMS 키**: `FIRMS_MAP_KEY`는 서버 `.env`에만. 프론트엔드 코드·GitHub·채팅에 절대 넣지 않기.
+7. **출처 표시**: 앱 하단 또는 About 페이지에 FIRMS 인정 문구와 경계 데이터 출처(CC BY) 표기 → `docs/references.md`.
+8. **성능**: `harmonized_hotspots`는 커요(7.5 GB). 날짜 범위 합계는 `harmonized_cell_day`로 계산하고, 점 파일은 지도를 확대했을 때 연·월 폴더 단위로 필요한 범위만 읽기(Polars `scan_parquet` + 필터). 점 응답에는 `limit`·`bbox`를 꼭 쓰기.
 
 ---
 
 ## 5. 파일 받는 법
 
 - 데이터 파일은 GitHub에 없어요(용량). `data/processed/release_v1-m2v-2026-11-14/`를 공유 드라이브로 전달할 예정이에요.
-- 그 전에는 `release_v0-b1-2026-11-14/`로 연결 작업을 시작하고, v1 도착 시 교체.
-- v0 → v1 변경점: 숫자(2000–2011 추정값), `value_source` 이름(`modis_harmonized` → `modis_m2v`, `noaa20_bridged` → `n20_bridge`, `modis_harmonized_terra_only` → `modis_m2v_terra`).
+- v0 → v1 변경점
+  - 숫자: 2000~2012-01 추정값이 m2v로 바뀜 (2000~2011 합계: 한국 −24.5%, 아르헨티나 −22.2%, 전 세계 −3.5%). 그림 `reports/figures/v0_vs_v1_korea_annual.png`
+  - `value_source` 이름: `modis_harmonized` → `modis_m2v`, `modis_harmonized_terra_only` → `modis_m2v_terra`, `noaa20_bridged` → `n20_bridge`
+  - `aoi_list`: `hidden` 컬럼 추가, 시군구 252개 모두 포함(면적 가중 배분)
+  - `aoi_month.value_lo/hi`: 지역 단위 보정 구간
 
 문의: 데이터·모델 담당 (팀장)
