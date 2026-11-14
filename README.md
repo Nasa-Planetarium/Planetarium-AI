@@ -103,7 +103,9 @@ MODIS는 2027년 종료 예정이라 VIIRS 원본 컬럼을 기준으로 하고 
 
 ### 중복 제거 (`load_hotspots()` 기본 적용)
 
-같은 관측이 여러 파일에 들어 있어 위성별로 우선순위를 둡니다: **SP > Archive Download NRT > 7일 NRT**.
+같은 관측이 여러 파일에 들어 있어 위성별로 우선순위를 둡니다: **SP > Archive Download NRT > 7일 NRT > area API(`fetch_nrt`)**.
+
+- area API 파일(`api_*`)은 SP와만 시간·지역 범위로 정리하고, NRT 파일(Archive NRT·7일·먼저 받은 API)과는 키 단위로만 정리합니다. 앞 파일에 덜 들어온 날의 빠진 점이 채워집니다.
 
 - 낮은 순위 파일의 감지는, 높은 순위 파일이 같은 위성·같은 시간 범위(첫 날 00:00 ~ 마지막 감지 시각)·같은 지역(감지 위경도 범위를 5° 단위로 바깥 반올림)을 덮으면 버립니다.
   날짜 단위가 아니라 실제 시각 기준이라, 예를 들어 drive zip NRT가 끝난 2026-11-11 10시(UTC) 이후의 7일 파일 감지는 남습니다.
@@ -120,6 +122,20 @@ korea = (
     .collect()
 )
 ```
+
+## 실시간 갱신 (`fetch_nrt --append`, 수동 1회 실행)
+
+FIRMS area API로 전 세계 최근 N일(1~5)을 받아 기존 점과 합치고 `data/processed` 작업 파일을 갱신합니다.
+`release_*` 폴더(배포 스냅샷)는 건드리지 않습니다. 정기 실행(스케줄)은 아직 설정하지 않았습니다.
+
+```powershell
+uv run python -m planetarium.fetch_nrt --status                  # 키 상태 (MAP_KEY는 .env의 FIRMS_MAP_KEY, 출력하지 않음)
+uv run python -m planetarium.fetch_nrt --fetch --days 2 --append # 전 세계 최근 2일, 호출 3회 (NOAA-20·NOAA-21·MODIS)
+```
+
+순서: 받기(`data/raw/firms/api/<받은 날짜>/`) → API 파일 변환(순위 3)·범위표 → 칸×일 → 위성 상태·칸×월 → 그 연도 `harmonized_cell_month` 교체
+→ 그 달 통합 핫스팟·cell_day·residual → 진행 중인 달 month-to-date(`value_projected`, `as_of_date`) → AOI 월 합계 → 비교표 → 검증.
+결과 리포트: `reports/fetch_nrt_append_<받은 날짜>_points.csv`(위성×날짜 추가 점 수), `..._aoi.csv`(KR·ADM0_ARG·WORLD 전/후).
 
 ## 격자 칸 × 날짜 집계 (`features`)
 

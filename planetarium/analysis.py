@@ -86,6 +86,10 @@ def compare_month(aoi_id: str, year: int, month: int) -> dict:
 def build_compare() -> pl.DataFrame:
     am = pl.scan_parquet(AOI_MONTH_PATH)
     df = _compare(am.select("aoi_id", "year", "month", "value", "status"), _base(am)).sort("aoi_id", "year", "month").collect()
+    # 진행 중인 달 응답용: 마지막 관측일과 달 전체 추정 (판정은 partial이라 uncertain)
+    extra = [c for c in ("as_of_date", "value_projected") if c in am.collect_schema().names()]
+    if extra:
+        df = df.join(am.select("aoi_id", "year", "month", *extra).collect(), on=["aoi_id", "year", "month"], how="left")
     # aoi_list.hidden(Seven seas 등)은 판정하지 않음
     from planetarium.harmonize import AOI_LIST_PATH
     hidden = pl.read_parquet(AOI_LIST_PATH).filter(pl.col("hidden").fill_null(False))["aoi_id"]

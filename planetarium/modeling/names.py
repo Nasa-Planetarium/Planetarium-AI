@@ -72,3 +72,17 @@ META_PATH = MODELS_DIR / "m2v_meta.json"
 
 def label(old: str) -> str:
     return MODEL_LABELS.get(old, old)
+
+
+# 감지 단위 통합(harmonized hotspots) 가중치 규칙: 위성별 기본 가중치 b
+#   기준 점은 칸·월 value를 b 비율로 나눠 받는다 (harmonized_weight = value × b / Σb) → 합 = 칸 value
+#   기준이 아닌 점은 b를 그대로 (MODIS는 2012-02 이후 m2v 칸 값이 없어 null)
+MODEL_LABELS["n21_bridge"] = "n21_bridge"
+WEIGHT_RULES: dict[str, dict] = {
+    "N":     {"name": "snpp_observed", "base": 1.0, "desc": "S-NPP 기준 위성 (1.0)"},
+    "N20":   {"name": "n20_bridge", "base": "n20_bridge", "desc": "NOAA-20 → S-NPP 계수 (전 세계 정식 1.013, 지역·월별 대체 규칙)"},
+    "N21":   {"name": "n21_bridge", "base": "n21_bridge", "desc": "NOAA-21 → S-NPP 계수 (전 세계 정식 1.053, 지역·월별 대체 규칙)"},
+    "Terra": {"name": "modis_m2v", "base": 1.0, "desc": "칸·월 m2v 배율 = value / raw_modis (Terra 단독 기간은 m2v_xgb_terra)"},
+    "Aqua":  {"name": "modis_m2v", "base": 1.0, "desc": "칸·월 m2v 배율 = value / raw_modis"},
+}
+N21_BRIDGE_NOTE = "n21_bridge 계수는 n20_bridge.parquet의 pair='S-NPP/NOAA-21' 행 (같은 방식으로 계산, 적용은 NOAA-20 결측일 대체에만)"

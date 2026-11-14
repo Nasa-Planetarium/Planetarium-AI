@@ -95,3 +95,46 @@ def main(argv: list[str] | None = None) -> None:
 
 if __name__ == "__main__":
     main()
+
+
+# ── 정렬해 다시 쓰기 (용량 줄이기, 메모리 일정) ──────────────────────────
+
+def resort(path, sort_cols: list[str], sum_cols: list[str], n_bins: int = 24) -> dict:
+    """큰 Parquet을 cell_id 구간별로 읽어 정렬한 뒤 순서대로 이어 써서 전체를 sort_cols 순으로 만든다.
+    한 번에 한 구간만 메모리에 올린다. 행 수·합계가 같은지 확인한 뒤 원본을 바꾼다."""
+    import pyarrow.parquet as pq
+    from pathlib import Path
+
+    from planetarium.runlog import peak_memory_gb
+    path = Path(path)
+    lf = pl.scan_parquet(path)
+    before = lf.select(pl.len().alias("rows"), *[pl.col(c).sum().alias(c) for c in sum_cols]).collect().row(0, named=True)
+    lo, hi = lf.select(lo=pl.col("cell_id").min(), hi=pl.col("cell_id").max()).collect().row(0)
+    edges = [lo + (hi - lo + 1) * i // n_bins for i in range(n_bins)] + [hi + 1]
+    tmp = path.with_suffix(".sorted.parquet")
+    size0 = path.stat().st_size
+    writer = None
+    try:
+        for a, b in zip(edges[:-1], edges[1:]):
+            part = lf.filter(pl.col("cell_id").is_between(a, b, closed="left")).collect().sort(sort_cols)
+            if part.height == 0:
+                continue
+            tbl = part.to_arrow()
+            if writer is None:
+                writer = pq.ParquetWriter(tmp, tbl.schema, compression="zstd", compression_level=6)
+            writer.write_table(tbl, row_group_size=1_000_000)
+            del part, tbl
+    finally:
+        if writer is not None:
+            writer.close()
+    after = pl.scan_parquet(tmp).select(pl.len().alias("rows"), *[pl.col(c).sum().alias(c) for c in sum_cols]).collect().row(0, named=True)
+    ok = after["rows"] == before["rows"] and all(
+        (before[c] is None and after[c] is None) or abs((after[c] or 0) - (before[c] or 0)) <= 1e-6 * max(1.0, abs(before[c] or 0))
+        for c in sum_cols)
+    if not ok:
+        tmp.unlink(missing_ok=True)
+        raise RuntimeError(f"정렬 후 행 수·합계가 다릅니다: {before} vs {after}")
+    tmp.replace(path)
+    return {"file": path.name, "rows": before["rows"], "sums_before": {c: before[c] for c in sum_cols},
+            "sums_after": {c: after[c] for c in sum_cols}, "mb_before": round(size0 / 1e6, 1),
+            "mb_after": round(path.stat().st_size / 1e6, 1), "peak_mem_gb": round(peak_memory_gb() or 0, 2)}

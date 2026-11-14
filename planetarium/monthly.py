@@ -141,7 +141,7 @@ SEASONAL_MIN_YEARS = 2
 
 def seasonal_baseline(st: pl.DataFrame) -> pl.DataFrame:
     """위성 × 날짜마다 다른 연도 같은 날짜 ±15일(해당 연도 제외, 결측일 제외)의 판정 감지 수 중앙값."""
-    v = st.filter(pl.col("status") != "missing").select(
+    v = st.filter(~pl.col("status").is_in(["missing", "partial"])).select(
         "satellite", y2=pl.col("date_utc").dt.year(), doy2=pl.col("date_utc").dt.ordinal_day(), e2=pl.col("n_det_status"))
     t = st.select("satellite", "date_utc", y=pl.col("date_utc").dt.year(), doy=pl.col("date_utc").dt.ordinal_day())
     j = t.join(v, on="satellite").filter(pl.col("y2") != pl.col("y"))
@@ -158,6 +158,11 @@ def build_satellite_day_status() -> pl.DataFrame:
     last_day = counts.group_by("satellite").agg(last=pl.col("date_utc").max())
     last = dict(last_day.iter_rows())
     last["S-NPP"] = min(last.get("S-NPP", SNPP_LAST_DAY), SNPP_LAST_DAY)
+    # 받는 중인 날: 운용 중인 위성(자료가 전체 최신일 전날 이후까지 있음)의 마지막 관측일.
+    # 감지가 아직 다 들어오지 않았으므로 low/missing 판정에서 빼고 status=partial, note=partial_current_day.
+    # 다음 갱신 때 그날 뒤로 자료가 더 들어오면 일반 규칙으로 다시 판정된다.
+    latest = max(last.values())
+    current_day = {s: d for s, d in last.items() if s != "S-NPP" and d >= latest - timedelta(days=1)}
     cnt = {(s, d): (g, e, j) for s, d, g, e, j in
            counts.select("satellite", "date_utc", "n_det_global", "n_det_ea", "n_det_status").iter_rows()}
     known = {(s, d) for s, days in KNOWN_MISSING_DAYS.items() for d in days}
@@ -181,7 +186,9 @@ def build_satellite_day_status() -> pl.DataFrame:
                 status = "low"
             else:
                 status = "ok"
-            if (sat, d) in known:
+            if current_day.get(sat) == d:
+                status, note = "partial", "partial_current_day"
+            elif (sat, d) in known:
                 note = "partial_known_outage" if e > 0 else "known_outage"
                 status = "missing"
             elif (sat, d) in refilled:
@@ -190,7 +197,7 @@ def build_satellite_day_status() -> pl.DataFrame:
                 note = "partial_last_day"
             elif prev_cov is not None and coverage != prev_cov:
                 note = "coverage_change"
-            if status != "missing":
+            if status not in ("missing", "partial"):
                 window.append((d, e))
             rows.append({
                 "satellite": sat, "date_utc": d, "n_det_ea": ea, "n_det_status": e,
@@ -209,7 +216,7 @@ def build_satellite_day_status() -> pl.DataFrame:
     })
     # 같은 날 다른 위성도 기준선의 50% 미만이었는지
     # (결측인 위성은 '함께 낮음'으로 세지 않는다 — 다른 위성의 수신 장애가 날씨처럼 보이지 않도록)
-    valid = (pl.col("status") != "missing") & pl.col("ratio_to_baseline").is_not_null()
+    valid = ~pl.col("status").is_in(["missing", "partial"]) & pl.col("ratio_to_baseline").is_not_null()
     lowish = (valid & (pl.col("ratio_to_baseline") < LOW_RATIO)).cast(pl.Int8)
     st = st.with_columns(_low=lowish, _valid=valid.cast(pl.Int8)).with_columns(
         n_sats_low_same_day=(pl.col("_low").sum().over("date_utc") - pl.col("_low")).cast(pl.Int8),
