@@ -1,11 +1,11 @@
 """T6: 최종 통합 시계열 (VIIRS 환산 감지 수 = 'S-NPP가 봤다면 셌을 핫스팟 수').
 
 기간별 값 (value_source)
-  2000-11 ~ 2002-06  modis_harmonized_terra_only  M1 최종 방법(지금 B1)의 Terra 단독 변형 × Terra (공통 정상일 환산)
-  2002-07 ~ 2012-01  modis_harmonized             M1 최종 방법 × (Aqua+Terra). 2012-01은 S-NPP가 01-20에 시작한 부분 월이라
+  2000-11 ~ 2002-06  modis_m2v_terra  M1 최종 방법(지금 B1)의 Terra 단독 변형 × Terra (공통 정상일 환산)
+  2002-07 ~ 2012-01  modis_m2v             M1 최종 방법 × (Aqua+Terra). 2012-01은 S-NPP가 01-20에 시작한 부분 월이라
                                                    MODIS 보정 값을 쓴다 (meta에 기록).
   2012-02 ~ 2026-10  snpp_observed                S-NPP 실측: S-NPP status=ok인 날의 감지 수 × days_in_month / ok일수
-  2026-11            noaa20_bridged               S-NPP(11-01~02, 마지막 감지 11-02 15:16 UTC) + NOAA-20(11-03~) × M2 비율,
+  2026-11            n20_bridge               S-NPP(11-01~02, 마지막 감지 11-02 15:16 UTC) + NOAA-20(11-03~) × M2 비율,
                                                    ok일수로 월 환산. 진행 중인 달이라 status=partial.
   감지 수는 실제 산불 건수가 아니라 '관측 활동'이다.
 
@@ -48,13 +48,17 @@ from planetarium.config import (
 )
 from planetarium.korea import ADM_DIR, KOREA_CELLS_PATH, TO_4326
 from planetarium.modeling.m2 import M2_RATIOS_PATH
-from planetarium.modeling.train_m1 import B1_INTERVAL_PATH, B1_RATIOS_PATH, META_PATH, apply_interval, b1_predict
+from planetarium.modeling.train_m1 import META_PATH
+from planetarium.modeling.names import M2V_PATH, M2V_Q_PATH, M2V_TERRA_PATH
 from planetarium.monthly import CELL_MONTH_PATH, SAT_MONTH_PATH, STATUS_PATH
 from planetarium.runlog import start_run_log
 from planetarium.train_table import aggregate_common, load_panel, panel_months
 from planetarium.world import NE_DIR, WORLD_CELLS_PATH, polygon_cells
 
 HCM_PATH = PROCESSED_DATA_DIR / "harmonized_cell_month.parquet"
+# 적용 기간(2000-11~2012-01) 감지 없는 칸의 작은 예측값(< DENSE_MIN): 칸 표에는 넣지 않고 AOI 합계에만 더한다
+HCM_BACKGROUND_DIR = PROCESSED_DATA_DIR.parent / "interim" / "harmonized_background"
+DENSE_MIN = 0.5
 AOI_MONTH_PATH = PROCESSED_DATA_DIR / "aoi_month.parquet"
 AOI_LIST_PATH = PROCESSED_DATA_DIR / "aoi_list.parquet"
 AOI_GEOJSON_PATH = PROCESSED_DATA_DIR / "aoi_boundaries.geojson"
@@ -110,7 +114,7 @@ def month_reference() -> pl.DataFrame:
         k = ym(y, m)
         if k < ym(*SNPP_FIRST):
             a = apply.get((y, m))
-            src = "modis_harmonized_terra_only" if a and a["terra_only"] else "modis_harmonized"
+            src = "modis_m2v_terra" if a and a["terra_only"] else "modis_m2v"
             frac = (a["common_days"] / dim) if a else 0.0
             ds = "SP"
         elif k < ym(*BRIDGE_MONTH):
@@ -119,7 +123,7 @@ def month_reference() -> pl.DataFrame:
             frac = (r["obs_days"] / dim) if r else 0.0
             ds = "NRT" if nrt.get(("S-NPP", y, m)) else "SP"
         else:
-            src = "noaa20_bridged"
+            src = "n20_bridge"
             frac = bridge_ok / dim
             ds = "NRT"
         partial = (y, m) == (end.year, end.month) and end.day < dim
@@ -147,6 +151,51 @@ def m2_ratio_for_cells(cells: pl.DataFrame, month: int) -> pl.DataFrame:
         m2=pl.col("region").replace_strict(rr, default=rr["world"], return_dtype=pl.Float64)).select("cell_id", "m2")
 
 
+def m2v_apply_year(year: int, ap: pl.DataFrame) -> pl.DataFrame:
+    """적용 기간 한 해: 패널 칸 + 감지 없는 모든 격자 칸에 M2V Harmonizer 예측 (zero rule 끔 — 검증과 같은 방식).
+    Terra 단독 달(2000-11~2002-06)은 m2v_xgb_terra. 칸 구간은 M2V Uncertainty Band(m2v_q10_q90), Terra 단독 달은 null.
+    감지 없는 칸의 예측 중 DENSE_MIN 미만은 배경 표(HCM_BACKGROUND_DIR)로 따로 저장해 AOI 합계에만 더한다."""
+    import xgboost as xgb
+    from planetarium.modeling.m1_xgb import (M1_FEATURES, M1_TERRA_FEATURES, category_maps, dense_zero_rows,
+                                            xgb_predict)
+    from planetarium.train_table import GRID_PATH
+    keys = ["cell_id", "year", "month"]
+    cats = category_maps()
+    models = {}
+    for name, path in (("m", M2V_PATH), ("t", M2V_TERRA_PATH), ("q", M2V_Q_PATH)):
+        models[name] = xgb.Booster()
+        models[name].load_model(path)
+    grid = pl.read_parquet(GRID_PATH).with_columns(
+        pl.col("adm0_a3").fill_null("none"), pl.col("subregion").fill_null("none"), pl.col("continent").fill_null("none"))
+    ap = ap.with_columns(pl.col("adm0_a3").fill_null("none"))
+    dz = dense_zero_rows(year, grid, ap.select(keys), "apply")
+
+    def predict(df: pl.DataFrame) -> pl.DataFrame:
+        out = []
+        for terra, sub in ((True, df.filter("terra_only")), (False, df.filter(~pl.col("terra_only")))):
+            if sub.height == 0:
+                continue
+            if terra:
+                v = xgb_predict(models["t"], sub, M1_TERRA_FEATURES, cats)
+                lo = hi = np.full(sub.height, np.nan)
+            else:
+                v = xgb_predict(models["m"], sub, M1_FEATURES, cats)
+                q = xgb_predict(models["q"], sub, M1_FEATURES, cats)
+                lo, hi = np.minimum(q[:, 0], q[:, 1]).clip(0), np.maximum(q[:, 0], q[:, 1]).clip(0)
+            out.append(sub.select(keys).with_columns(value=pl.Series(v, dtype=pl.Float64),
+                                                     value_lo=pl.Series(lo, dtype=pl.Float64).fill_nan(None),
+                                                     value_hi=pl.Series(hi, dtype=pl.Float64).fill_nan(None)))
+        return pl.concat(out)
+
+    pp = predict(ap)
+    pz = predict(dz)
+    HCM_BACKGROUND_DIR.mkdir(parents=True, exist_ok=True)
+    pz.filter(pl.col("value") < DENSE_MIN).select(keys, pl.col("value").cast(pl.Float32)).write_parquet(
+        HCM_BACKGROUND_DIR / f"{year}.parquet", compression="zstd")
+    return pl.concat([pp, pz.filter(pl.col("value") >= DENSE_MIN)])
+
+
+
 def harmonized_year(year: int, ref: pl.DataFrame, meta: dict) -> pl.DataFrame:
     keys = ["cell_id", "year", "month"]
     yref = ref.filter(pl.col("year") == year)
@@ -163,11 +212,7 @@ def harmonized_year(year: int, ref: pl.DataFrame, meta: dict) -> pl.DataFrame:
         ap = load_panel("apply", [year]).collect() if any(
             f for f in (PROCESSED_DATA_DIR / "panel_common_0.1deg").glob(f"apply_{year}.parquet")) else None
         if ap is not None and ap.height:
-            ratios = pl.read_parquet(B1_RATIOS_PATH)
-            iv = pl.read_parquet(B1_INTERVAL_PATH)
-            pred = b1_predict(ap, ratios, pl.col("terra_only"))
-            lo, hi = apply_interval(pred, iv)
-            parts.append(ap.select(keys).with_columns(value=pred, value_lo=lo, value_hi=hi))
+            parts.append(m2v_apply_year(year, ap))
 
     # 2) S-NPP 실측 (ok일 × 월 환산)
     if year >= SNPP_FIRST[0]:
@@ -206,9 +251,12 @@ def harmonized_year(year: int, ref: pl.DataFrame, meta: dict) -> pl.DataFrame:
               on=["year", "month"], how="inner")
     )
     in_snpp = pl.col("value_source") == "snpp_observed"
-    in_bridge = pl.col("value_source") == "noaa20_bridged"
+    in_bridge = pl.col("value_source") == "n20_bridge"
+    terra = pl.col("value_source") == "modis_m2v_terra"
     out = out.with_columns(
-        pl.col("value", "value_lo", "value_hi").fill_null(0.0),
+        pl.col("value").fill_null(0.0),
+        # Terra 단독 달은 칸별 분위수 모델이 없어 칸 구간 null (AOI 구간은 AOI 보정으로 따로 계산)
+        *[pl.when(terra).then(pl.col(c)).otherwise(pl.col(c).fill_null(0.0)).alias(c) for c in ("value_lo", "value_hi")],
         pl.col("raw_modis").fill_null(0).cast(pl.Int32),
         raw_viirs=pl.when(in_snpp).then(pl.col("raw_snpp").fill_null(0))
         .when(in_bridge).then(pl.col("raw_snpp").fill_null(0) + pl.col("raw_n20").fill_null(0))
@@ -320,6 +368,14 @@ def aoi_membership() -> tuple[pl.DataFrame, pl.DataFrame]:
     )
     n = membership.group_by("aoi_id").agg(n_cells=pl.len())
     aoi_list = pl.DataFrame(lst).unique("aoi_id").join(n, on="aoi_id", how="left").with_columns(pl.col("n_cells").fill_null(0))
+    # Seven seas(공해) 대륙과 그 아래 국가·1급 행정구역: 칸이 적어 검증이 불안정(편향 1.41) → 앱에서 숨김, 비교 판정 uncertain
+    seven = {r["aoi_id"] for r in aoi_list.filter(pl.col("aoi_id").str.starts_with("CONT_Seven_seas")).to_dicts()}
+    changed = True
+    while changed:
+        kids = set(aoi_list.filter(pl.col("parent_aoi").is_in(list(seven)))["aoi_id"].to_list()) - seven
+        changed = bool(kids)
+        seven |= kids
+    aoi_list = aoi_list.with_columns(hidden=pl.col("aoi_id").is_in(list(seven)))
     return membership, aoi_list
 
 
@@ -377,9 +433,17 @@ def build_aoi_month(ref: pl.DataFrame, membership: pl.DataFrame, aoi_list: pl.Da
             .collect()
         )
     sums = pl.concat(parts)
-    base = aoi_list.select("aoi_id", "n_cells").join(ref, how="cross").join(aoi_coverage_ok(membership), on="aoi_id", how="left")
+    # 감지 없는 칸의 작은 예측값(배경 표)도 AOI 합계에 더한다 (검증 때 전체 칸 합과 같은 방식)
+    bg_parts = []
+    for f in sorted(HCM_BACKGROUND_DIR.glob("*.parquet")) if HCM_BACKGROUND_DIR.exists() else []:
+        bg_parts.append(pl.scan_parquet(f).join(membership.lazy(), on="cell_id").group_by("aoi_id", "year", "month")
+                        .agg(bg=(pl.col("value") * pl.col("weight")).sum()).collect())
+    if bg_parts:
+        sums = sums.join(pl.concat(bg_parts), on=["aoi_id", "year", "month"], how="full", coalesce=True).with_columns(
+            value=pl.col("value").fill_null(0) + pl.col("bg").fill_null(0)).drop("bg")
+    base = aoi_list.select("aoi_id", "n_cells", "level").join(ref, how="cross").join(aoi_coverage_ok(membership), on="aoi_id", how="left")
     df = base.join(sums, on=["aoi_id", "year", "month"], how="left")
-    viirs_era = pl.col("value_source").is_in(["snpp_observed", "noaa20_bridged"])
+    viirs_era = pl.col("value_source").is_in(["snpp_observed", "n20_bridge"])
     out_of_range = pl.col("regional_ea") & ~pl.col("inside_ea").fill_null(False)
     df = df.with_columns(
         pl.col("value", "value_lo", "value_hi").fill_null(0.0),
@@ -391,6 +455,16 @@ def build_aoi_month(ref: pl.DataFrame, membership: pl.DataFrame, aoi_list: pl.Da
         .when(out_of_range).then(pl.lit("missing")).otherwise(pl.col("status")),
     ).with_columns(
         status=pl.when((pl.col("status") == "ok") & (pl.col("data_source") == "NRT")).then(pl.lit("nrt")).otherwise(pl.col("status")),
+    )
+    # 구간: MODIS 보정 기간은 M2V Uncertainty Band의 AOI 보정(유형·예측 크기별 '실제/예측' 10·90 분위수 × AOI 합계),
+    #       실측·연결 기간은 value와 같음
+    from planetarium.modeling.m2v_interval import AOI_INTERVAL_PATH, apply_interval as aoi_band
+    modis_era = pl.col("value_source").is_in(["modis_m2v", "modis_m2v_terra"])
+    band = aoi_band(df.filter(modis_era).select("aoi_id", "year", "month", "level", "value"), pl.read_parquet(AOI_INTERVAL_PATH))
+    df = df.drop("value_lo", "value_hi").join(band.select("aoi_id", "year", "month", "value_lo", "value_hi"),
+                                              on=["aoi_id", "year", "month"], how="left").with_columns(
+        value_lo=pl.when(modis_era).then(pl.col("value_lo")).otherwise(pl.col("value")),
+        value_hi=pl.when(modis_era).then(pl.col("value_hi")).otherwise(pl.col("value")),
     ).with_columns(*[pl.when(pl.col("status") == "missing").then(None).otherwise(pl.col(c)).alias(c)
                      for c in ("value", "value_lo", "value_hi")])
     df = df.select("aoi_id", "year", "month", "value", "value_lo", "value_hi", "raw_modis", "raw_viirs",
@@ -459,10 +533,18 @@ def main(argv: list[str] | None = None) -> None:
         print(f"[완료] {AOI_GEOJSON_PATH.name}: {nf:,}개, {AOI_GEOJSON_PATH.stat().st_size / 1e6:,.1f} MB")
     # 결정 기록
     meta.setdefault("harmonization", {}).update({
-        "2012-01": "S-NPP가 2012-01-20에 시작한 부분 월이라 MODIS 보정 값(modis_harmonized)을 씀",
+        "2012-01": ("m2v_xgb 값만 사용 (S-NPP 실측과 섞지 않음). S-NPP는 2012-01-20부터 12일만 있어 월 환산 오차가 크고, "
+                    "학습 기간도 2012-02부터라 2012-01은 MODIS 쪽(공통 정상일: Aqua·Terra) 예측이 더 일관됨. value_source=modis_m2v"),
+        "modis_m2v": ("2002-07~2012-01: m2v_xgb(M2V Harmonizer)로 패널 칸 + 감지 없는 모든 격자 칸 예측 (zero rule 끔, 검증과 같은 방식). "
+                      "2000-11~2002-06: m2v_xgb_terra"),
+        "dense_rows": (f"감지 없는 칸의 예측 중 {DENSE_MIN} 미만은 harmonized_cell_month에 넣지 않고 data/interim/harmonized_background/에 "
+                       "따로 저장해 AOI 합계에만 더함 (2005년 기준 감지 없는 칸 예측은 전체의 약 3%)"),
+        "cell_interval": "칸 value_lo/hi = m2v_q10_q90 (Terra 단독 달은 칸 분위수 모델이 없어 null)",
+        "aoi_interval": ("AOI value_lo/hi = AOI 합계 × '실제/예측' 비율의 10·90 분위수. leave-year-out fold 모델의 전체 칸 OOF 예측을 "
+                         "AOI 유형(world·continent·country(KR 포함)·adm1·sido·sgg) × 예측 크기 구간별로 보정 (models/m2v_aoi_interval.parquet)"),
         "snpp_observed": "S-NPP status=ok인 날의 감지 수 × days_in_month / ok일수 (raw_viirs는 전체 일 원값)",
-        "noaa20_bridged": f"{NOAA20_BRIDGE_START} 부터 NOAA-20 × M2 비율 (한국·아르헨티나·대륙·world 순, 대체 규칙 적용)",
-        "regional_only": "2026-01~09는 동아시아 자료만 있어 그 밖의 칸·AOI는 missing",
+        "n20_bridge": f"{NOAA20_BRIDGE_START} 부터 NOAA-20 × n20_bridge 비율 (한국·아르헨티나·대륙·world 순, 대체 규칙 적용)",
+        "hidden_aoi": "Seven seas(공해) 대륙과 그 아래 AOI는 aoi_list.hidden=true, 비교 판정 uncertain",
         "sparse_cell_table": "harmonized_cell_month는 value·raw가 모두 0인 칸·월을 저장하지 않음",
     })
     META_PATH.write_text(json.dumps(meta, ensure_ascii=False, indent=2), encoding="utf-8")

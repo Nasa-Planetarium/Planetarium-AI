@@ -71,11 +71,11 @@ Q_PARAMS = {"objective": "reg:quantileerror", "quantile_alpha": np.array([0.1, 0
 Q_MAX_ROUNDS = 2000
 EARLY_STOP = 100
 B1C_MIN_DEN = 200
-B1C_PATH = MODELS_DIR / "b1c_ratios.parquet"
-M1_MODEL_PATH = MODELS_DIR / "m1_xgb.json"
-M1_Q_PATH = MODELS_DIR / "m1_q10_q90_xgb.json"
-M1_TERRA_PATH = MODELS_DIR / "m1_terra_xgb.json"
-B2_PATH = MODELS_DIR / "b2_ridge.json"
+B1C_PATH = MODELS_DIR / "ratio_country.parquet"
+M1_MODEL_PATH = MODELS_DIR / "m2v_xgb.json"  # M2V Harmonizer
+M1_Q_PATH = MODELS_DIR / "m2v_q10_q90.json"  # M2V Uncertainty Band
+M1_TERRA_PATH = MODELS_DIR / "m2v_xgb_terra.json"
+B2_PATH = MODELS_DIR / "loglinear_ridge.json"
 REGION_KEYS = ["year", "month", "is_korea", "adm0_a3", "continent"]
 
 
@@ -123,7 +123,9 @@ def xgb_train(tr: pl.DataFrame, va: pl.DataFrame, feats: list[str], cats: dict, 
 def xgb_predict(bst, df: pl.DataFrame, feats: list[str], cats: dict) -> np.ndarray:
     import xgboost as xgb
     d = xgb.DMatrix(to_matrix(df, feats, cats), feature_types=feature_types(feats), enable_categorical=True)
-    return bst.predict(d, iteration_range=(0, bst.best_iteration + 1))
+    # 조기 종료로 학습한 모델은 최적 반복까지, 최종 모델(반복 수 고정)은 전체 트리
+    best = bst.attributes().get("best_iteration")
+    return bst.predict(d, iteration_range=(0, int(best) + 1) if best is not None else (0, 0))
 
 
 def poisson_dev(y: np.ndarray, p: np.ndarray, w: np.ndarray | None = None) -> float:
@@ -190,10 +192,11 @@ def b2_predict(m, df: pl.DataFrame) -> np.ndarray:
 
 # ── 전체 칸 (zero rule 끔용) ──────────────────────────────────────────────
 
-def dense_zero_rows(year: int, grid: pl.DataFrame, panel_keys: pl.DataFrame) -> pl.DataFrame:
-    """패널에 없는 (격자 칸 × 정상 월): MODIS·주변 감지·타깃 모두 0인 행."""
-    months = panel_months().filter(pl.col("mode") == "train", ~pl.col("excluded"), pl.col("year") == year).select("year", "month")
-    obs = load_panel("train", [year]).select("year", "month", "aqua_obs_days", "terra_obs_days").unique().collect()
+def dense_zero_rows(year: int, grid: pl.DataFrame, panel_keys: pl.DataFrame, mode: str = "train") -> pl.DataFrame:
+    """패널에 없는 (격자 칸 × 정상 월): MODIS·주변 감지·타깃 모두 0인 행. mode="apply"면 적용 기간(terra_only 포함)."""
+    months = panel_months().filter(pl.col("mode") == mode, ~pl.col("excluded"), pl.col("year") == year).select(
+        "year", "month", "terra_only")
+    obs = load_panel(mode, [year]).select("year", "month", "aqua_obs_days", "terra_obs_days").unique().collect()
     z = grid.join(months, how="cross").join(panel_keys, on=["cell_id", "year", "month"], how="anti").join(
         obs, on=["year", "month"], how="left")
     zero_cols = [f for f in NUMERIC_FEATURES if f.startswith(("aqua_", "terra_")) and not f.endswith(("obs_days", "night_ratio", "drift"))]
@@ -215,6 +218,7 @@ def zero_rule_mask(df: pl.DataFrame) -> np.ndarray:
 
 def select_objective(tt: pl.DataFrame, cats: dict, log: list) -> str:
     scores = {k: [] for k in OBJECTIVES}
+    bar = tqdm(total=len(SELECT_FOLDS) * len(OBJECTIVES), desc="목적함수 선택", unit="model", dynamic_ncols=True)
     for y in SELECT_FOLDS:
         v = inner_year(y)
         tr = tt.filter(~pl.col("year").is_in([y, v]))
@@ -227,7 +231,8 @@ def select_objective(tt: pl.DataFrame, cats: dict, log: list) -> str:
             scores[name].append(dev)
             log.append({"select_fold": y, "inner_year": v, "objective": name, "inner_poisson_dev": dev,
                         "best_iteration": bst.best_iteration, "sec": time.perf_counter() - t0})
-            print(f"  [선택] fold {y} (안쪽 {v}) {name}: dev={dev:.4f}, iter={bst.best_iteration}, {time.perf_counter() - t0:.0f}초")
+            bar.update(1)
+            tqdm.write(f"  [선택] fold {y} (안쪽 {v}) {name}: dev={dev:.4f}, iter={bst.best_iteration}, {time.perf_counter() - t0:.0f}초")
     mean = {k: float(np.mean(v)) for k, v in scores.items()}
     best = min(mean, key=mean.get)
     print(f"[목적함수 선택] {best} (안쪽 검증 Poisson deviance 평균 {mean})")
@@ -255,8 +260,10 @@ def main(argv: list[str] | None = None) -> None:
     obj = OBJECTIVES[obj_name]
 
     s1, s1c = b1_sums(), b1c_sums()
-    rows, oof, cell_oof, iters = [], [], [], {"M1": [], "M1_terra": [], "M1_q": []}
-    for y in folds:
+    rows, oof, cell_oof, iters = [], [], [], {"m2v_xgb": [], "m2v_xgb_terra": [], "m2v_q10_q90": []}
+    bar = tqdm(folds, desc="leave-year-out", unit="fold", dynamic_ncols=True)
+    for y in bar:
+        bar.set_postfix_str(f"{y}년 학습 중")
         t0 = time.perf_counter()
         v = inner_year(y)
         train_years = [x for x in FOLD_YEARS if x != y]
@@ -271,20 +278,20 @@ def main(argv: list[str] | None = None) -> None:
         m1 = xgb_train(tr, va, M1_FEATURES, cats, obj)
         mq = xgb_train(tr, va, M1_FEATURES, cats, {}, quantile=True)
         mt = xgb_train(tr, va, M1_TERRA_FEATURES, cats, obj)
-        iters["M1"].append(m1.best_iteration)
-        iters["M1_q"].append(mq.best_iteration)
-        iters["M1_terra"].append(mt.best_iteration)
+        iters["m2v_xgb"].append(m1.best_iteration)
+        iters["m2v_q10_q90"].append(mq.best_iteration)
+        iters["m2v_xgb_terra"].append(mt.best_iteration)
 
         zr_p, zr_z = zero_rule_mask(panel), np.ones(dz.height, dtype=bool)
         preds = {  # model -> (패널 예측, 패널 밖 0행 예측)
-            "B1": (b1_predict(panel, r1).to_numpy(), np.zeros(dz.height)),
-            "B1c": (b1c_predict(panel, r1c), np.zeros(dz.height)),
-            "B1c_terra": (b1c_predict(panel, r1c_t, True), np.zeros(dz.height)),
-            "B2": (b2_predict(b2, panel), b2_predict(b2, dz)),
-            "M1": (xgb_predict(m1, panel, M1_FEATURES, cats), xgb_predict(m1, dz, M1_FEATURES, cats)),
-            "M1_terra": (xgb_predict(mt, panel, M1_TERRA_FEATURES, cats), xgb_predict(mt, dz, M1_TERRA_FEATURES, cats)),
+            "ratio_lat": (b1_predict(panel, r1).to_numpy(), np.zeros(dz.height)),
+            "ratio_country": (b1c_predict(panel, r1c), np.zeros(dz.height)),
+            "ratio_country_terra": (b1c_predict(panel, r1c_t, True), np.zeros(dz.height)),
+            "loglinear_ridge": (b2_predict(b2, panel), b2_predict(b2, dz)),
+            "m2v_xgb": (xgb_predict(m1, panel, M1_FEATURES, cats), xgb_predict(m1, dz, M1_FEATURES, cats)),
+            "m2v_xgb_terra": (xgb_predict(mt, panel, M1_TERRA_FEATURES, cats), xgb_predict(mt, dz, M1_TERRA_FEATURES, cats)),
         }
-        for base in ("B2", "M1", "M1_terra"):
+        for base in ("loglinear_ridge", "m2v_xgb", "m2v_xgb_terra"):
             pp, pz = preds[base]
             preds[f"{base}+zr"] = (np.where(zr_p, 0.0, pp), np.where(zr_z, 0.0, pz))
 
@@ -304,11 +311,11 @@ def main(argv: list[str] | None = None) -> None:
 
         # 칸·월 지표 (학습 표 표본) + 분위수 구간 적중률
         cp = {
-            "B1": b1_predict(te, r1).to_numpy(), "B1c": b1c_predict(te, r1c), "B2": b2_predict(b2, te),
-            "M1": xgb_predict(m1, te, M1_FEATURES, cats), "M1_terra": xgb_predict(mt, te, M1_TERRA_FEATURES, cats),
+            "ratio_lat": b1_predict(te, r1).to_numpy(), "ratio_country": b1c_predict(te, r1c), "loglinear_ridge": b2_predict(b2, te),
+            "m2v_xgb": xgb_predict(m1, te, M1_FEATURES, cats), "m2v_xgb_terra": xgb_predict(mt, te, M1_TERRA_FEATURES, cats),
         }
         zr_te = zero_rule_mask(te)
-        for base in ("B2", "M1", "M1_terra"):
+        for base in ("loglinear_ridge", "m2v_xgb", "m2v_xgb_terra"):
             cp[f"{base}+zr"] = np.where(zr_te, 0.0, cp[base])
         q = xgb_predict(mq, te, M1_FEATURES, cats)
         q10, q90 = np.minimum(q[:, 0], q[:, 1]), np.maximum(q[:, 0], q[:, 1])
@@ -321,11 +328,11 @@ def main(argv: list[str] | None = None) -> None:
             for model, p in cp.items():
                 for k, val in cell_metrics(yt[idx], p[idx]).items():
                     rows.append({"model": model, "region": region, "fold_year": str(y), "metric": k, "value": val})
-            for model, (lo, hi) in (("M1", (q10, q90)), ("M1+zr", (q10z, q90z))):
+            for model, (lo, hi) in (("m2v_xgb", (q10, q90)), ("m2v_xgb+zr", (q10z, q90z))):
                 cov = float(np.mean((yt[idx] >= lo[idx]) & (yt[idx] <= hi[idx])))
                 rows.append({"model": model, "region": region, "fold_year": str(y), "metric": "cell_interval_coverage_q10_q90", "value": cov})
         cell_oof.append(te.select("year", "month", "cell_id", "is_korea", "adm0_a3", "continent", "y").with_columns(
-            pred_m1=pl.Series(cp["M1"], dtype=pl.Float64), q10=pl.Series(q10, dtype=pl.Float64),
+            pred_m1=pl.Series(cp["m2v_xgb"], dtype=pl.Float64), q10=pl.Series(q10, dtype=pl.Float64),
             q90=pl.Series(q90, dtype=pl.Float64)))
         # fold마다 중간 저장 (뒤 단계에서 오류가 나도 학습을 다시 하지 않도록)
         ck = REPORTS_DIR / "m1_checkpoint"
@@ -334,18 +341,18 @@ def main(argv: list[str] | None = None) -> None:
         pl.DataFrame(rows).write_parquet(ck / "rows.parquet")
         pl.concat(cell_oof).write_parquet(ck / "cell_oof.parquet")
         (ck / "iters.json").write_text(json.dumps(iters), encoding="utf-8")
-        print(f"[fold {y}] 안쪽 {v}, M1 iter {m1.best_iteration}, q iter {mq.best_iteration}, terra iter {mt.best_iteration}, "
+        tqdm.write(f"[fold {y}] 안쪽 {v}, M1 iter {m1.best_iteration}, q iter {mq.best_iteration}, terra iter {mt.best_iteration}, "
               f"패널 {panel.height:,} + 0행 {dz.height:,}, {time.perf_counter() - t0:.0f}초")
 
     oof_df = pl.concat(oof)
     val = pl.DataFrame(rows + pooled_rows(oof_df))
-    val.write_csv(REPORTS_DIR / "validation_m1.csv")
+    val.write_csv(REPORTS_DIR / "validation_m2v.csv")
     summ = summarize(val)
     summ.write_csv(REPORTS_DIR / "validation_summary.csv")
     oof_df.write_parquet(OOF_PATH)
-    pl.concat(cell_oof).write_parquet(OOF_PATH.with_name("oof_cell_m1.parquet"))
+    pl.concat(cell_oof).write_parquet(OOF_PATH.with_name("oof_cell_m2v.parquet"))
     if sel_log:
-        pl.DataFrame(sel_log).write_csv(REPORTS_DIR / "m1_objective_selection.csv")
+        pl.DataFrame(sel_log).write_csv(REPORTS_DIR / "m2v_objective_selection.csv")
 
     # ── 최종 모델 (전 기간; 반복 수 = fold 최적 반복 수 중앙값) ──
     import xgboost as xgb
@@ -355,11 +362,11 @@ def main(argv: list[str] | None = None) -> None:
         d = xgb.QuantileDMatrix(to_matrix(full, feats, cats), label=full["y"].to_numpy(), weight=full["w"].to_numpy(),
                                 feature_types=feature_types(feats), enable_categorical=True, max_bin=BASE_PARAMS["max_bin"])
         return xgb.train(params, d, n)
-    final = fit_full(M1_FEATURES, {**BASE_PARAMS, **obj}, n_iter["M1"])
+    final = fit_full(M1_FEATURES, {**BASE_PARAMS, **obj}, n_iter["m2v_xgb"])
     final.save_model(M1_MODEL_PATH)
-    fq = fit_full(M1_FEATURES, {**BASE_PARAMS, **Q_PARAMS}, n_iter["M1_q"])
+    fq = fit_full(M1_FEATURES, {**BASE_PARAMS, **Q_PARAMS}, n_iter["m2v_q10_q90"])
     fq.save_model(M1_Q_PATH)
-    ft = fit_full(M1_TERRA_FEATURES, {**BASE_PARAMS, **obj}, n_iter["M1_terra"])
+    ft = fit_full(M1_TERRA_FEATURES, {**BASE_PARAMS, **obj}, n_iter["m2v_xgb_terra"])
     ft.save_model(M1_TERRA_PATH)
     c_all = b1c_fit(s1c, FOLD_YEARS)
     pl.concat([c_all[k].with_columns(level=pl.lit(k)) for k in c_all], how="diagonal_relaxed").write_parquet(B1C_PATH)
@@ -368,20 +375,20 @@ def main(argv: list[str] | None = None) -> None:
                                    "coef": b2_all[1].coef_.tolist(), "intercept": float(b2_all[1].intercept_)}), encoding="utf-8")
 
     # ── 그림 ──
-    best_m1 = choose_variant(summ, "M1")
-    plot_korea_monthly(oof_df, ["B1", "B1c", best_m1])
-    plot_yearly_bias(oof_df, ["B1", "B1c", best_m1])
+    best_m1 = choose_variant(summ, "m2v_xgb")
+    plot_korea_monthly(oof_df, ["ratio_lat", "ratio_country", best_m1])
+    plot_yearly_bias(oof_df, ["ratio_lat", "ratio_country", best_m1])
     plot_importance(final)
 
     # ── 채택 규칙 ──
     def kv(model: str, metric: str) -> float:
         r = summ.filter(pl.col("model") == model, pl.col("region") == "korea", pl.col("metric") == f"pooled_month_total_{metric}")
         return float(r["mean"][0])
-    b1_mae, b1_bias = kv("B1", "MAE"), kv("B1", "bias")
+    b1_mae, b1_bias = kv("ratio_lat", "MAE"), kv("ratio_lat", "bias")
     m_mae, m_bias = kv(best_m1, "MAE"), kv(best_m1, "bias")
     adopt = (m_mae < b1_mae) and (abs(m_bias - 1) <= abs(b1_bias - 1))
     meta = json.loads(META_PATH.read_text(encoding="utf-8")) if META_PATH.exists() else {}
-    meta["m1_evaluation"] = {
+    meta["m2v_evaluation"] = {
         "created": datetime.now().isoformat(timespec="seconds"),
         "objective": obj_name, "objective_selection": "안쪽 검증 연도 Poisson deviance (선택 fold 2013·2017·2021·2025)",
         "features": M1_FEATURES, "terra_only_features": M1_TERRA_FEATURES, "categorical": CAT_FEATURES,
@@ -389,10 +396,10 @@ def main(argv: list[str] | None = None) -> None:
         "params": {k: (v.tolist() if isinstance(v, np.ndarray) else v) for k, v in BASE_PARAMS.items()},
         "n_rounds_final": n_iter, "sample_weight": "1/표본 비율 (positive 0.25, 0행 후보/표본)",
         "best_m1_variant": best_m1,
-        "korea_pooled": {"B1": {"MAE": b1_mae, "bias": b1_bias}, best_m1: {"MAE": m_mae, "bias": m_bias},
-                         "B1c": {"MAE": kv("B1c", "MAE"), "bias": kv("B1c", "bias")}},
+        "korea_pooled": {"ratio_lat": {"MAE": b1_mae, "bias": b1_bias}, best_m1: {"MAE": m_mae, "bias": m_bias},
+                         "ratio_country": {"MAE": kv("ratio_country", "MAE"), "bias": kv("ratio_country", "bias")}},
         "adoption_rule": "한국 월 합계 MAE와 |편향-1| 둘 다 M1이 B1보다 나아야 채택",
-        "adopted": best_m1 if adopt else "B1",
+        "adopted": best_m1 if adopt else "ratio_lat",
         "models": {"m1": M1_MODEL_PATH.name, "q10_q90": M1_Q_PATH.name, "terra_only": M1_TERRA_PATH.name,
                    "b1c": B1C_PATH.name, "b2": B2_PATH.name},
     }
@@ -425,11 +432,11 @@ def plot_importance(bst) -> None:
     items = sorted(((names.get(k, k), v) for k, v in gain.items()), key=lambda x: x[1])
     fig, ax = plt.subplots(figsize=(8, 7))
     ax.barh([k for k, _ in items], [v for _, v in items], color="#d62728")
-    ax.set_title("M1 (XGBoost) feature importance: total gain")
+    ax.set_title("M2V Harmonizer (m2v_xgb) feature importance: total gain")
     ax.set_xscale("log")
     fig.tight_layout()
     FIGURES_DIR.mkdir(parents=True, exist_ok=True)
-    fig.savefig(FIGURES_DIR / "m1_feature_importance.png", dpi=130)
+    fig.savefig(FIGURES_DIR / "m2v_feature_importance.png", dpi=130)
     plt.close(fig)
 
 

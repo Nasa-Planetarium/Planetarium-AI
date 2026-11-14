@@ -31,7 +31,7 @@ from planetarium.monthly import STATUS_PATH, daily_coverage
 from planetarium.runlog import start_run_log
 from planetarium.train_table import aggregate_common, cell_attrs, to_wide, with_attrs
 
-M2_RATIOS_PATH = MODELS_DIR / "m2_ratios.parquet"
+M2_RATIOS_PATH = MODELS_DIR / "n20_bridge.parquet"  # n20_bridge
 MIN_CELLS = 200
 MIN_CORR = 0.5
 PAIRS = {
@@ -125,7 +125,7 @@ def main(argv: list[str] | None = None) -> None:
         "pair", "period", "region", "year", "ratio", "dev_from_1", "n_cells", "corr", "snpp", "other").sort(
         "pair", "period", "region", "year", nulls_last=True)
     REPORTS_DIR.mkdir(parents=True, exist_ok=True)
-    v.write_csv(REPORTS_DIR / "validation_m2.csv")
+    v.write_csv(REPORTS_DIR / "validation_n20_bridge.csv")
 
     r = pl.concat(ratios)
     ok = (pl.col("n_cells") >= MIN_CELLS) & (pl.col("corr") >= MIN_CORR)

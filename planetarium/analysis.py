@@ -76,12 +76,21 @@ def compare_month(aoi_id: str, year: int, month: int) -> dict:
     res = _compare(target, _base(am)).collect()
     if res.height == 0:
         raise KeyError(f"{aoi_id} {year}-{month:02d} 자료가 없습니다")
-    return res.to_dicts()[0]
+    out = res.to_dicts()[0]
+    from planetarium.harmonize import AOI_LIST_PATH
+    if aoi_id in set(pl.read_parquet(AOI_LIST_PATH).filter(pl.col("hidden").fill_null(False))["aoi_id"].to_list()):
+        out["verdict"] = "uncertain"  # 숨김 AOI(Seven seas 등)
+    return out
 
 
 def build_compare() -> pl.DataFrame:
     am = pl.scan_parquet(AOI_MONTH_PATH)
     df = _compare(am.select("aoi_id", "year", "month", "value", "status"), _base(am)).sort("aoi_id", "year", "month").collect()
+    # aoi_list.hidden(Seven seas 등)은 판정하지 않음
+    from planetarium.harmonize import AOI_LIST_PATH
+    hidden = pl.read_parquet(AOI_LIST_PATH).filter(pl.col("hidden").fill_null(False))["aoi_id"]
+    df = df.with_columns(verdict=pl.when(pl.col("aoi_id").is_in(hidden.implode())).then(pl.lit("uncertain"))
+                         .otherwise(pl.col("verdict")))
     df.write_parquet(COMPARE_PATH, compression="zstd")
     return df
 

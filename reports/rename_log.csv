@@ -1,0 +1,74 @@
+﻿kind,old,new,location,note
+model_file,models/m1_xgb.json,models/m2v_xgb.json,models/,"복사 (구 파일 유지, 내용 동일)"
+model_file,models/m1_terra_xgb.json,models/m2v_xgb_terra.json,models/,"복사 (구 파일 유지, 내용 동일)"
+model_file,models/m1_q10_q90_xgb.json,models/m2v_q10_q90.json,models/,"복사 (구 파일 유지, 내용 동일)"
+model_file,models/b1_ratios.parquet,models/ratio_lat.parquet,models/,"복사 (구 파일 유지, 내용 동일)"
+model_file,models/b1_interval.parquet,models/ratio_lat_interval.parquet,models/,"복사 (구 파일 유지, 내용 동일)"
+model_file,models/b1c_ratios.parquet,models/ratio_country.parquet,models/,"복사 (구 파일 유지, 내용 동일)"
+model_file,models/b2_ridge.json,models/loglinear_ridge.json,models/,"복사 (구 파일 유지, 내용 동일)"
+model_file,models/m2_ratios.parquet,models/n20_bridge.parquet,models/,"복사 (구 파일 유지, 내용 동일)"
+meta,models/m1_meta.json,models/m2v_meta.json,models/,모델 이름·method_version·value_source 반영 (구 파일 유지)
+method_version,v0-b1-global-2026-11-14-r3,v1-m2v-2026-11-14,m2v_meta.json → harmonized_cell_month.method_version,T6 재생성 시 적용
+value_source,modis_harmonized_terra_only,modis_m2v_terra,harmonized_cell_month / aoi_month .value_source,T6 재생성 시 적용
+value_source,modis_harmonized,modis_m2v,harmonized_cell_month / aoi_month .value_source,T6 재생성 시 적용
+value_source,noaa20_bridged,n20_bridge,harmonized_cell_month / aoi_month .value_source,T6 재생성 시 적용
+model_label,B1,ratio_lat,리포트·그림 범례·meta,학습 결과·수치는 그대로
+model_label,B1_terra,ratio_lat_terra,리포트·그림 범례·meta,학습 결과·수치는 그대로
+model_label,B1c,ratio_country,리포트·그림 범례·meta,학습 결과·수치는 그대로
+model_label,B1c_terra,ratio_country_terra,리포트·그림 범례·meta,학습 결과·수치는 그대로
+model_label,B2,loglinear_ridge,리포트·그림 범례·meta,학습 결과·수치는 그대로
+model_label,B2+zr,loglinear_ridge+zr,리포트·그림 범례·meta,학습 결과·수치는 그대로
+model_label,M1,m2v_xgb,리포트·그림 범례·meta,학습 결과·수치는 그대로
+model_label,M1+zr,m2v_xgb+zr,리포트·그림 범례·meta,학습 결과·수치는 그대로
+model_label,M1_terra,m2v_xgb_terra,리포트·그림 범례·meta,학습 결과·수치는 그대로
+model_label,M1_terra+zr,m2v_xgb_terra+zr,리포트·그림 범례·meta,학습 결과·수치는 그대로
+model_label,M1_q,m2v_q10_q90,리포트·그림 범례·meta,학습 결과·수치는 그대로
+model_label,M2,n20_bridge,리포트·그림 범례·meta,학습 결과·수치는 그대로
+report,reports/validation_m1.csv,reports/validation_m2v.csv,reports/,model 컬럼 새 이름
+report,reports/m1_yearly_bias.csv,reports/m2v_yearly_bias.csv,reports/,model 컬럼 새 이름
+report,reports/validation_summary.csv (구 이름),reports/validation_summary.csv (새 이름),reports/,"파일명은 명세대로 유지, model 컬럼만 변경. 변경 전 내용은 validation_summary_pre_rename.csv"
+report,reports/validation_m2.csv,reports/validation_n20_bridge.csv,reports/,복사
+report,reports/m1_objective_selection.csv,reports/m2v_objective_selection.csv,reports/,복사
+oof,data/processed/oof_region_month.parquet (구 이름),data/processed/oof_region_month.parquet (새 이름),data/processed/,"model 컬럼 변경, 이전 내용은 oof_region_month_pre_rename.parquet"
+oof,data/processed/oof_cell_m1.parquet,data/processed/oof_cell_m2v.parquet,data/processed/,복사
+figure,reports/figures/m1_korea_monthly.png,reports/figures/m2v_korea_monthly.png,reports/figures/,새 범례로 다시 그림 (구 그림 유지)
+figure,reports/figures/m1_yearly_bias.png,reports/figures/m2v_yearly_bias.png,reports/figures/,새 범례로 다시 그림 (구 그림 유지)
+figure,reports/figures/m1_feature_importance.png,reports/figures/m2v_feature_importance.png,reports/figures/,새 범례로 다시 그림 (구 그림 유지)
+code,"""B1_terra""","""ratio_lat_terra""",planetarium/train_m1.py,2곳
+code,"""M1+zr""","""m2v_xgb+zr""",planetarium/train_m1.py,1곳
+code,"""B1c""","""ratio_country""",planetarium/train_m1.py,1곳
+code,"""B1""","""ratio_lat""",planetarium/train_m1.py,8곳
+code,"""B2""","""loglinear_ridge""",planetarium/train_m1.py,1곳
+code,"""M1""","""m2v_xgb""",planetarium/train_m1.py,1곳
+code,"META_PATH = MODELS_DIR / ""m1_meta.json""","META_PATH = MODELS_DIR / ""m2v_meta.json""",planetarium/train_m1.py,1곳
+code,"B1_RATIOS_PATH = MODELS_DIR / ""b1_ratios.parquet""","B1_RATIOS_PATH = MODELS_DIR / ""ratio_lat.parquet""  # ratio_lat",planetarium/train_m1.py,1곳
+code,"B1_INTERVAL_PATH = MODELS_DIR / ""b1_interval.parquet""","B1_INTERVAL_PATH = MODELS_DIR / ""ratio_lat_interval.parquet""",planetarium/train_m1.py,1곳
+code,"""m1_korea_monthly.png""","""m2v_korea_monthly.png""",planetarium/train_m1.py,1곳
+code,"""m1_yearly_bias.png""","""m2v_yearly_bias.png""",planetarium/train_m1.py,1곳
+code,"""m1_yearly_bias.csv""","""m2v_yearly_bias.csv""",planetarium/train_m1.py,1곳
+code,"""validation_m1.csv""","""validation_m2v.csv""",planetarium/train_m1.py,1곳
+code,"f""m1-b1-{datetime.now():%Y-%m-%d}""","f""v1-m2v-{datetime.now():%Y-%m-%d}""",planetarium/train_m1.py,1곳
+code,"""B1c_terra""","""ratio_country_terra""",planetarium/m1_xgb.py,1곳
+code,"""M1_terra""","""m2v_xgb_terra""",planetarium/m1_xgb.py,7곳
+code,"""M1+zr""","""m2v_xgb+zr""",planetarium/m1_xgb.py,1곳
+code,"""M1_q""","""m2v_q10_q90""",planetarium/m1_xgb.py,3곳
+code,"""B1c""","""ratio_country""",planetarium/m1_xgb.py,7곳
+code,"""B1""","""ratio_lat""",planetarium/m1_xgb.py,8곳
+code,"""B2""","""loglinear_ridge""",planetarium/m1_xgb.py,4곳
+code,"""M1""","""m2v_xgb""",planetarium/m1_xgb.py,10곳
+code,"B1C_PATH = MODELS_DIR / ""b1c_ratios.parquet""","B1C_PATH = MODELS_DIR / ""ratio_country.parquet""",planetarium/m1_xgb.py,1곳
+code,"M1_MODEL_PATH = MODELS_DIR / ""m1_xgb.json""","M1_MODEL_PATH = MODELS_DIR / ""m2v_xgb.json""  # M2V Harmonizer",planetarium/m1_xgb.py,1곳
+code,"M1_Q_PATH = MODELS_DIR / ""m1_q10_q90_xgb.json""","M1_Q_PATH = MODELS_DIR / ""m2v_q10_q90.json""  # M2V Uncertainty Band",planetarium/m1_xgb.py,1곳
+code,"M1_TERRA_PATH = MODELS_DIR / ""m1_terra_xgb.json""","M1_TERRA_PATH = MODELS_DIR / ""m2v_xgb_terra.json""",planetarium/m1_xgb.py,1곳
+code,"B2_PATH = MODELS_DIR / ""b2_ridge.json""","B2_PATH = MODELS_DIR / ""loglinear_ridge.json""",planetarium/m1_xgb.py,1곳
+code,"""validation_m1.csv""","""validation_m2v.csv""",planetarium/m1_xgb.py,1곳
+code,"""m1_objective_selection.csv""","""m2v_objective_selection.csv""",planetarium/m1_xgb.py,1곳
+code,"""oof_cell_m1.parquet""","""oof_cell_m2v.parquet""",planetarium/m1_xgb.py,1곳
+code,"meta[""m1_evaluation""]","meta[""m2v_evaluation""]",planetarium/m1_xgb.py,1곳
+code,"""m1_feature_importance.png""","""m2v_feature_importance.png""",planetarium/m1_xgb.py,1곳
+code,"ax.set_title(""M1 (XGBoost) feature importance: total gain"")","ax.set_title(""M2V Harmonizer (m2v_xgb) feature importance: total gain"")",planetarium/m1_xgb.py,1곳
+code,"M2_RATIOS_PATH = MODELS_DIR / ""m2_ratios.parquet""","M2_RATIOS_PATH = MODELS_DIR / ""n20_bridge.parquet""  # n20_bridge",planetarium/m2.py,1곳
+code,"""validation_m2.csv""","""validation_n20_bridge.csv""",planetarium/m2.py,1곳
+code,modis_harmonized_terra_only,modis_m2v_terra,planetarium/harmonize.py,2곳
+code,modis_harmonized,modis_m2v,planetarium/harmonize.py,3곳
+code,noaa20_bridged,n20_bridge,planetarium/harmonize.py,5곳

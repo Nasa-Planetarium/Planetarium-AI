@@ -40,9 +40,9 @@ from planetarium.train_table import TRAIN_END, TRAIN_PATH, TRAIN_START, load_pan
 FOLD_YEARS = list(range(TRAIN_START[0], TRAIN_END[0] + 1))
 LAT_BAND = 5
 OOF_PATH = PROCESSED_DATA_DIR / "oof_region_month.parquet"
-META_PATH = MODELS_DIR / "m1_meta.json"
-B1_RATIOS_PATH = MODELS_DIR / "b1_ratios.parquet"
-B1_INTERVAL_PATH = MODELS_DIR / "b1_interval.parquet"
+META_PATH = MODELS_DIR / "m2v_meta.json"
+B1_RATIOS_PATH = MODELS_DIR / "ratio_lat.parquet"  # ratio_lat
+B1_INTERVAL_PATH = MODELS_DIR / "ratio_lat_interval.parquet"
 INTERVAL_BINS = [0.0, 0.5, 1, 2, 5, 10, 20, 50, 100, 1e12]
 PANEL_COLS = ["cell_id", "cell_lat", "year", "month", "adm0_a3", "continent", "is_korea",
               "aqua_n_det", "terra_n_det", "y"]
@@ -112,7 +112,7 @@ def region_month_totals(df: pl.DataFrame, pred: pl.Series, masks: dict[str, pl.E
 def run_b1(train_table: pl.DataFrame, masks: dict[str, pl.Expr]) -> tuple[list[dict], pl.DataFrame, pl.DataFrame]:
     sums = b1_sums()
     rows, oof, cell_oof = [], [], []
-    for model, to in (("B1", False), ("B1_terra", True)):
+    for model, to in (("ratio_lat", False), ("ratio_lat_terra", True)):
         for y in tqdm(FOLD_YEARS, desc=model, unit="fold", leave=False):
             ratios = b1_fit(sums, [v for v in FOLD_YEARS if v != y])
             panel = load_panel("train", [y]).select(PANEL_COLS).collect()
@@ -125,7 +125,7 @@ def run_b1(train_table: pl.DataFrame, masks: dict[str, pl.Expr]) -> tuple[list[d
                     rows.append({"model": model, "region": region, "fold_year": str(y), "metric": k, "value": v})
             tt = train_table.filter(pl.col("year") == y)
             tp = b1_predict(tt, ratios, to)
-            if model == "B1":
+            if model == "ratio_lat":
                 cell_oof.append(tt.select("year", "month", "cell_id", "is_korea", "adm0_a3", "continent", "y").with_columns(pred=tp))
                 # 구간용: 전체 희소 패널의 OOF (y, pred)
             for region, m in masks.items():
@@ -176,7 +176,7 @@ def plot_korea_monthly(oof: pl.DataFrame, models: list[str]) -> None:
     fig, ax = plt.subplots(figsize=(14, 4.5))
     base = k.filter(pl.col("model") == models[0])
     ax.plot(base["t"], base["true"], color="black", lw=1.6, label="S-NPP observed (common-day scaled)")
-    colors = {"B1": "#1f77b4", "B2": "#2ca02c", "M1": "#d62728", "M1_zero_rule": "#d62728"}
+    colors = {"ratio_lat": "#1f77b4", "ratio_country": "#ff7f0e", "loglinear_ridge": "#2ca02c", "m2v_xgb": "#d62728", "m2v_xgb+zr": "#9467bd"}
     for m in models:
         s = k.filter(pl.col("model") == m)
         ax.plot(s["t"], s["pred"], lw=1.1, alpha=0.85, color=colors.get(m), label=f"{m} (leave-year-out)")
@@ -186,7 +186,7 @@ def plot_korea_monthly(oof: pl.DataFrame, models: list[str]) -> None:
     ax.grid(alpha=0.3)
     FIGURES_DIR.mkdir(parents=True, exist_ok=True)
     fig.tight_layout()
-    fig.savefig(FIGURES_DIR / "m1_korea_monthly.png", dpi=130)
+    fig.savefig(FIGURES_DIR / "m2v_korea_monthly.png", dpi=130)
     plt.close(fig)
 
 
@@ -214,9 +214,9 @@ def plot_yearly_bias(oof: pl.DataFrame, models: list[str]) -> pl.DataFrame:
         ax.grid(alpha=0.3)
         ax.legend(fontsize=7, ncol=2)
     fig.tight_layout()
-    fig.savefig(FIGURES_DIR / "m1_yearly_bias.png", dpi=130)
+    fig.savefig(FIGURES_DIR / "m2v_yearly_bias.png", dpi=130)
     plt.close(fig)
-    yb.write_csv(REPORTS_DIR / "m1_yearly_bias.csv")
+    yb.write_csv(REPORTS_DIR / "m2v_yearly_bias.csv")
     return yb
 
 
@@ -251,7 +251,7 @@ def main(argv: list[str] | None = None) -> None:
     masks = region_masks(tt, continents)
     rows, oof, _ = run_b1(tt, masks)
     val = pl.DataFrame(rows + pooled_rows(oof))
-    val.write_csv(REPORTS_DIR / "validation_m1.csv")
+    val.write_csv(REPORTS_DIR / "validation_m2v.csv")
     summ = summarize(val)
     summ.write_csv(REPORTS_DIR / "validation_summary.csv")
     oof.write_parquet(OOF_PATH)
@@ -262,17 +262,17 @@ def main(argv: list[str] | None = None) -> None:
     final.write_parquet(B1_RATIOS_PATH)
     iv = b1_interval(sums)
     iv.write_parquet(B1_INTERVAL_PATH)
-    plot_korea_monthly(oof, ["B1"])
-    yb = plot_yearly_bias(oof, ["B1", "B1_terra"])
+    plot_korea_monthly(oof, ["ratio_lat"])
+    yb = plot_yearly_bias(oof, ["ratio_lat", "ratio_lat_terra"])
 
     # 기존 meta(배포 버전 method_version, release, harmonization, m1_evaluation 등)는 유지하고 B1 항목만 갱신
     old = json.loads(META_PATH.read_text(encoding="utf-8")) if META_PATH.exists() else {}
     meta = {
         **old,
         "stage": old.get("stage", "b1_only"),
-        "final_method": old.get("final_method", "B1"),
+        "final_method": old.get("final_method", "ratio_lat"),
         "final_method_reason": old.get("final_method_reason", "1단계: B1 비율 기준선만 학습. B2·M1 비교 후 채택 규칙으로 다시 결정."),
-        "method_version": old.get("method_version", f"m1-b1-{datetime.now():%Y-%m-%d}"),
+        "method_version": old.get("method_version", f"v1-m2v-{datetime.now():%Y-%m-%d}"),
         "train_period": f"{TRAIN_START[0]}-{TRAIN_START[1]:02d} ~ {TRAIN_END[0]}-{TRAIN_END[1]:02d}",
         "target": "S-NPP 감지 수, 공통 정상일(Aqua·Terra·S-NPP 모두 ok) 집계를 days_in_month/common_days로 월 환산",
         "b1": {"group": f"위도 {LAT_BAND}° 띠 × 월, 분모 0이면 월만", "ratios": B1_RATIOS_PATH.name,
@@ -284,7 +284,7 @@ def main(argv: list[str] | None = None) -> None:
         "created": datetime.now().isoformat(timespec="seconds"),
         "validation_summary": {
             r["region"]: {k: r[k] for k in ("metric", "mean")}
-            for r in summ.filter(pl.col("model") == "B1", pl.col("metric") == "pooled_month_total_MAE").to_dicts()
+            for r in summ.filter(pl.col("model") == "ratio_lat", pl.col("metric") == "pooled_month_total_MAE").to_dicts()
         },
     }
     META_PATH.write_text(json.dumps(meta, ensure_ascii=False, indent=2), encoding="utf-8")
@@ -296,7 +296,7 @@ def main(argv: list[str] | None = None) -> None:
                                                    "pooled_month_total_pearson", "pooled_month_total_spearman",
                                                    "month_total_spearman", "cell_MAE", "cell_RMSE_log1p"]))
         print(show.pivot(on="metric", index=["model", "region"], values="mean").sort("model", "region"))
-        print(yb.filter(pl.col("model") == "B1", pl.col("region").is_in(["world", "korea", "argentina"]))
+        print(yb.filter(pl.col("model") == "ratio_lat", pl.col("region").is_in(["world", "korea", "argentina"]))
               .pivot(on="region", index="year", values="bias").sort("year"))
         print(iv)
 

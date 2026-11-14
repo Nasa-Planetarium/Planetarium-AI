@@ -174,4 +174,28 @@ uv run python -m planetarium.train_table
 - 타깃 `y` = S-NPP 감지 수. 특성은 MODIS에서만 (`planetarium.train_table.MODIS_FEATURES`), S-NPP 정보·MODIS 처리 버전은 넣지 않음.
 - 결과 `data/processed/train_modis_snpp.parquet`, 요약 `reports/train_table_summary.csv`.
 
+## 보정 모델 (이름 확정 2026-11-14, method_version `v1-m2v-2026-11-14`)
+
+| 이름 | 별칭 | 설명 | 파일 (models/) |
+|---|---|---|---|
+| `m2v_xgb` | **M2V Harmonizer** | MODIS → VIIRS(S-NPP 기준) 환산 XGBoost (GPU, tweedie 1.1, 국가·UN 하위지역·대륙 범주형) — **채택** | `m2v_xgb.json` |
+| `m2v_xgb_terra` | | Terra 단독 변형 (2000-11 ~ 2002-06 적용) | `m2v_xgb_terra.json` |
+| `m2v_q10_q90` | **M2V Uncertainty Band** | 10·90 분위수 구간 (`reg:quantileerror`) | `m2v_q10_q90.json` |
+| `ratio_lat` | | 위도 5° 띠 × 월 비율 기준선 | `ratio_lat.parquet`, `ratio_lat_interval.parquet` |
+| `ratio_country` | | 국가 × 월 비율 (표본 적으면 하위지역 → 위도띠) | `ratio_country.parquet` |
+| `loglinear_ridge` | | log1p 선형 Ridge | `loglinear_ridge.json` |
+| `n20_bridge` | | NOAA-20 → S-NPP 연결 계수 (2026-11-03~) | `n20_bridge.parquet` |
+
+- `+zr`: 'MODIS·주변 3×3 감지가 모두 0이면 예측 0' 규칙을 켠 변형 (검증 결과 끈 쪽이 나아 끈 쪽을 씀).
+- 설정·검증 요약·채택 근거: `models/m2v_meta.json`. 검증: `reports/validation_m2v.csv`, `reports/validation_summary.csv`.
+- 그림: `reports/figures/m2v_korea_monthly.png`, `m2v_yearly_bias.png`, `m2v_feature_importance.png`.
+- 이전 이름(M1, B1, B1c, B2, M2)과 파일은 지우지 않고 남겨 두었고, 바꾼 내역은 `reports/rename_log.csv`.
+
+`value_source` (통합 시계열): `modis_m2v_terra`(2000-11~2002-06) · `modis_m2v`(2002-07~2012-01) · `snpp_observed`(2012-02~2026-10) · `n20_bridge`(2026-11~)
+
+```powershell
+uv run python -m planetarium.modeling.m1_xgb     # ratio_lat·ratio_country·loglinear_ridge·m2v_xgb leave-year-out 비교 + 최종 모델
+uv run python -m planetarium.modeling.m2         # n20_bridge
+```
+
 컬럼 설명과 처리 방식은 `firms-merge-guide.html` 문서를 참고하세요.
