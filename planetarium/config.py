@@ -92,3 +92,9 @@ KNOWN_REFILLED_DAYS: dict[str, list[date]] = {
 KNOWN_LOW_DAYS_VIIRS = [date(2026, 10, 12), date(2026, 10, 13)]
 
 SEED = 42
+
+# ── 화재 사건 묶기 (planetarium.fire_events) ──────────────────────────────
+# 기준 점을 시공간으로 이어 하나의 화재 사건으로 묶는다 (union-find).
+# 두 점의 거리 ≤ D(두 점 센서 중 큰 값) 이고 현지 날짜 차 ≤ T일이면 같은 사건.
+EVENT_DIST_M = {"VIIRS": 750.0, "MODIS": 2000.0}
+EVENT_GAP_DAYS = 1

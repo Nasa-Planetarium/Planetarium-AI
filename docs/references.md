@@ -37,7 +37,27 @@ All datasets below are publicly available. Please keep this list in sync with wh
 | Natural Earth 1:10m | Natural Earth. *Admin 0 – Countries, Admin 1 – States/Provinces, Land*. https://www.naturalearthdata.com | Public Domain | Global AOIs (country, 1st-level) |
 | KOSTAT 2013 (backup) | southkorea/southkorea-maps. https://github.com/southkorea/southkorea-maps (original data: Statistics Korea) | see repository | Backup only |
 
-## 5. Software (main libraries)
+## 5. Weather
+
+### 5-1. NASA POWER (MERRA-2) — spread nowcast features
+
+- **Service**: NASA POWER Daily API v2.10.3 (point, `community=AG`, time standard LST), source MERRA-2, 0.5° grid. Accessed 2026/11/14.
+- **Variables**: WS10M, WS10M_MAX, WD10M, RH2M, T2M_MAX, T2MDEW, PRECTOTCORR (2012-01-01 – 2025-12-31). Daily minimum relative humidity is
+  not provided; it is approximated from T2M_MAX and T2MDEW (Magnus formula, see `models/spread_nowcast_meta.json`).
+- **Used for**: weather features of the next-day spread nowcast (Korea box, Argentina)
+- **Location in repo**: `data/external/weather/power/` (raw JSON cache), `data/external/weather/power_daily.parquet`
+- **Acknowledgement** (required by the POWER Referencing Guide, https://power.larc.nasa.gov/docs/referencing/):
+  > The data was obtained from National Aeronautics and Space Administration (NASA) Langley Research Center's Prediction Of Worldwide Energy Resources (POWER) project funded through the NASA Earth Science Division.
+  > The data was obtained from the POWER Project's Daily 2.10.3 version on 2026/11/14.
+- The POWER Project asks to be told about publications and redistribution: larc-power-project@mail.nasa.gov.
+
+### 5-2. Open-Meteo — real-time weather display only (backend)
+
+- Open-Meteo Forecast / Historical Weather API. https://open-meteo.com — data CC BY 4.0 (attribution required: "Weather data by Open-Meteo.com").
+- Free API is for **non-commercial use only**: < 10,000 calls/day, 5,000/hour, 600/minute (https://open-meteo.com/en/terms).
+- Not used to train models (the free-tier budget cannot cover 2012–2025 for our candidate cells). Keep it for showing current weather in the app.
+
+## 6. Software (main libraries)
 
 Polars, PyArrow, XGBoost, scikit-learn, Shapely, pyproj, uv. (Cite versions from `pyproject.toml` / `uv.lock` when submitting.)
 
