@@ -57,13 +57,13 @@ uv run python -m planetarium.dataset
 
 옵션:
 
-| 명령 | 설명 |
-|---|---|
-| `--sensor modis` / `viirs-snpp` / `viirs-noaa20` | 아카이브 한 센서만 (downloads·7일은 건너뜀) |
-| `--years 2012-2014 2020` | 아카이브 일부 연도만 (downloads·7일은 건너뜀) |
-| `--downloads-only` | `downloads/`와 `active_fire_7d/`만 처리 |
-| `--force` | 이미 만든 Parquet도 다시 생성 |
-| `--summary-only` | 변환은 건너뛰고 범위·요약·중복 제거 리포트만 |
+| 명령                                             | 설명                                          |
+| ------------------------------------------------ | --------------------------------------------- |
+| `--sensor modis` / `viirs-snpp` / `viirs-noaa20` | 아카이브 한 센서만 (downloads·7일은 건너뜀)   |
+| `--years 2012-2014 2020`                         | 아카이브 일부 연도만 (downloads·7일은 건너뜀) |
+| `--downloads-only`                               | `downloads/`와 `active_fire_7d/`만 처리       |
+| `--force`                                        | 이미 만든 Parquet도 다시 생성                 |
+| `--summary-only`                                 | 변환은 건너뛰고 범위·요약·중복 제거 리포트만  |
 
 NOAA-20 아카이브는 폴더가 `viirs-noaa20/`, zip 이름은 `viirs-jpss1_<year>_all_countries.zip`(FIRMS가 JPSS-1으로 부름)이고
 결과는 `viirs-noaa20_<year>.parquet`, `satellite = NOAA-20`.
@@ -73,18 +73,29 @@ NOAA-20 아카이브는 폴더가 `viirs-noaa20/`, zip 이름은 `viirs-jpss1_<y
 zip이나 csv를 그대로 넣으면 됩니다. 안의 `fire_<archive|nrt>_<product>_<id>.csv` 이름으로 위성을 구분합니다.
 `fire_archive` = SP(정식), `fire_nrt` = NRT. 결과 `dl_<archive|nrt>_<slug>_<id>.parquet`.
 
-| product | 위성 | slug |
-|---|---|---|
-| `M-C61` | MODIS Terra·Aqua | `modis` |
-| `SV-C2` | S-NPP | `viirs-snpp` |
-| `J1V-C2` | NOAA-20 | `viirs-noaa20` |
-| `J2V-C2` | NOAA-21 | `viirs-noaa21` |
-| `LS` | Landsat | 건너뜀 (컬럼 뜻이 다름) |
+| product  | 위성             | slug                    |
+| -------- | ---------------- | ----------------------- |
+| `M-C61`  | MODIS Terra·Aqua | `modis`                 |
+| `SV-C2`  | S-NPP            | `viirs-snpp`            |
+| `J1V-C2` | NOAA-20          | `viirs-noaa20`          |
+| `J2V-C2` | NOAA-21          | `viirs-noaa21`          |
+| `LS`     | Landsat          | 건너뜀 (컬럼 뜻이 다름) |
 
 ### 최근 7일 NRT (`active_fire_7d/<받은 날짜>/`)
 
 `MODIS_C6_1_Global_7d.csv`(Terra·Aqua), `J1_VIIRS_C2_Global_7d.csv`(NOAA-20), `J2_VIIRS_C2_Global_7d.csv`(NOAA-21).
 결과 `nrt7d_<slug>_<받은 날짜>.parquet`. 전 세계 파일이지만 지역 필터는 하지 않습니다(작고, 위성별 자료 유무 판정에 전 세계 감지 수가 필요).
+
+### 통합 스키마 (VIIRS 기준)
+
+MODIS는 2027년 종료 예정이라 VIIRS 원본 컬럼을 기준으로 하고 MODIS를 여기에 맞춘다.
+
+`latitude, longitude, bright_ti4, scan, track, acq_date, acq_time, satellite, instrument, confidence, version, bright_ti5, frp, daynight, type` + `confidence_modis, source, acq_datetime_utc`
+
+- `satellite`: FIRMS 표기 `N`(S-NPP) / `N20` / `N21` / `Terra` / `Aqua`. 집계 결과(cell_day 이후)는 `S-NPP`, `NOAA-20`처럼 표시 이름.
+- MODIS: `brightness`→`bright_ti4`, `bright_t31`→`bright_ti5`, 신뢰도 0~100 → `l`(<30)/`n`(30~79)/`h`(≥80), 원래 값은 `confidence_modis`.
+  MODIS와 VIIRS의 밝기온도는 채널이 달라 같은 의미로 섞지 말 것(`instrument`로 구분).
+- 날짜(KST·현지), 연·월, 픽셀 면적 등 파생값은 저장하지 않고 집계 단계에서 계산.
 
 ### source 구분
 
@@ -105,7 +116,7 @@ from planetarium.dataset import load_hotspots
 
 korea = (
     load_hotspots()                       # 중복 제거 적용. 원본 그대로는 load_hotspots(dedupe=False)
-    .filter(pl.col("country") == "Republic of Korea", pl.col("type") == 0)
+    .filter(pl.col("latitude").is_between(33, 39), pl.col("longitude").is_between(124, 132), pl.col("type") == 0)
     .collect()
 )
 ```
@@ -140,7 +151,7 @@ uv run python -m planetarium.monthly --status-only
 - `satellite_month_status.parquet` (위성 × 월): `obs_days`(ok 일수), `low_days`, `missing_days`, `month_status`(complete / partial).
   S-NPP 2026-11은 마지막 감지(11-02 15:16 UTC) 때문에 partial. NOAA-20 연결(M2)은 2026-11-03부터.
 - `cell_month_0.1deg.parquet` (동아시아 칸 × 월 × 위성, 현지 날짜 기준): `n_det, n_det_conf, active_days, n_day, n_night, frp_sum, frp_max, source,
-  obs_days, low_days, missing_days, days_in_month, month_status`. 감지 없는 칸·월은 행이 없으니 0/결측은 `obs_days`로 판단.
+obs_days, low_days, missing_days, days_in_month, month_status`. 감지 없는 칸·월은 행이 없으니 0/결측은 `obs_days`로 판단.
 
 ## 한국 칸 목록 (`korea`)
 

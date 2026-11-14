@@ -265,11 +265,14 @@ def main(argv: list[str] | None = None) -> None:
     plot_korea_monthly(oof, ["B1"])
     yb = plot_yearly_bias(oof, ["B1", "B1_terra"])
 
+    # 기존 meta(배포 버전 method_version, release, harmonization, m1_evaluation 등)는 유지하고 B1 항목만 갱신
+    old = json.loads(META_PATH.read_text(encoding="utf-8")) if META_PATH.exists() else {}
     meta = {
-        "stage": "b1_only",
-        "final_method": "B1",
-        "final_method_reason": "1단계: B1 비율 기준선만 학습. B2·M1 비교 후 채택 규칙으로 다시 결정.",
-        "method_version": f"m1-b1-{datetime.now():%Y-%m-%d}",
+        **old,
+        "stage": old.get("stage", "b1_only"),
+        "final_method": old.get("final_method", "B1"),
+        "final_method_reason": old.get("final_method_reason", "1단계: B1 비율 기준선만 학습. B2·M1 비교 후 채택 규칙으로 다시 결정."),
+        "method_version": old.get("method_version", f"m1-b1-{datetime.now():%Y-%m-%d}"),
         "train_period": f"{TRAIN_START[0]}-{TRAIN_START[1]:02d} ~ {TRAIN_END[0]}-{TRAIN_END[1]:02d}",
         "target": "S-NPP 감지 수, 공통 정상일(Aqua·Terra·S-NPP 모두 ok) 집계를 days_in_month/common_days로 월 환산",
         "b1": {"group": f"위도 {LAT_BAND}° 띠 × 월, 분모 0이면 월만", "ratios": B1_RATIOS_PATH.name,

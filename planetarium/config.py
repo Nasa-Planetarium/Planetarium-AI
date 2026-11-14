@@ -81,7 +81,10 @@ SNPP_LAST_DETECTION_UTC = datetime(2026, 11, 2, 15, 16, tzinfo=timezone.utc)
 # M2(NOAA-20 → S-NPP 환산) 연결 시작일 (T6)
 NOAA20_BRIDGE_START = date(2026, 11, 3)
 # 알려진 결측일 (UTC 날짜). T2에서 status=missing으로 강제한다.
-KNOWN_MISSING_DAYS: dict[str, list[date]] = {
+KNOWN_MISSING_DAYS: dict[str, list[date]] = {}
+# 예전에 알려진 결측일로 강제 missing하던 날. 전 세계 감지 수가 정상(직전 30일 중앙값의 0.93~1.14배)이라
+# 예전 NRT 파일에서 비어 있던 것이 이후 파일에서 채워진 것으로 보고 강제를 해제했다 (일반 규칙으로 판정, note만 남김).
+KNOWN_REFILLED_DAYS: dict[str, list[date]] = {
     "NOAA-20": [date(2026, 11, 5), date(2026, 11, 6), date(2026, 11, 7)],
     "NOAA-21": [date(2026, 11, 5), date(2026, 11, 6)],
 }

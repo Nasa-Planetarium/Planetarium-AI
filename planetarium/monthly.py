@@ -43,7 +43,8 @@ from datetime import date, timedelta
 import polars as pl
 from tqdm import tqdm
 
-from planetarium.config import (ANALYSIS_BBOX, EAST_ASIA_BBOX, KNOWN_MISSING_DAYS, PROCESSED_DATA_DIR, STATUS_BBOX,
+from planetarium.config import (ANALYSIS_BBOX, EAST_ASIA_BBOX, KNOWN_MISSING_DAYS, KNOWN_REFILLED_DAYS, PROCESSED_DATA_DIR,
+                                STATUS_BBOX,
                                 WORLD_BBOX, cell_day_dir)
 from planetarium.dataset import SAT_DISPLAY, SATELLITES, sat_display, dedupe_plans, load_coverage, merged_files, _scan_one
 from planetarium.runlog import start_run_log
@@ -74,7 +75,7 @@ STATUS_BASIS = "global" if tuple(STATUS_BBOX) == tuple(WORLD_BBOX) else "bbox"
 def in_bbox(bbox: tuple[float, float, float, float], lat: str = "latitude", lon: str = "longitude") -> pl.Expr:
     x0, y0, x1, y1 = bbox
     if (x0, y0, x1, y1) == (-180.0, -90.0, 180.0, 90.0):
-        return pl.lit(True)
+        return pl.col(lat).is_not_null()  # 전 세계: 행마다 True (리터럴이면 집계에서 1번만 셈)
     return pl.col(lat).is_between(y0, y1) & pl.col(lon).is_between(x0, x1)
 
 
@@ -134,6 +135,23 @@ def daily_coverage() -> dict[tuple[str, date], str]:
     return out
 
 
+SEASONAL_HALF_WINDOW = 15
+SEASONAL_MIN_YEARS = 2
+
+
+def seasonal_baseline(st: pl.DataFrame) -> pl.DataFrame:
+    """위성 × 날짜마다 다른 연도 같은 날짜 ±15일(해당 연도 제외, 결측일 제외)의 판정 감지 수 중앙값."""
+    v = st.filter(pl.col("status") != "missing").select(
+        "satellite", y2=pl.col("date_utc").dt.year(), doy2=pl.col("date_utc").dt.ordinal_day(), e2=pl.col("n_det_status"))
+    t = st.select("satellite", "date_utc", y=pl.col("date_utc").dt.year(), doy=pl.col("date_utc").dt.ordinal_day())
+    j = t.join(v, on="satellite").filter(pl.col("y2") != pl.col("y"))
+    dd = (pl.col("doy") - pl.col("doy2")).abs()
+    j = j.filter(pl.min_horizontal(dd, 366 - dd) <= SEASONAL_HALF_WINDOW)  # 연말·연초는 이어서
+    return j.group_by("satellite", "date_utc").agg(
+        seasonal_baseline=pl.col("e2").median(), seasonal_years=pl.col("y2").n_unique()).with_columns(
+        seasonal_baseline=pl.when(pl.col("seasonal_years") >= SEASONAL_MIN_YEARS).then(pl.col("seasonal_baseline")))
+
+
 def build_satellite_day_status() -> pl.DataFrame:
     counts = daily_counts()
     cov = daily_coverage()
@@ -143,6 +161,7 @@ def build_satellite_day_status() -> pl.DataFrame:
     cnt = {(s, d): (g, e, j) for s, d, g, e, j in
            counts.select("satellite", "date_utc", "n_det_global", "n_det_ea", "n_det_status").iter_rows()}
     known = {(s, d) for s, days in KNOWN_MISSING_DAYS.items() for d in days}
+    refilled = {(s, d) for s, days in KNOWN_REFILLED_DAYS.items() for d in days}
 
     rows = []
     for sat in SATELLITES:
@@ -165,6 +184,8 @@ def build_satellite_day_status() -> pl.DataFrame:
             if (sat, d) in known:
                 note = "partial_known_outage" if e > 0 else "known_outage"
                 status = "missing"
+            elif (sat, d) in refilled:
+                note = "earlier_nrt_gap_refilled"  # 강제 missing 해제, 일반 규칙으로 판정
             elif sat == "S-NPP" and d == SNPP_LAST_DAY:
                 note = "partial_last_day"
             elif prev_cov is not None and coverage != prev_cov:
@@ -172,7 +193,7 @@ def build_satellite_day_status() -> pl.DataFrame:
             if status != "missing":
                 window.append((d, e))
             rows.append({
-                "satellite": sat, "date_utc": d, "n_det_ea": ea,
+                "satellite": sat, "date_utc": d, "n_det_ea": ea, "n_det_status": e,
                 "n_det_global": g if coverage == "global" else None,
                 "coverage": coverage, "status_basis": STATUS_BASIS, "baseline": baseline,
                 "ratio_to_baseline": (e / baseline) if baseline else None,
@@ -182,7 +203,7 @@ def build_satellite_day_status() -> pl.DataFrame:
             d += timedelta(days=1)
 
     st = pl.DataFrame(rows, schema={
-        "satellite": pl.String, "date_utc": pl.Date, "n_det_ea": pl.Int64, "n_det_global": pl.Int64,
+        "satellite": pl.String, "date_utc": pl.Date, "n_det_ea": pl.Int64, "n_det_status": pl.Int64, "n_det_global": pl.Int64,
         "coverage": pl.String, "status_basis": pl.String, "baseline": pl.Float64, "ratio_to_baseline": pl.Float64,
         "status": pl.String, "note": pl.String,
     })
@@ -201,13 +222,40 @@ def build_satellite_day_status() -> pl.DataFrame:
     # 비교할 다른 위성이 없는 날(2000-11~2002-07 Terra 단독 등)은 감소가 자료 문제인지 확인할 수 없다.
     # 예: 2001-05 Terra는 봄 화재 철(3~4월) 직후 감소로 24일이 low가 되어 월 전체가 결측처럼 보였다.
     # 이런 날은 ok + note=low_unverified_single_sat로 두고, 감지 0인 날만 missing으로 본다.
+    #
+    # 전 세계 기준(STATUS_BASIS == "global")에서는 이 예외를 끈다: 전 세계 감지 수는 날씨로 50%씩 떨어지지 않으므로
+    # 여러 VIIRS 위성이 함께 떨어진 날(예: 2026-10-12~13)은 수신 장애로 본다 → 위성과 무관하게 50% 미만이면 low.
+    # 비교용으로 예외를 적용했을 때의 결과(r1 규칙)를 status_r1에 남긴다.
     is_low = pl.col("status") == "low"
     shared = is_low & (pl.col("n_other_sats") > 0) & (pl.col("n_sats_low_same_day") > 0)
     single = is_low & (pl.col("n_other_sats") == 0)
-    st = st.with_columns(status_raw=pl.col("status")).with_columns(
-        status=pl.when(shared | single).then(pl.lit("ok")).otherwise(pl.col("status")),
-        note=pl.when(shared).then(pl.lit("low_shared_with_other_sats"))
-        .when(single).then(pl.lit("low_unverified_single_sat")).otherwise(pl.col("note")),
+    refilled_expr = pl.struct("satellite", "date_utc").is_in(
+        [{"satellite": s, "date_utc": d} for s, d in refilled]) if refilled else pl.lit(False)
+    st = st.with_columns(
+        status_raw=pl.col("status"),
+        status_r1=pl.when(refilled_expr).then(pl.lit("missing"))
+        .when(shared | single).then(pl.lit("ok")).otherwise(pl.col("status")),
+    )
+    if STATUS_BASIS != "global":
+        st = st.with_columns(
+            status=pl.when(shared | single).then(pl.lit("ok")).otherwise(pl.col("status")),
+            note=pl.when(shared).then(pl.lit("low_shared_with_other_sats"))
+            .when(single).then(pl.lit("low_unverified_single_sat")).otherwise(pl.col("note")),
+        )
+    else:
+        st = st.with_columns(note=pl.when(pl.col("note").is_null() & shared).then(pl.lit("low_multi_sat_reception_outage"))
+                             .otherwise(pl.col("note")))
+    # 계절 기준(r3): 모든 위성이 함께 떨어진 날(예: 2019-09-26~10-07)은 남반구 화재 철이 끝나는 등 계절 감소일 수 있다.
+    # 그 위성의 '다른 연도 같은 날짜 ±15일' 감지 수 중앙값(해당 연도 제외, 결측일 제외)과도 비교해
+    # 직전 30일 기준과 계절 기준 둘 다 50% 미만일 때만 low. 계절 기준으로 정상이면 ok + note=seasonal_decline.
+    # 다른 연도가 SEASONAL_MIN_YEARS 미만이면(운용 초기) 계절 기준을 쓰지 않는다.
+    st = st.join(seasonal_baseline(st), on=["satellite", "date_utc"], how="left").with_columns(
+        ratio_to_seasonal=pl.when(pl.col("seasonal_baseline") > 0).then(pl.col("n_det_status") / pl.col("seasonal_baseline")))
+    seasonal_ok = (pl.col("status") == "low") & (pl.col("ratio_to_seasonal") >= LOW_RATIO)
+    st = st.with_columns(
+        status_r2=pl.col("status"),
+        note=pl.when(seasonal_ok).then(pl.lit("seasonal_decline")).otherwise(pl.col("note")),
+        status=pl.when(seasonal_ok).then(pl.lit("ok")).otherwise(pl.col("status")),
     )
     STATUS_PATH.parent.mkdir(parents=True, exist_ok=True)
     st.write_parquet(STATUS_PATH)
