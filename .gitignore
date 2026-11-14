@@ -27,3 +27,4 @@ __pycache__/
 # 옛 코드 백업
 .legacy_code_*/
 *legacy*
+release_tmp/
