@@ -1,9 +1,22 @@
 # 백엔드 전달 문서 — Planetarium 통합 화재 데이터 (v1)
 
-작성 2026-11-14 · 데이터 버전 **`v1-m2v-2026-11-14`** · 저장소 `C:\Planetarium-AI`
+작성 2026-11-14 · 데이터 **`v1.1-m2v-2026-11-14`** (모델·method_version `v1-m2v-2026-11-14`) · 저장소 `C:\Planetarium-AI`
 
 > v1 기준으로 고쳤어요. API 확정본은 데이터 담당이 만드는 `docs/api_contract.md`이고, 컬럼 이름이 다르면 그쪽을 따라 주세요.
-> v1 파일은 `data/processed/release_v1-m2v-2026-11-14/`에 있어요 (v0는 `release_v0-b1-2026-11-14/`에 그대로 남아 있어요).
+> v1.1 파일은 `data/processed/release_v1.1-m2v-2026-11-14/`에 있어요 (v1은 `release_v1-m2v-2026-11-14/`) (v0는 `release_v0-b1-2026-11-14/`에 그대로 남아 있어요).
+
+
+## v1.1에서 바뀐 점 (먼저 읽어 주세요)
+
+| 항목 | 내용 |
+|---|---|
+| 진행 중인 달 | `value` = **오늘까지 실제 합계**(환산 없음), **`value_projected`** = 달 전체 추정, **`as_of_date`** = 마지막 관측일. `harmonized_cell_month`·`aoi_month`·`aoi_month_compare`·`harmonized_cell_day`(1일 행 `value_projected_month`) 모두 같은 규칙. 판정은 `uncertain`. 예) KR 2026-11: value 44.3, value_projected 102.3, as_of_date 2026-11-13 |
+| 점 가중치 | 센서 변환만: S-NPP 1.0, NOAA-20 ×n20_bridge, NOAA-21 ×n21_bridge, MODIS ×m2v 배율. 자료가 빠진 날 환산분은 점에 넣지 않음 |
+| `residual_type` | `harmonized_residual_cell_month`(2,288만 행): `modis_unseen`(MODIS 기간 미감지 추정분) / `missing_day_fill`(실측 기간 자료 빠진 날 환산분, 26개 달, 음수 가능) |
+| `harmonized_cell_day` (신규) | 칸 × 현지 날짜, 2억 1,277만 행, 965 MB. `/summary`용. `residual_month`(칸·월 residual, 1일 행에만)는 **월 단위로만** 더하기 — `docs/api_contract.md` |
+| 검증 | 점 가중치 + residual = 칸 value, AOI 면적 가중 합 = `aoi_month.value`, cell_day 월 합 = `aoi_month.value` (전부 상대 오차 < 1e-6) |
+
+> **residual(`missing_day_fill` 음수 포함)은 합계 계산에만 쓰고, 별도 값·막대·레이어로 화면에 표시하지 말 것.**
 
 ---
 
@@ -17,9 +30,11 @@ MODIS(2000~)와 VIIRS(2012~) 화재 감지를 **VIIRS(S-NPP) 기준 감지량**�
 
 | 파일 | 한 행 | 크기 | 앱 화면 |
 |---|---|---|---|
-| `harmonized_cell_month.parquet` | 0.1° 칸 × 월 | **444 MB, 51,562,642행** | 지도 격자(히트맵) |
-| `aoi_month.parquet` | 지역 × 월 | 23 MB, 1,580,963행 (지역 5,051 × 313개월) | 연도 × 월 캘린더 |
-| `aoi_month_compare.parquet` | 지역 × 월 | 24 MB, 1,580,963행 | 예년 대비 비교 |
+| `harmonized_cell_month.parquet` | 0.1° 칸 × 월 | **571 MB, 51,562,642행** | 지도 격자(히트맵) |
+| `harmonized_cell_day.parquet` | 0.1° 칸 × 현지 날짜 | 965 MB, 212,774,685행 | `/summary` 일·월 합계 |
+| `harmonized_residual_cell_month.parquet` | 칸 × 월 (residual_type) | 125 MB, 22,878,611행 | 점으로 나눌 수 없는 값 |
+| `aoi_month.parquet` | 지역 × 월 | 31 MB, 1,580,963행 (지역 5,051 × 313개월) | 연도 × 월 캘린더 |
+| `aoi_month_compare.parquet` | 지역 × 월 | 31 MB, 1,580,963행 | 예년 대비 비교 |
 | `aoi_list.parquet` | 지역 1개 | 5,051행 | 지역 선택 목록 |
 | `aoi_boundaries.geojson` | 지역 경계 | 13 MB | 지도 경계선 |
 | `satellite_day_status.parquet` | 위성 × 날짜 | — | 자료 상태 안내 |
@@ -60,7 +75,7 @@ MODIS(2000~)와 VIIRS(2012~) 화재 감지를 **VIIRS(S-NPP) 기준 감지량**�
 
 ### 1-2. `harmonized_cell_month` (칸 × 월)
 
-`cell_id, cell_lat, cell_lon, year, month, value, value_lo, value_hi, raw_modis, raw_viirs, value_source, data_source, status, method_version`
+`cell_id, cell_lat, cell_lon, year, month, value, value_lo, value_hi, value_projected, raw_modis, raw_viirs, value_source, data_source, status, method_version`
 
 - `value` = 그 칸·달의 VIIRS 기준 감지량, `raw_modis`/`raw_viirs` = 원래 감지 수(참고)
 - **0이 아닌 칸·월만 저장**돼 있어요. 행이 없으면 0이에요 (2000~2012는 0.5 미만 배경 예측도 행이 없어요 — 위 안내 참고).
@@ -68,7 +83,7 @@ MODIS(2000~)와 VIIRS(2012~) 화재 감지를 **VIIRS(S-NPP) 기준 감지량**�
 
 ### 1-3. `aoi_month` (지역 × 월)
 
-`aoi_id, year, month, value, value_lo, value_hi, raw_modis, raw_viirs, value_source, data_source, status, n_cells`
+`aoi_id, year, month, value, value_lo, value_hi, value_projected, raw_modis, raw_viirs, value_source, data_source, status, as_of_date, n_cells`
 
 - 칸 값을 지역에 **겹침 면적 비율로 나눠서** 더했어요. 그래서 252개 시군구가 모두 값을 가져요. `KR` 합계 = 시도 합 = 시군구 합.
 - `value_lo/hi`: MODIS 기간(2000-11~2012-01)은 지역 단위로 보정한 구간(아래 표), 실측 기간은 value와 같아요.
@@ -76,7 +91,7 @@ MODIS(2000~)와 VIIRS(2012~) 화재 감지를 **VIIRS(S-NPP) 기준 감지량**�
 
 ### 1-4. `aoi_month_compare` (예년 대비)
 
-`aoi_id, year, month, value, baseline_median, baseline_p25, baseline_p75, percentile, ratio_to_median, n_baseline_years, verdict, status, low_sample`
+`aoi_id, year, month, value, baseline_median, baseline_p25, baseline_p75, percentile, ratio_to_median, n_baseline_years, verdict, status, low_sample, as_of_date, value_projected`
 
 ### 1-5. `aoi_list` / `aoi_boundaries.geojson`
 
