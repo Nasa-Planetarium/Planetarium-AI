@@ -50,6 +50,7 @@ import zipfile
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
+from typing import Iterator
 
 import polars as pl
 import pyarrow.parquet as pq
@@ -323,42 +324,77 @@ def merge_download(path: Path, member: str | None, m: re.Match[str], force: bool
           + f"  <- {where}")
 
 
-def convert_big_csv(path: Path, member: str | None, instrument: str, out_path: Path) -> tuple[int, set[str]]:
-    """수백 MB~GB CSV: 임시 폴더에 풀어 일정 행씩 읽고 변환해 Parquet에 이어 쓴다 (원본 zip은 그대로)."""
+def iter_standardized(path: Path, member: str | None, instrument: str | None = None,
+                      block_mb: int = 256) -> "Iterator[pl.DataFrame]":
+    """FIRMS CSV(파일 또는 zip 안 멤버)를 일정 크기씩 읽어 통합 스키마로 변환해 내보낸다 (큰 파일도 메모리 일정).
+    instrument가 None이면 컬럼·위성 표기로 추정한다 (detect_instrument). 원본은 수정하지 않는다."""
     import shutil
     import tempfile
-    schema = pl.DataFrame(schema=SCHEMA).to_arrow().schema
-    tmp_out = out_path.with_suffix(".parquet.tmp")
-    total, sources = 0, set()
+
+    import pyarrow as pa
+    import pyarrow.csv as pacsv
     with tempfile.TemporaryDirectory(dir=FIRMS_MERGED_DIR.parent) as td:
         if member is None:
-            csv = path
+            csv = Path(path)
         else:
             with zipfile.ZipFile(path) as zf, zf.open(member) as src, open(Path(td) / Path(member).name, "wb") as dst:
                 shutil.copyfileobj(src, dst, 16 * 1024 * 1024)
             csv = Path(td) / Path(member).name
-        import pyarrow as pa
-        import pyarrow.csv as pacsv
-        with open(csv, encoding="utf-8") as fh:
-            header = fh.readline().strip().split(",")
+        with open(csv, encoding="utf-8-sig") as fh:
+            header = [h.strip() for h in fh.readline().strip().split(",")]
+        if not header or header == [""]:
+            raise ValueError(f"빈 CSV입니다: {path}{':' + member if member else ''}")
         reader = pacsv.open_csv(  # 모든 컬럼을 문자열로 (standardize가 형 변환)
-            csv, read_options=pacsv.ReadOptions(block_size=256 * 1024 * 1024),
+            csv, read_options=pacsv.ReadOptions(block_size=block_mb * 1024 * 1024, column_names=header, skip_rows=1),
             convert_options=pacsv.ConvertOptions(column_types={c: pa.string() for c in header}))
         try:
-            with pq.ParquetWriter(tmp_out, schema, compression="zstd") as writer:
-                for batch in reader:
-                    df = standardize(pl.from_arrow(pa.Table.from_batches([batch])), instrument)
-                    sources |= set(df["source"].unique().to_list())
-                    writer.write_table(df.to_arrow().cast(schema))
-                    total += df.height
+            for batch in reader:
+                df = pl.from_arrow(pa.Table.from_batches([batch]))
+                if df.height == 0:
+                    continue
+                yield standardize(df, instrument or detect_instrument(df))
         finally:
             reader.close()  # Windows: 파일 핸들을 닫아야 임시 폴더를 지울 수 있다
             del reader
+
+
+def detect_instrument(df: pl.DataFrame) -> str:
+    """원본 컬럼·값으로 MODIS / VIIRS 판별: instrument 컬럼 → 위성 표기 → 밝기온도 컬럼 이름 순."""
+    if "instrument" in df.columns:
+        v = {str(x).strip().upper() for x in df["instrument"].drop_nulls().unique().to_list()}
+        if v <= {"MODIS"}:
+            return "MODIS"
+        if v and v <= {"VIIRS", "SNPP", "N", "N20", "N21"}:
+            return "VIIRS"
+    if "satellite" in df.columns:
+        codes = {SATELLITE_CODE.get(str(x).strip()) for x in df["satellite"].drop_nulls().unique().to_list()}
+        if codes and codes <= {"Terra", "Aqua"}:
+            return "MODIS"
+        if codes and codes <= {"N", "N20", "N21"}:
+            return "VIIRS"
+        unknown = sorted(str(x) for x in df["satellite"].drop_nulls().unique().to_list() if str(x).strip() not in SATELLITE_CODE)
+        if unknown:
+            raise ValueError(f"모르는 위성 표기 {unknown[:5]} — MODIS(Terra/Aqua/T/A)나 VIIRS(N/N20/N21/SNPP/J1/J2)만 지원")
+        if codes:
+            raise ValueError("한 파일에 MODIS와 VIIRS 위성이 섞여 있습니다. 센서별로 나눠서 넣어 주세요.")
+    if "bright_ti4" in df.columns:
+        return "VIIRS"
+    raise ValueError("MODIS/VIIRS를 판별할 수 없습니다 (instrument·satellite·bright_ti4 컬럼이 없음)")
+
+
+def convert_big_csv(path: Path, member: str | None, instrument: str, out_path: Path) -> tuple[int, set[str]]:
+    """수백 MB~GB CSV: 일정 행씩 읽고 변환해 Parquet에 이어 쓴다 (원본 zip은 그대로)."""
+    schema = pl.DataFrame(schema=SCHEMA).to_arrow().schema
+    tmp_out = out_path.with_suffix(".parquet.tmp")
+    total, sources = 0, set()
+    with pq.ParquetWriter(tmp_out, schema, compression="zstd") as writer:
+        for df in iter_standardized(path, member, instrument):
+            sources |= set(df["source"].unique().to_list())
+            writer.write_table(df.to_arrow().cast(schema))
+            total += df.height
     tmp_out.replace(out_path)
     return total, sources
 
-
-# ── 3) 최근 7일 NRT ───────────────────────────────────────────────────────
 
 def find_nrt7d() -> list[tuple[Path, str, str]]:
     """(csv 경로, product, 받은 날짜 폴더) 목록."""
@@ -388,11 +424,57 @@ def merge_nrt7d(path: Path, product: str, received: str, force: bool) -> None:
     print(describe(df, out_path, t0) + f"  <- {path.parent.name}/{path.name} (전 세계, 지역 필터 안 함)")
 
 
+# ── 4) area API (fetch_nrt) ───────────────────────────────────────────────
+
+API_DIR = FIRMS_RAW_DIR / "api"
+API_NAME = re.compile(r"^(?P<source>VIIRS_NOAA20_NRT|VIIRS_NOAA21_NRT|VIIRS_SNPP_NRT|MODIS_NRT|VIIRS_NOAA20_SP|VIIRS_SNPP_SP|MODIS_SP)"
+                      r"_(?P<rest>.+)\.csv$")
+API_PRODUCTS = {
+    "VIIRS_NOAA20_NRT": ("VIIRS", "viirs-noaa20"), "VIIRS_NOAA21_NRT": ("VIIRS", "viirs-noaa21"),
+    "VIIRS_SNPP_NRT": ("VIIRS", "viirs-snpp"), "MODIS_NRT": ("MODIS", "modis"),
+    "VIIRS_NOAA20_SP": ("VIIRS", "viirs-noaa20"), "VIIRS_SNPP_SP": ("VIIRS", "viirs-snpp"), "MODIS_SP": ("MODIS", "modis"),
+}
+
+
+def find_api() -> list[tuple[Path, str, str]]:
+    """(csv 경로, source, 받은 날짜 폴더) 목록: data/raw/firms/api/<받은 날짜>/<SOURCE>_<AREA>_<N>d.csv"""
+    found = []
+    if not API_DIR.exists():
+        return found
+    for path in sorted(API_DIR.glob("*/*.csv")):
+        m = API_NAME.match(path.name)
+        if not m:
+            print(f"[건너뜀] API 파일 이름 형식이 다름: {path}", file=sys.stderr)
+            continue
+        found.append((path, m["source"], path.parent.name))
+    return found
+
+
+def merge_api(path: Path, source: str, received: str, force: bool) -> Path | None:
+    instrument, slug = API_PRODUCTS[source]
+    rest = API_NAME.match(path.name)["rest"]
+    out_path = FIRMS_MERGED_DIR / f"api_{slug}_{received}_{rest}.parquet"
+    if out_path.exists() and not force:
+        print(f"[있음] {out_path.name} (다시 만들려면 --force)")
+        return None
+    t0 = time.perf_counter()
+    parts = list(iter_standardized(path, None, instrument))
+    if not parts:
+        print(f"[건너뜀] 감지 행이 없음: {path.name}")
+        return None
+    df = pl.concat(parts)
+    write_parquet_atomic(df, out_path)
+    print(describe(df, out_path, t0) + f"  <- api/{received}/{path.name}")
+    return out_path
+
+
 # ── 파일 순위·범위 ────────────────────────────────────────────────────────
 
 def file_tier(path: Path) -> int:
-    """중복 제거 우선순위 (작을수록 우선): 0 SP, 1 Archive Download NRT, 2 7일 NRT."""
+    """중복 제거 우선순위 (작을수록 우선): 0 SP, 1 Archive Download NRT, 2 7일 NRT, 3 area API (fetch_nrt)."""
     name = path.name
+    if name.startswith("api_"):
+        return 3
     if name.startswith("nrt7d_"):
         return 2
     if name.startswith("dl_nrt_"):
@@ -489,8 +571,15 @@ def dedupe_plans(cov: pl.DataFrame) -> dict[str, DedupePlan]:
     for f in cov["file"].unique(maintain_order=True).to_list():
         mine = [r for r in recs if r["file"] == f]
         tier = mine[0]["tier"]
-        higher = [h for h in recs if h["tier"] < tier and any(_overlaps(h, r) for r in mine)]
-        same = [h for h in recs if h["tier"] == tier and h["file"] < f and any(_overlaps(h, r) for r in mine)]
+        if tier == 3:
+            # area API: 정식(SP)과는 시간·지역 범위로 정리(점 좌표가 달라 키로는 못 맞춤),
+            # NRT 파일(Archive NRT·7일·먼저 받은 API)과는 키 단위로만 정리 — 앞 파일에 없던 점(덜 들어온 날)은 남아서 채워진다.
+            higher = [h for h in recs if h["tier"] == 0 and any(_overlaps(h, r) for r in mine)]
+            same = [h for h in recs if (0 < h["tier"] < 3 or (h["tier"] == 3 and h["file"] < f))
+                    and any(_overlaps(h, r) for r in mine)]
+        else:
+            higher = [h for h in recs if h["tier"] < tier and any(_overlaps(h, r) for r in mine)]
+            same = [h for h in recs if h["tier"] == tier and h["file"] < f and any(_overlaps(h, r) for r in mine)]
         expr = None
         for h in higher:
             e = _cover_expr(h)
@@ -641,10 +730,17 @@ def main(argv: list[str] | None = None) -> None:
                     help="아카이브 센서 (지정하면 downloads·7일 파일은 건너뜀)")
     ap.add_argument("--years", nargs="*", help="아카이브 연도. 예: 2000  2012-2014 (지정하면 downloads·7일 파일은 건너뜀)")
     ap.add_argument("--downloads-only", action="store_true", help="downloads와 active_fire_7d만 처리")
+    ap.add_argument("--api-only", action="store_true", help="raw/firms/api(fetch_nrt)만 변환하고 범위표만 다시 계산 (요약 리포트 생략)")
     ap.add_argument("--force", action="store_true", help="이미 만든 Parquet도 다시 생성")
     ap.add_argument("--summary-only", action="store_true", help="변환은 건너뛰고 범위·요약·중복 제거 리포트만")
     args = ap.parse_args(argv)
     start_run_log("dataset")
+    if args.api_only:
+        FIRMS_MERGED_DIR.mkdir(parents=True, exist_ok=True)
+        new = [merge_api(p, s, r, args.force) for p, s, r in find_api()]
+        cov = build_coverage()
+        print(f"[범위] 파일×위성 {cov.height}개 (API 새 파일 {sum(1 for x in new if x)}개)")
+        return
 
     FIRMS_MERGED_DIR.mkdir(parents=True, exist_ok=True)
     years = parse_years(args.years)

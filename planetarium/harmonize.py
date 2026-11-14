@@ -37,6 +37,8 @@ import json
 import time
 from datetime import date
 
+from pathlib import Path
+
 import numpy as np
 import polars as pl
 import shapely
@@ -190,7 +192,8 @@ def m2v_apply_year(year: int, ap: pl.DataFrame) -> pl.DataFrame:
     pp = predict(ap)
     pz = predict(dz)
     HCM_BACKGROUND_DIR.mkdir(parents=True, exist_ok=True)
-    pz.filter(pl.col("value") < DENSE_MIN).select(keys, pl.col("value").cast(pl.Float32)).write_parquet(
+    # 주의: polars 2.x에서 select(리스트, 식)은 리스트를 리터럴로 취급한다 → 컬럼은 *keys로 펼쳐서 넘긴다
+    pz.filter(pl.col("value") < DENSE_MIN).select(*keys, pl.col("value").cast(pl.Float32)).write_parquet(
         HCM_BACKGROUND_DIR / f"{year}.parquet", compression="zstd")
     return pl.concat([pp, pz.filter(pl.col("value") >= DENSE_MIN)])
 
@@ -277,6 +280,33 @@ def harmonized_year(year: int, ref: pl.DataFrame, meta: dict) -> pl.DataFrame:
         "cell_id", "year", "month")
 
 
+
+def rebuild_background(years: list[int]) -> None:
+    """배경 표(감지 없는 칸의 작은 m2v 예측값)만 다시 만든다. 칸 표는 그대로 (분위수 예측 없이 값만)."""
+    import xgboost as xgb
+    from planetarium.modeling.m1_xgb import M1_FEATURES, M1_TERRA_FEATURES, category_maps, dense_zero_rows, xgb_predict
+    from planetarium.train_table import GRID_PATH
+    keys = ["cell_id", "year", "month"]
+    cats = category_maps()
+    m, tm = xgb.Booster(), xgb.Booster()
+    m.load_model(M2V_PATH)
+    tm.load_model(M2V_TERRA_PATH)
+    grid = pl.read_parquet(GRID_PATH).with_columns(
+        pl.col("adm0_a3").fill_null("none"), pl.col("subregion").fill_null("none"), pl.col("continent").fill_null("none"))
+    HCM_BACKGROUND_DIR.mkdir(parents=True, exist_ok=True)
+    for y in tqdm(years, desc="배경 표 다시 만들기", unit="year", dynamic_ncols=True):
+        ap = load_panel("apply", [y]).select(keys).collect()
+        dz = dense_zero_rows(y, grid, ap, "apply")
+        parts = []
+        for terra, sub in ((True, dz.filter("terra_only")), (False, dz.filter(~pl.col("terra_only")))):
+            if sub.height:
+                v = xgb_predict(tm if terra else m, sub, M1_TERRA_FEATURES if terra else M1_FEATURES, cats)
+                parts.append(sub.select(*keys).with_columns(value=pl.Series(v, dtype=pl.Float32)))
+        bg = pl.concat(parts).filter(pl.col("value") < DENSE_MIN)
+        assert bg.columns == [*keys, "value"], bg.columns
+        bg.write_parquet(HCM_BACKGROUND_DIR / f"{y}.parquet", compression="zstd")
+        tqdm.write(f"[배경 {y}] {bg.height:,}행, 합 {bg['value'].sum():,.0f}")
+
 def build_harmonized(ref: pl.DataFrame, meta: dict) -> int:
     tmp = HCM_PATH.with_suffix(".parts")
     tmp.mkdir(parents=True, exist_ok=True)
@@ -290,6 +320,31 @@ def build_harmonized(ref: pl.DataFrame, meta: dict) -> int:
     for f in tmp.glob("*.parquet"):
         f.unlink()
     tmp.rmdir()
+    return n
+
+
+def splice_harmonized_years(years: list[int], ref: pl.DataFrame, meta: dict) -> int:
+    """harmonized_cell_month에서 이 연도들의 행만 새로 계산해 바꿔 끼운다 (fetch_nrt --append용).
+    value_projected 열이 있으면 새 행은 value_projected = value(달 전체 추정)로 두고,
+    이어서 hotspots.finalize_projection()이 진행 중인 달의 value를 month-to-date로 바꾼다."""
+    cols = pl.scan_parquet(HCM_PATH).collect_schema().names()
+    tmp_dir = HCM_PATH.with_suffix(".splice")
+    tmp_dir.mkdir(parents=True, exist_ok=True)
+    n = 0
+    for y in years:
+        df = harmonized_year(y, ref, meta)
+        if "value_projected" in cols:
+            df = df.with_columns(value_projected=pl.col("value"))
+        df.select(cols).write_parquet(tmp_dir / f"{y}.parquet", compression="zstd")
+        n += df.height
+    kept = pl.scan_parquet(HCM_PATH).filter(~pl.col("year").is_in(years))
+    new = [pl.scan_parquet(f) for f in sorted(tmp_dir.glob("*.parquet"))]
+    tmp = HCM_PATH.with_suffix(".new.parquet")
+    pl.concat([kept, *new], how="vertical_relaxed").sink_parquet(tmp, compression="zstd")
+    tmp.replace(HCM_PATH)
+    for f in tmp_dir.glob("*.parquet"):
+        f.unlink()
+    tmp_dir.rmdir()
     return n
 
 
@@ -427,6 +482,9 @@ def build_aoi_month(ref: pl.DataFrame, membership: pl.DataFrame, aoi_list: pl.Da
             hcm.filter(pl.col("year") == y).join(membership.lazy(), on="cell_id")
             .group_by("aoi_id", "year", "month")
             .agg(*[(pl.col(c) * pl.col("weight")).sum().alias(c) for c in ("value", "value_lo", "value_hi")],
+                 # 진행 중인 달: value = 오늘까지 실제 합계, value_projected = 달 전체 추정 (완결된 달은 value와 같음)
+                 value_projected=(pl.coalesce("value_projected", "value") * pl.col("weight")).sum()
+                 if "value_projected" in hcm.collect_schema().names() else (pl.col("value") * pl.col("weight")).sum(),
                  raw_modis=(pl.col("raw_modis") * pl.col("weight")).sum(),
                  raw_viirs=(pl.col("raw_viirs") * pl.col("weight")).sum(),
                  any_nrt=(pl.col("data_source") == "NRT").any())
@@ -440,7 +498,8 @@ def build_aoi_month(ref: pl.DataFrame, membership: pl.DataFrame, aoi_list: pl.Da
                         .agg(bg=(pl.col("value") * pl.col("weight")).sum()).collect())
     if bg_parts:
         sums = sums.join(pl.concat(bg_parts), on=["aoi_id", "year", "month"], how="full", coalesce=True).with_columns(
-            value=pl.col("value").fill_null(0) + pl.col("bg").fill_null(0)).drop("bg")
+            value=pl.col("value").fill_null(0) + pl.col("bg").fill_null(0),
+            value_projected=pl.col("value_projected").fill_null(0) + pl.col("bg").fill_null(0)).drop("bg")
     base = aoi_list.select("aoi_id", "n_cells", "level").join(ref, how="cross").join(aoi_coverage_ok(membership), on="aoi_id", how="left")
     df = base.join(sums, on=["aoi_id", "year", "month"], how="left")
     viirs_era = pl.col("value_source").is_in(["snpp_observed", "n20_bridge"])
@@ -467,8 +526,16 @@ def build_aoi_month(ref: pl.DataFrame, membership: pl.DataFrame, aoi_list: pl.Da
         value_hi=pl.when(modis_era).then(pl.col("value_hi")).otherwise(pl.col("value")),
     ).with_columns(*[pl.when(pl.col("status") == "missing").then(None).otherwise(pl.col(c)).alias(c)
                      for c in ("value", "value_lo", "value_hi")])
-    df = df.select("aoi_id", "year", "month", "value", "value_lo", "value_hi", "raw_modis", "raw_viirs",
-                   "value_source", "data_source", "status", "n_cells").sort("aoi_id", "year", "month")
+    # as_of_date: 그 달 자료의 마지막 날 (진행 중인 달 = 마지막 관측일, 완결된 달 = 월말)
+    end = last_data_day()
+    month_end = pl.date(pl.col("year"), pl.col("month"), 1).dt.month_end()
+    df = df.with_columns(
+        value_projected=pl.when(pl.col("status") == "missing").then(None)
+        .otherwise(pl.coalesce("value_projected", "value")),
+        as_of_date=pl.when(pl.col("status") == "partial").then(pl.lit(end)).otherwise(month_end),
+    )
+    df = df.select("aoi_id", "year", "month", "value", "value_lo", "value_hi", "value_projected", "raw_modis", "raw_viirs",
+                   "value_source", "data_source", "status", "as_of_date", "n_cells").sort("aoi_id", "year", "month")
     df.write_parquet(AOI_MONTH_PATH, compression="zstd")
     return df
 
@@ -515,11 +582,37 @@ def main(argv: list[str] | None = None) -> None:
     ap = argparse.ArgumentParser(description="최종 통합 시계열과 AOI 월 합계")
     ap.add_argument("--skip-cells", action="store_true", help="harmonized_cell_month는 그대로 두고 AOI만")
     ap.add_argument("--skip-boundaries", action="store_true")
+    ap.add_argument("--splice-years", nargs="+", type=int, help="harmonized_cell_month에서 이 연도만 다시 계산해 바꿔 끼우고 끝 (AOI는 따로)")
+    ap.add_argument("--rebuild-background", action="store_true", help="배경 표만 다시 만든 뒤 AOI 단계로 (칸 표는 그대로)")
+    # 변환기: FIRMS 원본 파일 하나 → 통합 핫스팟 형식 (이 옵션을 주면 T6은 돌지 않는다)
+    ap.add_argument("--input", nargs="+", help="FIRMS 원본 CSV/zip (여러 개 가능) → 통합 핫스팟 형식으로 변환")
+    ap.add_argument("--output", help="변환 결과 폴더 (기본 data/interim/converted/<파일 이름>)")
+    ap.add_argument("--format", choices=["parquet", "csv"], default="parquet", help="변환 결과 형식 (기본 parquet)")
     args = ap.parse_args(argv)
+    if args.input:
+        start_run_log("harmonize_file")
+        from planetarium.converter import harmonize_file as _hf
+        from planetarium.hotspots import Context
+        ctx, mem = Context(), aoi_membership()[0]
+        for i, f in enumerate(args.input):
+            out = None
+            if args.output:
+                out = Path(args.output) / Path(f).stem if len(args.input) > 1 else Path(args.output)
+            s = _hf(f, out, args.format, ctx, mem)
+            print(f"[완료] {Path(f).name} → {s['output_dir']}: 입력 {s['rows_in']:,}행 → 출력 {s['rows_out']:,}행 "
+                  f"(기준 {s['reference_rows']:,}, 대기 {s['pending_new_month_rows']:,}), 달 {s['months']}, "
+                  f"{s['seconds']}초, 최대 메모리 {s['peak_memory_gb']} GB")
+        return
     start_run_log("harmonize")
     t0 = time.perf_counter()
     meta = json.loads(META_PATH.read_text(encoding="utf-8"))
     ref = month_reference()
+    if args.splice_years:
+        n = splice_harmonized_years(args.splice_years, ref, meta)
+        print(f"[완료] {HCM_PATH.name}: {args.splice_years}년 {n:,}행 교체 ({time.perf_counter() - t0:,.0f}초)")
+        return
+    if args.rebuild_background:
+        rebuild_background(sorted({y for y, _ in all_months() if y <= SNPP_FIRST[0]}))
     if not args.skip_cells:
         n = build_harmonized(ref, meta)
         print(f"[완료] {HCM_PATH.name}: {n:,}행 ({time.perf_counter() - t0:,.0f}초)")
@@ -558,3 +651,15 @@ def main(argv: list[str] | None = None) -> None:
 
 if __name__ == "__main__":
     main()
+
+
+def harmonize_detections(*args, **kwargs):
+    """감지 단위 통합 변환 (구현은 planetarium.hotspots — 모듈 순환 import를 피하려고 분리)."""
+    from planetarium.hotspots import harmonize_detections as _f
+    return _f(*args, **kwargs)
+
+
+def harmonize_file(*args, **kwargs):
+    """FIRMS 원본 파일(CSV/zip) → 통합 핫스팟 형식 + 요약 (구현은 planetarium.converter)."""
+    from planetarium.converter import harmonize_file as _f
+    return _f(*args, **kwargs)
