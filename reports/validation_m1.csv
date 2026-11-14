@@ -1,0 +1,2883 @@
+model,region,fold_year,metric,value
+B1,world,2012,month_total_MAE,57679.880652831256
+B1,world,2012,month_total_bias,1.0324622693245926
+B1,world,2012,month_total_pearson,0.9945542320339159
+B1,world,2012,month_total_spearman,0.990909090909091
+B1,world,2012,month_total_n_months,11.0
+B1,korea,2012,month_total_MAE,84.55366684716047
+B1,korea,2012,month_total_bias,1.9926572898627652
+B1,korea,2012,month_total_pearson,0.6775315729669328
+B1,korea,2012,month_total_spearman,0.7090909090909092
+B1,korea,2012,month_total_n_months,11.0
+B1,argentina,2012,month_total_MAE,4533.527911140083
+B1,argentina,2012,month_total_bias,1.2816643340665883
+B1,argentina,2012,month_total_pearson,0.9849193488529812
+B1,argentina,2012,month_total_spearman,0.9363636363636365
+B1,argentina,2012,month_total_n_months,11.0
+B1,continent:Africa,2012,month_total_MAE,39747.90724722392
+B1,continent:Africa,2012,month_total_bias,0.9889362598463568
+B1,continent:Africa,2012,month_total_pearson,0.991592562019854
+B1,continent:Africa,2012,month_total_spearman,0.9727272727272729
+B1,continent:Africa,2012,month_total_n_months,11.0
+B1,continent:Antarctica,2012,month_total_MAE,8.284389424740304
+B1,continent:Antarctica,2012,month_total_bias,0.0
+B1,continent:Antarctica,2012,month_total_pearson,NaN
+B1,continent:Antarctica,2012,month_total_spearman,NaN
+B1,continent:Antarctica,2012,month_total_n_months,9.0
+B1,continent:Asia,2012,month_total_MAE,22237.911613075787
+B1,continent:Asia,2012,month_total_bias,1.0686078281770663
+B1,continent:Asia,2012,month_total_pearson,0.9959572572539226
+B1,continent:Asia,2012,month_total_spearman,0.990909090909091
+B1,continent:Asia,2012,month_total_n_months,11.0
+B1,continent:Europe,2012,month_total_MAE,10262.091692657383
+B1,continent:Europe,2012,month_total_bias,1.0421457769172566
+B1,continent:Europe,2012,month_total_pearson,0.9975413147526522
+B1,continent:Europe,2012,month_total_spearman,1.0
+B1,continent:Europe,2012,month_total_n_months,11.0
+B1,continent:North America,2012,month_total_MAE,11350.45821009122
+B1,continent:North America,2012,month_total_bias,1.109464306447154
+B1,continent:North America,2012,month_total_pearson,0.9828618164359952
+B1,continent:North America,2012,month_total_spearman,0.9727272727272729
+B1,continent:North America,2012,month_total_n_months,11.0
+B1,continent:Oceania,2012,month_total_MAE,14080.517914142052
+B1,continent:Oceania,2012,month_total_bias,0.9874369175937586
+B1,continent:Oceania,2012,month_total_pearson,0.9947140462209436
+B1,continent:Oceania,2012,month_total_spearman,0.9727272727272729
+B1,continent:Oceania,2012,month_total_n_months,11.0
+B1,continent:Seven seas (open ocean),2012,month_total_MAE,11.041315069344613
+B1,continent:Seven seas (open ocean),2012,month_total_bias,0.9332345159772454
+B1,continent:Seven seas (open ocean),2012,month_total_pearson,0.849543204867303
+B1,continent:Seven seas (open ocean),2012,month_total_spearman,0.46989452625122785
+B1,continent:Seven seas (open ocean),2012,month_total_n_months,11.0
+B1,continent:South America,2012,month_total_MAE,34193.25453351363
+B1,continent:South America,2012,month_total_bias,1.158870203681044
+B1,continent:South America,2012,month_total_pearson,0.9990888611401094
+B1,continent:South America,2012,month_total_spearman,0.990909090909091
+B1,continent:South America,2012,month_total_n_months,11.0
+B1,world,2012,cell_MAE,4.569498761763985
+B1,world,2012,cell_RMSE_log1p,0.9234633540490067
+B1,world,2012,cell_poisson_dev,44.65586644472986
+B1,world,2012,cell_n,650408.0
+B1,korea,2012,cell_MAE,0.9551276453532446
+B1,korea,2012,cell_RMSE_log1p,0.7066384115310739
+B1,korea,2012,cell_poisson_dev,13.033896723879668
+B1,korea,2012,cell_n,551.0
+B1,argentina,2012,cell_MAE,2.8218108672261346
+B1,argentina,2012,cell_RMSE_log1p,0.8714832683847218
+B1,argentina,2012,cell_poisson_dev,31.502132285590392
+B1,argentina,2012,cell_n,14312.0
+B1,continent:Africa,2012,cell_MAE,7.193671488433871
+B1,continent:Africa,2012,cell_RMSE_log1p,1.053131120890662
+B1,continent:Africa,2012,cell_poisson_dev,66.10378551920994
+B1,continent:Africa,2012,cell_n,171703.0
+B1,continent:Antarctica,2012,cell_MAE,0.04403896492845281
+B1,continent:Antarctica,2012,cell_RMSE_log1p,0.15468218819420654
+B1,continent:Antarctica,2012,cell_poisson_dev,1.765518594996581
+B1,continent:Antarctica,2012,cell_n,371.0
+B1,continent:Asia,2012,cell_MAE,3.677133534309539
+B1,continent:Asia,2012,cell_RMSE_log1p,0.9442800411411435
+B1,continent:Asia,2012,cell_poisson_dev,45.591692633537136
+B1,continent:Asia,2012,cell_n,141425.0
+B1,continent:Europe,2012,cell_MAE,2.789229256041978
+B1,continent:Europe,2012,cell_RMSE_log1p,0.6880246864607168
+B1,continent:Europe,2012,cell_poisson_dev,22.42810130348096
+B1,continent:Europe,2012,cell_n,104647.0
+B1,continent:North America,2012,cell_MAE,2.37672803055682
+B1,continent:North America,2012,cell_RMSE_log1p,0.7823279289955261
+B1,continent:North America,2012,cell_poisson_dev,27.653203571030062
+B1,continent:North America,2012,cell_n,85871.0
+B1,continent:Oceania,2012,cell_MAE,6.731403076477904
+B1,continent:Oceania,2012,cell_RMSE_log1p,0.8388318225147768
+B1,continent:Oceania,2012,cell_poisson_dev,39.085979111087006
+B1,continent:Oceania,2012,cell_n,40247.0
+B1,continent:Seven seas (open ocean),2012,cell_MAE,1.4290349278882157
+B1,continent:Seven seas (open ocean),2012,cell_RMSE_log1p,0.9067854825853661
+B1,continent:Seven seas (open ocean),2012,cell_poisson_dev,48.34183866973491
+B1,continent:Seven seas (open ocean),2012,cell_n,33.0
+B1,continent:South America,2012,cell_MAE,4.250721837054244
+B1,continent:South America,2012,cell_RMSE_log1p,1.0084631044385164
+B1,continent:South America,2012,cell_poisson_dev,46.73206390452715
+B1,continent:South America,2012,cell_n,105805.0
+B1,world,2013,month_total_MAE,28511.275142351642
+B1,world,2013,month_total_bias,1.0123856845966763
+B1,world,2013,month_total_pearson,0.9963543762630634
+B1,world,2013,month_total_spearman,0.9790209790209792
+B1,world,2013,month_total_n_months,12.0
+B1,korea,2013,month_total_MAE,101.60046925915161
+B1,korea,2013,month_total_bias,2.000732391263774
+B1,korea,2013,month_total_pearson,0.7573520961330183
+B1,korea,2013,month_total_spearman,0.8601398601398602
+B1,korea,2013,month_total_n_months,12.0
+B1,argentina,2013,month_total_MAE,3976.2513883766355
+B1,argentina,2013,month_total_bias,1.214929527183737
+B1,argentina,2013,month_total_pearson,0.9947623718078399
+B1,argentina,2013,month_total_spearman,0.9720279720279721
+B1,argentina,2013,month_total_n_months,12.0
+B1,continent:Africa,2013,month_total_MAE,28228.288900831776
+B1,continent:Africa,2013,month_total_bias,0.9808566237558373
+B1,continent:Africa,2013,month_total_pearson,0.9937866476930136
+B1,continent:Africa,2013,month_total_spearman,0.9580419580419581
+B1,continent:Africa,2013,month_total_n_months,12.0
+B1,continent:Antarctica,2013,month_total_MAE,3.721677767685027
+B1,continent:Antarctica,2013,month_total_bias,0.0
+B1,continent:Antarctica,2013,month_total_pearson,NaN
+B1,continent:Antarctica,2013,month_total_spearman,NaN
+B1,continent:Antarctica,2013,month_total_n_months,9.0
+B1,continent:Asia,2013,month_total_MAE,17244.361777668943
+B1,continent:Asia,2013,month_total_bias,1.0007658025990138
+B1,continent:Asia,2013,month_total_pearson,0.9875020643721886
+B1,continent:Asia,2013,month_total_spearman,0.9790209790209792
+B1,continent:Asia,2013,month_total_n_months,12.0
+B1,continent:Europe,2013,month_total_MAE,7054.421902447503
+B1,continent:Europe,2013,month_total_bias,1.058166815097674
+B1,continent:Europe,2013,month_total_pearson,0.9982160526574596
+B1,continent:Europe,2013,month_total_spearman,0.9930069930069931
+B1,continent:Europe,2013,month_total_n_months,12.0
+B1,continent:North America,2013,month_total_MAE,16417.380413298877
+B1,continent:North America,2013,month_total_bias,1.1144982523568985
+B1,continent:North America,2013,month_total_pearson,0.9721847065016848
+B1,continent:North America,2013,month_total_spearman,0.9440559440559443
+B1,continent:North America,2013,month_total_n_months,12.0
+B1,continent:Oceania,2013,month_total_MAE,7074.427888613548
+B1,continent:Oceania,2013,month_total_bias,0.932647733752211
+B1,continent:Oceania,2013,month_total_pearson,0.9897729250567746
+B1,continent:Oceania,2013,month_total_spearman,0.9720279720279721
+B1,continent:Oceania,2013,month_total_n_months,12.0
+B1,continent:Seven seas (open ocean),2013,month_total_MAE,14.889819598686168
+B1,continent:Seven seas (open ocean),2013,month_total_bias,0.7240450198586903
+B1,continent:Seven seas (open ocean),2013,month_total_pearson,0.8545038498917753
+B1,continent:Seven seas (open ocean),2013,month_total_spearman,0.9069563718385057
+B1,continent:Seven seas (open ocean),2013,month_total_n_months,12.0
+B1,continent:South America,2013,month_total_MAE,24100.748968249496
+B1,continent:South America,2013,month_total_bias,1.163131957021987
+B1,continent:South America,2013,month_total_pearson,0.9991461609065523
+B1,continent:South America,2013,month_total_spearman,0.9510489510489512
+B1,continent:South America,2013,month_total_n_months,12.0
+B1,world,2013,cell_MAE,4.0071531510902
+B1,world,2013,cell_RMSE_log1p,0.898687220951826
+B1,world,2013,cell_poisson_dev,42.894829445672066
+B1,world,2013,cell_n,700081.0
+B1,korea,2013,cell_MAE,1.20771209712047
+B1,korea,2013,cell_RMSE_log1p,0.7723970341962803
+B1,korea,2013,cell_poisson_dev,12.936116677770121
+B1,korea,2013,cell_n,642.0
+B1,argentina,2013,cell_MAE,2.9134462637181606
+B1,argentina,2013,cell_RMSE_log1p,0.8686479852581226
+B1,argentina,2013,cell_poisson_dev,31.04011524194316
+B1,argentina,2013,cell_n,15910.0
+B1,continent:Africa,2013,cell_MAE,7.125207785854276
+B1,continent:Africa,2013,cell_RMSE_log1p,1.0365763503514394
+B1,continent:Africa,2013,cell_poisson_dev,65.32987880410049
+B1,continent:Africa,2013,cell_n,191659.0
+B1,continent:Antarctica,2013,cell_MAE,0.006101132370167903
+B1,continent:Antarctica,2013,cell_RMSE_log1p,0.056242050423896336
+B1,continent:Antarctica,2013,cell_poisson_dev,0.2429225528660841
+B1,continent:Antarctica,2013,cell_n,394.0
+B1,continent:Asia,2013,cell_MAE,3.270779314508494
+B1,continent:Asia,2013,cell_RMSE_log1p,0.9314325291194462
+B1,continent:Asia,2013,cell_poisson_dev,44.855614657924
+B1,continent:Asia,2013,cell_n,156951.0
+B1,continent:Europe,2013,cell_MAE,1.612740677978144
+B1,continent:Europe,2013,cell_RMSE_log1p,0.6161223158127654
+B1,continent:Europe,2013,cell_poisson_dev,17.474798219598195
+B1,continent:Europe,2013,cell_n,106621.0
+B1,continent:North America,2013,cell_MAE,2.435296014932136
+B1,continent:North America,2013,cell_RMSE_log1p,0.7529399181518988
+B1,continent:North America,2013,cell_poisson_dev,26.753417769102594
+B1,continent:North America,2013,cell_n,92904.0
+B1,continent:Oceania,2013,cell_MAE,3.3696969481798185
+B1,continent:Oceania,2013,cell_RMSE_log1p,0.7250451910868558
+B1,continent:Oceania,2013,cell_poisson_dev,29.17401208475954
+B1,continent:Oceania,2013,cell_n,38959.0
+B1,continent:Seven seas (open ocean),2013,cell_MAE,2.202053963610591
+B1,continent:Seven seas (open ocean),2013,cell_RMSE_log1p,1.0240137666193392
+B1,continent:Seven seas (open ocean),2013,cell_poisson_dev,72.48842840022814
+B1,continent:Seven seas (open ocean),2013,cell_n,34.0
+B1,continent:South America,2013,cell_MAE,3.534355932507257
+B1,continent:South America,2013,cell_RMSE_log1p,0.988088976834696
+B1,continent:South America,2013,cell_poisson_dev,44.32243071685444
+B1,continent:South America,2013,cell_n,112230.0
+B1,world,2014,month_total_MAE,21561.402964324214
+B1,world,2014,month_total_bias,1.0034831714060664
+B1,world,2014,month_total_pearson,0.9978175135739391
+B1,world,2014,month_total_spearman,1.0
+B1,world,2014,month_total_n_months,12.0
+B1,korea,2014,month_total_MAE,90.93958849327642
+B1,korea,2014,month_total_bias,1.5166834746504734
+B1,korea,2014,month_total_pearson,0.9461114867373019
+B1,korea,2014,month_total_spearman,0.8251748251748254
+B1,korea,2014,month_total_n_months,12.0
+B1,argentina,2014,month_total_MAE,2977.6293069815933
+B1,argentina,2014,month_total_bias,1.2955213054548536
+B1,argentina,2014,month_total_pearson,0.9944278153472075
+B1,argentina,2014,month_total_spearman,0.9860139860139862
+B1,argentina,2014,month_total_n_months,12.0
+B1,continent:Africa,2014,month_total_MAE,27721.042450070614
+B1,continent:Africa,2014,month_total_bias,0.984750428469506
+B1,continent:Africa,2014,month_total_pearson,0.993495809983255
+B1,continent:Africa,2014,month_total_spearman,1.0
+B1,continent:Africa,2014,month_total_n_months,12.0
+B1,continent:Antarctica,2014,month_total_MAE,4.822054065559813
+B1,continent:Antarctica,2014,month_total_bias,0.0
+B1,continent:Antarctica,2014,month_total_pearson,NaN
+B1,continent:Antarctica,2014,month_total_spearman,NaN
+B1,continent:Antarctica,2014,month_total_n_months,9.0
+B1,continent:Asia,2014,month_total_MAE,16488.593222052066
+B1,continent:Asia,2014,month_total_bias,0.9629310670772533
+B1,continent:Asia,2014,month_total_pearson,0.9971042687698547
+B1,continent:Asia,2014,month_total_spearman,0.9930069930069931
+B1,continent:Asia,2014,month_total_n_months,12.0
+B1,continent:Europe,2014,month_total_MAE,8710.384160295589
+B1,continent:Europe,2014,month_total_bias,1.0491663405350988
+B1,continent:Europe,2014,month_total_pearson,0.9994127672178308
+B1,continent:Europe,2014,month_total_spearman,0.9930069930069931
+B1,continent:Europe,2014,month_total_n_months,12.0
+B1,continent:North America,2014,month_total_MAE,21050.068798530967
+B1,continent:North America,2014,month_total_bias,0.9909533207576587
+B1,continent:North America,2014,month_total_pearson,0.9556462774339893
+B1,continent:North America,2014,month_total_spearman,0.9930069930069931
+B1,continent:North America,2014,month_total_n_months,12.0
+B1,continent:Oceania,2014,month_total_MAE,13243.62791570583
+B1,continent:Oceania,2014,month_total_bias,0.9741879725328169
+B1,continent:Oceania,2014,month_total_pearson,0.9829158751106066
+B1,continent:Oceania,2014,month_total_spearman,0.9860139860139862
+B1,continent:Oceania,2014,month_total_n_months,12.0
+B1,continent:Seven seas (open ocean),2014,month_total_MAE,11.348916794837146
+B1,continent:Seven seas (open ocean),2014,month_total_bias,0.695941948006271
+B1,continent:Seven seas (open ocean),2014,month_total_pearson,0.9199493255353511
+B1,continent:Seven seas (open ocean),2014,month_total_spearman,0.8846388162506855
+B1,continent:Seven seas (open ocean),2014,month_total_n_months,12.0
+B1,continent:South America,2014,month_total_MAE,24967.158984866506
+B1,continent:South America,2014,month_total_bias,1.1481679941406657
+B1,continent:South America,2014,month_total_pearson,0.9952426479909391
+B1,continent:South America,2014,month_total_spearman,0.9930069930069931
+B1,continent:South America,2014,month_total_n_months,12.0
+B1,world,2014,cell_MAE,4.085196687238958
+B1,world,2014,cell_RMSE_log1p,0.891024328820587
+B1,world,2014,cell_poisson_dev,42.37180720874222
+B1,world,2014,cell_n,715682.0
+B1,korea,2014,cell_MAE,1.4497152701937093
+B1,korea,2014,cell_RMSE_log1p,0.7851697104599095
+B1,korea,2014,cell_poisson_dev,17.103597206462442
+B1,korea,2014,cell_n,694.0
+B1,argentina,2014,cell_MAE,2.1150636317236695
+B1,argentina,2014,cell_RMSE_log1p,0.7863412629800173
+B1,argentina,2014,cell_poisson_dev,24.053968931372864
+B1,argentina,2014,cell_n,13715.0
+B1,continent:Africa,2014,cell_MAE,6.886128643209829
+B1,continent:Africa,2014,cell_RMSE_log1p,1.0083397520566006
+B1,continent:Africa,2014,cell_poisson_dev,60.98292490271022
+B1,continent:Africa,2014,cell_n,187930.0
+B1,continent:Antarctica,2014,cell_MAE,0.030203710026175033
+B1,continent:Antarctica,2014,cell_RMSE_log1p,0.1299975690289498
+B1,continent:Antarctica,2014,cell_poisson_dev,1.2231117449562017
+B1,continent:Antarctica,2014,cell_n,404.0
+B1,continent:Asia,2014,cell_MAE,3.5514771224474533
+B1,continent:Asia,2014,cell_RMSE_log1p,0.9344323804072766
+B1,continent:Asia,2014,cell_poisson_dev,46.49017424711054
+B1,continent:Asia,2014,cell_n,163503.0
+B1,continent:Europe,2014,cell_MAE,2.0825081273473685
+B1,continent:Europe,2014,cell_RMSE_log1p,0.6685674792964722
+B1,continent:Europe,2014,cell_poisson_dev,22.978554684679395
+B1,continent:Europe,2014,cell_n,117116.0
+B1,continent:North America,2014,cell_MAE,2.3799021590847156
+B1,continent:North America,2014,cell_RMSE_log1p,0.7452292151399652
+B1,continent:North America,2014,cell_poisson_dev,25.655002254620932
+B1,continent:North America,2014,cell_n,93798.0
+B1,continent:Oceania,2014,cell_MAE,4.031710936101926
+B1,continent:Oceania,2014,cell_RMSE_log1p,0.7568556240715505
+B1,continent:Oceania,2014,cell_poisson_dev,31.617959624166367
+B1,continent:Oceania,2014,cell_n,40717.0
+B1,continent:Seven seas (open ocean),2014,cell_MAE,2.8235519871000143
+B1,continent:Seven seas (open ocean),2014,cell_RMSE_log1p,1.0566340337219187
+B1,continent:Seven seas (open ocean),2014,cell_poisson_dev,64.42269952567112
+B1,continent:Seven seas (open ocean),2014,cell_n,42.0
+B1,continent:South America,2014,cell_MAE,3.7310849273146927
+B1,continent:South America,2014,cell_RMSE_log1p,0.9754631744254095
+B1,continent:South America,2014,cell_poisson_dev,43.49815084034504
+B1,continent:South America,2014,cell_n,111835.0
+B1,world,2015,month_total_MAE,45644.44160749783
+B1,world,2015,month_total_bias,1.0170557071713568
+B1,world,2015,month_total_pearson,0.99410906151688
+B1,world,2015,month_total_spearman,0.9930069930069931
+B1,world,2015,month_total_n_months,12.0
+B1,korea,2015,month_total_MAE,85.32384531104567
+B1,korea,2015,month_total_bias,1.5021887461061132
+B1,korea,2015,month_total_pearson,0.8113503326257664
+B1,korea,2015,month_total_spearman,0.8671328671328673
+B1,korea,2015,month_total_n_months,12.0
+B1,argentina,2015,month_total_MAE,2811.7509610791517
+B1,argentina,2015,month_total_bias,1.2283897981493173
+B1,argentina,2015,month_total_pearson,0.9893346148017221
+B1,argentina,2015,month_total_spearman,0.965034965034965
+B1,argentina,2015,month_total_n_months,12.0
+B1,continent:Africa,2015,month_total_MAE,48690.22216652994
+B1,continent:Africa,2015,month_total_bias,1.0103718882725043
+B1,continent:Africa,2015,month_total_pearson,0.988121530789511
+B1,continent:Africa,2015,month_total_spearman,0.9370629370629372
+B1,continent:Africa,2015,month_total_n_months,12.0
+B1,continent:Antarctica,2015,month_total_MAE,5.836154047280627
+B1,continent:Antarctica,2015,month_total_bias,0.0
+B1,continent:Antarctica,2015,month_total_pearson,NaN
+B1,continent:Antarctica,2015,month_total_spearman,NaN
+B1,continent:Antarctica,2015,month_total_n_months,7.0
+B1,continent:Asia,2015,month_total_MAE,23079.455247510898
+B1,continent:Asia,2015,month_total_bias,0.9489939175915632
+B1,continent:Asia,2015,month_total_pearson,0.9880275505884896
+B1,continent:Asia,2015,month_total_spearman,0.965034965034965
+B1,continent:Asia,2015,month_total_n_months,12.0
+B1,continent:Europe,2015,month_total_MAE,5834.148978856575
+B1,continent:Europe,2015,month_total_bias,1.0037013377387947
+B1,continent:Europe,2015,month_total_pearson,0.9982172137691101
+B1,continent:Europe,2015,month_total_spearman,1.0
+B1,continent:Europe,2015,month_total_n_months,12.0
+B1,continent:North America,2015,month_total_MAE,15565.135387393224
+B1,continent:North America,2015,month_total_bias,1.098800193862034
+B1,continent:North America,2015,month_total_pearson,0.9751131285027238
+B1,continent:North America,2015,month_total_spearman,0.9580419580419581
+B1,continent:North America,2015,month_total_n_months,12.0
+B1,continent:Oceania,2015,month_total_MAE,10079.362589757613
+B1,continent:Oceania,2015,month_total_bias,0.9654347248938671
+B1,continent:Oceania,2015,month_total_pearson,0.987244507353966
+B1,continent:Oceania,2015,month_total_spearman,0.9720279720279721
+B1,continent:Oceania,2015,month_total_n_months,12.0
+B1,continent:Seven seas (open ocean),2015,month_total_MAE,7.332563616740086
+B1,continent:Seven seas (open ocean),2015,month_total_bias,1.1235286420107273
+B1,continent:Seven seas (open ocean),2015,month_total_pearson,0.9421769168267098
+B1,continent:Seven seas (open ocean),2015,month_total_spearman,0.811516378437229
+B1,continent:Seven seas (open ocean),2015,month_total_n_months,12.0
+B1,continent:South America,2015,month_total_MAE,26922.915283262537
+B1,continent:South America,2015,month_total_bias,1.129760936254915
+B1,continent:South America,2015,month_total_pearson,0.9988040353676829
+B1,continent:South America,2015,month_total_spearman,0.9930069930069931
+B1,continent:South America,2015,month_total_n_months,12.0
+B1,world,2015,cell_MAE,4.273415307139255
+B1,world,2015,cell_RMSE_log1p,0.9023004891261078
+B1,world,2015,cell_poisson_dev,43.34705212311054
+B1,world,2015,cell_n,715878.0
+B1,korea,2015,cell_MAE,1.3233021945688852
+B1,korea,2015,cell_RMSE_log1p,0.8243397570957733
+B1,korea,2015,cell_poisson_dev,19.545174838655456
+B1,korea,2015,cell_n,662.0
+B1,argentina,2015,cell_MAE,2.2598403792599253
+B1,argentina,2015,cell_RMSE_log1p,0.8239059958921808
+B1,argentina,2015,cell_poisson_dev,27.16363951541996
+B1,argentina,2015,cell_n,15052.0
+B1,continent:Africa,2015,cell_MAE,7.301950839601246
+B1,continent:Africa,2015,cell_RMSE_log1p,1.017834615271346
+B1,continent:Africa,2015,cell_poisson_dev,62.97933015318494
+B1,continent:Africa,2015,cell_n,190797.0
+B1,continent:Antarctica,2015,cell_MAE,0.02400146907487393
+B1,continent:Antarctica,2015,cell_RMSE_log1p,0.11910528578302339
+B1,continent:Antarctica,2015,cell_poisson_dev,0.9801277120926446
+B1,continent:Antarctica,2015,cell_n,385.0
+B1,continent:Asia,2015,cell_MAE,3.7523108480080283
+B1,continent:Asia,2015,cell_RMSE_log1p,0.9471767437968819
+B1,continent:Asia,2015,cell_poisson_dev,47.805678511339856
+B1,continent:Asia,2015,cell_n,160155.0
+B1,continent:Europe,2015,cell_MAE,1.8207896893407276
+B1,continent:Europe,2015,cell_RMSE_log1p,0.6575321766202467
+B1,continent:Europe,2015,cell_poisson_dev,20.703977160852975
+B1,continent:Europe,2015,cell_n,113508.0
+B1,continent:North America,2015,cell_MAE,2.3126564084240693
+B1,continent:North America,2015,cell_RMSE_log1p,0.7597702735124099
+B1,continent:North America,2015,cell_poisson_dev,25.75197722032999
+B1,continent:North America,2015,cell_n,94215.0
+B1,continent:Oceania,2015,cell_MAE,3.994701153539205
+B1,continent:Oceania,2015,cell_RMSE_log1p,0.7619203825515048
+B1,continent:Oceania,2015,cell_poisson_dev,30.774013944027278
+B1,continent:Oceania,2015,cell_n,41264.0
+B1,continent:Seven seas (open ocean),2015,cell_MAE,1.2814581053476273
+B1,continent:Seven seas (open ocean),2015,cell_RMSE_log1p,0.8698354736395744
+B1,continent:Seven seas (open ocean),2015,cell_poisson_dev,27.379217024853208
+B1,continent:Seven seas (open ocean),2015,cell_n,35.0
+B1,continent:South America,2015,cell_MAE,4.12311166898054
+B1,continent:South America,2015,cell_RMSE_log1p,0.9940960909641353
+B1,continent:South America,2015,cell_poisson_dev,45.843751374383444
+B1,continent:South America,2015,cell_n,115213.0
+B1,world,2016,month_total_MAE,39577.49047470754
+B1,world,2016,month_total_bias,1.009218603311226
+B1,world,2016,month_total_pearson,0.9906440774729494
+B1,world,2016,month_total_spearman,0.9510489510489512
+B1,world,2016,month_total_n_months,12.0
+B1,korea,2016,month_total_MAE,150.42367413394905
+B1,korea,2016,month_total_bias,2.2068407948487043
+B1,korea,2016,month_total_pearson,0.5596756858765037
+B1,korea,2016,month_total_spearman,0.7972027972027973
+B1,korea,2016,month_total_n_months,12.0
+B1,argentina,2016,month_total_MAE,3468.440004142747
+B1,argentina,2016,month_total_bias,1.2422419413225705
+B1,argentina,2016,month_total_pearson,0.9935414323899259
+B1,argentina,2016,month_total_spearman,1.0
+B1,argentina,2016,month_total_n_months,12.0
+B1,continent:Africa,2016,month_total_MAE,32290.862245142973
+B1,continent:Africa,2016,month_total_bias,0.9927368984327285
+B1,continent:Africa,2016,month_total_pearson,0.9936226884404514
+B1,continent:Africa,2016,month_total_spearman,0.9790209790209792
+B1,continent:Africa,2016,month_total_n_months,12.0
+B1,continent:Antarctica,2016,month_total_MAE,5.370280417381867
+B1,continent:Antarctica,2016,month_total_bias,0.0
+B1,continent:Antarctica,2016,month_total_pearson,NaN
+B1,continent:Antarctica,2016,month_total_spearman,NaN
+B1,continent:Antarctica,2016,month_total_n_months,9.0
+B1,continent:Asia,2016,month_total_MAE,21532.47145731137
+B1,continent:Asia,2016,month_total_bias,0.931764296926162
+B1,continent:Asia,2016,month_total_pearson,0.9968686243279203
+B1,continent:Asia,2016,month_total_spearman,0.9790209790209792
+B1,continent:Asia,2016,month_total_n_months,12.0
+B1,continent:Europe,2016,month_total_MAE,10365.426604720684
+B1,continent:Europe,2016,month_total_bias,0.9858465960294724
+B1,continent:Europe,2016,month_total_pearson,0.9943388472120852
+B1,continent:Europe,2016,month_total_spearman,0.9930069930069931
+B1,continent:Europe,2016,month_total_n_months,12.0
+B1,continent:North America,2016,month_total_MAE,11394.295021496602
+B1,continent:North America,2016,month_total_bias,1.154260005754908
+B1,continent:North America,2016,month_total_pearson,0.9944647475503305
+B1,continent:North America,2016,month_total_spearman,0.965034965034965
+B1,continent:North America,2016,month_total_n_months,12.0
+B1,continent:Oceania,2016,month_total_MAE,7864.820407324124
+B1,continent:Oceania,2016,month_total_bias,0.9330270501164151
+B1,continent:Oceania,2016,month_total_pearson,0.9755232459754751
+B1,continent:Oceania,2016,month_total_spearman,0.9930069930069931
+B1,continent:Oceania,2016,month_total_n_months,12.0
+B1,continent:Seven seas (open ocean),2016,month_total_MAE,13.037975289298867
+B1,continent:Seven seas (open ocean),2016,month_total_bias,0.599348265863199
+B1,continent:Seven seas (open ocean),2016,month_total_pearson,0.27486996164921057
+B1,continent:Seven seas (open ocean),2016,month_total_spearman,0.5596565806059
+B1,continent:Seven seas (open ocean),2016,month_total_n_months,11.0
+B1,continent:South America,2016,month_total_MAE,31035.602971974484
+B1,continent:South America,2016,month_total_bias,1.1606842386182437
+B1,continent:South America,2016,month_total_pearson,0.9976031684889003
+B1,continent:South America,2016,month_total_spearman,0.9860139860139862
+B1,continent:South America,2016,month_total_n_months,12.0
+B1,world,2016,cell_MAE,4.071622024258641
+B1,world,2016,cell_RMSE_log1p,0.8929338255090322
+B1,world,2016,cell_poisson_dev,41.778052952891855
+B1,world,2016,cell_n,704449.0
+B1,korea,2016,cell_MAE,1.1844913557323025
+B1,korea,2016,cell_RMSE_log1p,0.7573169555636845
+B1,korea,2016,cell_poisson_dev,14.662020187199861
+B1,korea,2016,cell_n,688.0
+B1,argentina,2016,cell_MAE,2.4365743840449565
+B1,argentina,2016,cell_RMSE_log1p,0.8233880070680215
+B1,argentina,2016,cell_poisson_dev,24.929477588830608
+B1,argentina,2016,cell_n,14699.0
+B1,continent:Africa,2016,cell_MAE,7.333573562350164
+B1,continent:Africa,2016,cell_RMSE_log1p,1.0022230645927015
+B1,continent:Africa,2016,cell_poisson_dev,61.00899372352763
+B1,continent:Africa,2016,cell_n,187891.0
+B1,continent:Antarctica,2016,cell_MAE,0.023844627432381235
+B1,continent:Antarctica,2016,cell_RMSE_log1p,0.11153565598266488
+B1,continent:Antarctica,2016,cell_poisson_dev,0.950280501899334
+B1,continent:Antarctica,2016,cell_n,409.0
+B1,continent:Asia,2016,cell_MAE,3.3102263414523985
+B1,continent:Asia,2016,cell_RMSE_log1p,0.9519528210286501
+B1,continent:Asia,2016,cell_poisson_dev,47.682731310410965
+B1,continent:Asia,2016,cell_n,157160.0
+B1,continent:Europe,2016,cell_MAE,1.7913806920287896
+B1,continent:Europe,2016,cell_RMSE_log1p,0.6109592519314073
+B1,continent:Europe,2016,cell_poisson_dev,17.557630497633276
+B1,continent:Europe,2016,cell_n,109084.0
+B1,continent:North America,2016,cell_MAE,2.1152172717716278
+B1,continent:North America,2016,cell_RMSE_log1p,0.7618512147204529
+B1,continent:North America,2016,cell_poisson_dev,25.654373871437468
+B1,continent:North America,2016,cell_n,93687.0
+B1,continent:Oceania,2016,cell_MAE,3.0559505119144803
+B1,continent:Oceania,2016,cell_RMSE_log1p,0.7285013791850703
+B1,continent:Oceania,2016,cell_poisson_dev,27.552035604202135
+B1,continent:Oceania,2016,cell_n,39047.0
+B1,continent:Seven seas (open ocean),2016,cell_MAE,1.3693139990693757
+B1,continent:Seven seas (open ocean),2016,cell_RMSE_log1p,0.8928794567144428
+B1,continent:Seven seas (open ocean),2016,cell_poisson_dev,48.414688162726186
+B1,continent:Seven seas (open ocean),2016,cell_n,38.0
+B1,continent:South America,2016,cell_MAE,3.9114956102621643
+B1,continent:South America,2016,cell_RMSE_log1p,0.9903813931146963
+B1,continent:South America,2016,cell_poisson_dev,43.39373925624023
+B1,continent:South America,2016,cell_n,116827.0
+B1,world,2017,month_total_MAE,49340.98513643197
+B1,world,2017,month_total_bias,1.027031605130799
+B1,world,2017,month_total_pearson,0.9982865973516755
+B1,world,2017,month_total_spearman,0.9930069930069931
+B1,world,2017,month_total_n_months,12.0
+B1,korea,2017,month_total_MAE,89.12073819021191
+B1,korea,2017,month_total_bias,1.5789765886384641
+B1,korea,2017,month_total_pearson,0.8674138904395507
+B1,korea,2017,month_total_spearman,0.8111888111888113
+B1,korea,2017,month_total_n_months,12.0
+B1,argentina,2017,month_total_MAE,4329.963082139647
+B1,argentina,2017,month_total_bias,1.2708629615421192
+B1,argentina,2017,month_total_pearson,0.9956821760231239
+B1,argentina,2017,month_total_spearman,0.9790209790209792
+B1,argentina,2017,month_total_n_months,12.0
+B1,continent:Africa,2017,month_total_MAE,19053.123998288032
+B1,continent:Africa,2017,month_total_bias,0.9898331204923192
+B1,continent:Africa,2017,month_total_pearson,0.9971088864080185
+B1,continent:Africa,2017,month_total_spearman,0.9930069930069931
+B1,continent:Africa,2017,month_total_n_months,12.0
+B1,continent:Antarctica,2017,month_total_MAE,7.558851218129912
+B1,continent:Antarctica,2017,month_total_bias,0.0
+B1,continent:Antarctica,2017,month_total_pearson,NaN
+B1,continent:Antarctica,2017,month_total_spearman,NaN
+B1,continent:Antarctica,2017,month_total_n_months,9.0
+B1,continent:Asia,2017,month_total_MAE,18178.59234193077
+B1,continent:Asia,2017,month_total_bias,0.9502928861729738
+B1,continent:Asia,2017,month_total_pearson,0.992310607793347
+B1,continent:Asia,2017,month_total_spearman,0.9370629370629372
+B1,continent:Asia,2017,month_total_n_months,12.0
+B1,continent:Europe,2017,month_total_MAE,11454.18479905927
+B1,continent:Europe,2017,month_total_bias,1.1231301505371427
+B1,continent:Europe,2017,month_total_pearson,0.9988312809484824
+B1,continent:Europe,2017,month_total_spearman,0.9720279720279721
+B1,continent:Europe,2017,month_total_n_months,12.0
+B1,continent:North America,2017,month_total_MAE,19014.980603389955
+B1,continent:North America,2017,month_total_bias,1.0896175483558117
+B1,continent:North America,2017,month_total_pearson,0.9865363465491475
+B1,continent:North America,2017,month_total_spearman,0.9580419580419581
+B1,continent:North America,2017,month_total_n_months,12.0
+B1,continent:Oceania,2017,month_total_MAE,9726.95150617716
+B1,continent:Oceania,2017,month_total_bias,1.0200133858820786
+B1,continent:Oceania,2017,month_total_pearson,0.9900438490765525
+B1,continent:Oceania,2017,month_total_spearman,0.9930069930069931
+B1,continent:Oceania,2017,month_total_n_months,12.0
+B1,continent:Seven seas (open ocean),2017,month_total_MAE,7.06284246613808
+B1,continent:Seven seas (open ocean),2017,month_total_bias,0.9499534071318123
+B1,continent:Seven seas (open ocean),2017,month_total_pearson,0.8966721618046646
+B1,continent:Seven seas (open ocean),2017,month_total_spearman,0.6235978540783521
+B1,continent:Seven seas (open ocean),2017,month_total_n_months,12.0
+B1,continent:South America,2017,month_total_MAE,35777.641345601674
+B1,continent:South America,2017,month_total_bias,1.1753220995892975
+B1,continent:South America,2017,month_total_pearson,0.9993914412417035
+B1,continent:South America,2017,month_total_spearman,0.9930069930069931
+B1,continent:South America,2017,month_total_n_months,12.0
+B1,world,2017,cell_MAE,3.9842957177187888
+B1,world,2017,cell_RMSE_log1p,0.8792326367819429
+B1,world,2017,cell_poisson_dev,39.67224387153908
+B1,world,2017,cell_n,708000.0
+B1,korea,2017,cell_MAE,1.2834953882399622
+B1,korea,2017,cell_RMSE_log1p,0.8092030752492511
+B1,korea,2017,cell_poisson_dev,16.223544561114753
+B1,korea,2017,cell_n,718.0
+B1,argentina,2017,cell_MAE,2.76963900825556
+B1,argentina,2017,cell_RMSE_log1p,0.8379350581121086
+B1,argentina,2017,cell_poisson_dev,27.033482410116104
+B1,argentina,2017,cell_n,15189.0
+B1,continent:Africa,2017,cell_MAE,6.911909929685056
+B1,continent:Africa,2017,cell_RMSE_log1p,0.9974752230572079
+B1,continent:Africa,2017,cell_poisson_dev,59.532601415576735
+B1,continent:Africa,2017,cell_n,186893.0
+B1,continent:Antarctica,2017,cell_MAE,0.03887890204916389
+B1,continent:Antarctica,2017,cell_RMSE_log1p,0.14258064873682472
+B1,continent:Antarctica,2017,cell_poisson_dev,1.5498206413025164
+B1,continent:Antarctica,2017,cell_n,379.0
+B1,continent:Asia,2017,cell_MAE,2.9803230627318564
+B1,continent:Asia,2017,cell_RMSE_log1p,0.9154174289583149
+B1,continent:Asia,2017,cell_poisson_dev,41.50686363047911
+B1,continent:Asia,2017,cell_n,156906.0
+B1,continent:Europe,2017,cell_MAE,1.6050841556216096
+B1,continent:Europe,2017,cell_RMSE_log1p,0.6225070633216008
+B1,continent:Europe,2017,cell_poisson_dev,17.490773885877083
+B1,continent:Europe,2017,cell_n,111761.0
+B1,continent:North America,2017,cell_MAE,2.5887300723818147
+B1,continent:North America,2017,cell_RMSE_log1p,0.7602992467056944
+B1,continent:North America,2017,cell_poisson_dev,26.12037356207681
+B1,continent:North America,2017,cell_n,96538.0
+B1,continent:Oceania,2017,cell_MAE,4.249271597063383
+B1,continent:Oceania,2017,cell_RMSE_log1p,0.7767065469094462
+B1,continent:Oceania,2017,cell_poisson_dev,31.493973959180334
+B1,continent:Oceania,2017,cell_n,42471.0
+B1,continent:Seven seas (open ocean),2017,cell_MAE,1.8493841655085526
+B1,continent:Seven seas (open ocean),2017,cell_RMSE_log1p,0.946894522933322
+B1,continent:Seven seas (open ocean),2017,cell_poisson_dev,35.54546903943683
+B1,continent:Seven seas (open ocean),2017,cell_n,42.0
+B1,continent:South America,2017,cell_MAE,4.00584892350508
+B1,continent:South America,2017,cell_RMSE_log1p,0.965305982939768
+B1,continent:South America,2017,cell_poisson_dev,41.034823722960695
+B1,continent:South America,2017,cell_n,112685.0
+B1,world,2018,month_total_MAE,28216.58362241265
+B1,world,2018,month_total_bias,0.9965571411696906
+B1,world,2018,month_total_pearson,0.9973522144955618
+B1,world,2018,month_total_spearman,1.0
+B1,world,2018,month_total_n_months,12.0
+B1,korea,2018,month_total_MAE,58.71745350772958
+B1,korea,2018,month_total_bias,1.2504805972025415
+B1,korea,2018,month_total_pearson,0.7855524776455395
+B1,korea,2018,month_total_spearman,0.8181818181818183
+B1,korea,2018,month_total_n_months,12.0
+B1,argentina,2018,month_total_MAE,2371.8797701575036
+B1,argentina,2018,month_total_bias,1.1772133392749353
+B1,argentina,2018,month_total_pearson,0.9942647502565951
+B1,argentina,2018,month_total_spearman,0.9860139860139862
+B1,argentina,2018,month_total_n_months,12.0
+B1,continent:Africa,2018,month_total_MAE,32509.809371740586
+B1,continent:Africa,2018,month_total_bias,0.98870309559662
+B1,continent:Africa,2018,month_total_pearson,0.9962510919662136
+B1,continent:Africa,2018,month_total_spearman,0.9860139860139862
+B1,continent:Africa,2018,month_total_n_months,12.0
+B1,continent:Antarctica,2018,month_total_MAE,7.251317361891319
+B1,continent:Antarctica,2018,month_total_bias,0.0
+B1,continent:Antarctica,2018,month_total_pearson,NaN
+B1,continent:Antarctica,2018,month_total_spearman,NaN
+B1,continent:Antarctica,2018,month_total_n_months,10.0
+B1,continent:Asia,2018,month_total_MAE,16447.227185821208
+B1,continent:Asia,2018,month_total_bias,0.9076492800087829
+B1,continent:Asia,2018,month_total_pearson,0.9978310688532294
+B1,continent:Asia,2018,month_total_spearman,0.9860139860139862
+B1,continent:Asia,2018,month_total_n_months,12.0
+B1,continent:Europe,2018,month_total_MAE,8549.98122652454
+B1,continent:Europe,2018,month_total_bias,1.0589453153379005
+B1,continent:Europe,2018,month_total_pearson,0.9961156855657656
+B1,continent:Europe,2018,month_total_spearman,0.9930069930069931
+B1,continent:Europe,2018,month_total_n_months,12.0
+B1,continent:North America,2018,month_total_MAE,12019.288686683642
+B1,continent:North America,2018,month_total_bias,1.0130638478371277
+B1,continent:North America,2018,month_total_pearson,0.9857305955170563
+B1,continent:North America,2018,month_total_spearman,0.9720279720279721
+B1,continent:North America,2018,month_total_n_months,12.0
+B1,continent:Oceania,2018,month_total_MAE,13982.022104998112
+B1,continent:Oceania,2018,month_total_bias,0.9585136738094177
+B1,continent:Oceania,2018,month_total_pearson,0.9776673122029121
+B1,continent:Oceania,2018,month_total_spearman,0.9860139860139862
+B1,continent:Oceania,2018,month_total_n_months,12.0
+B1,continent:Seven seas (open ocean),2018,month_total_MAE,8.47332810254636
+B1,continent:Seven seas (open ocean),2018,month_total_bias,0.8571518693759533
+B1,continent:Seven seas (open ocean),2018,month_total_pearson,0.8269351916921152
+B1,continent:Seven seas (open ocean),2018,month_total_spearman,0.7913739490738416
+B1,continent:Seven seas (open ocean),2018,month_total_n_months,11.0
+B1,continent:South America,2018,month_total_MAE,19031.27614920813
+B1,continent:South America,2018,month_total_bias,1.1306810094811732
+B1,continent:South America,2018,month_total_pearson,0.9977266547613969
+B1,continent:South America,2018,month_total_spearman,0.9860139860139862
+B1,continent:South America,2018,month_total_n_months,12.0
+B1,world,2018,cell_MAE,3.9701029739218825
+B1,world,2018,cell_RMSE_log1p,0.8966030059592993
+B1,world,2018,cell_poisson_dev,45.556656641132875
+B1,world,2018,cell_n,687260.0
+B1,korea,2018,cell_MAE,1.3056242253197914
+B1,korea,2018,cell_RMSE_log1p,0.8266183437311403
+B1,korea,2018,cell_poisson_dev,26.203853056240483
+B1,korea,2018,cell_n,644.0
+B1,argentina,2018,cell_MAE,2.443342606964983
+B1,argentina,2018,cell_RMSE_log1p,0.8243507861776519
+B1,argentina,2018,cell_poisson_dev,31.01334626248697
+B1,argentina,2018,cell_n,14886.0
+B1,continent:Africa,2018,cell_MAE,7.059347402774487
+B1,continent:Africa,2018,cell_RMSE_log1p,1.0372815103107504
+B1,continent:Africa,2018,cell_poisson_dev,66.62870081409434
+B1,continent:Africa,2018,cell_n,186272.0
+B1,continent:Antarctica,2018,cell_MAE,0.05422351765317815
+B1,continent:Antarctica,2018,cell_RMSE_log1p,0.1770905455093102
+B1,continent:Antarctica,2018,cell_poisson_dev,2.2155281356179306
+B1,continent:Antarctica,2018,cell_n,389.0
+B1,continent:Asia,2018,cell_MAE,2.812439790278063
+B1,continent:Asia,2018,cell_RMSE_log1p,0.917879767558182
+B1,continent:Asia,2018,cell_poisson_dev,45.715276610883
+B1,continent:Asia,2018,cell_n,152430.0
+B1,continent:Europe,2018,cell_MAE,1.6488651902147549
+B1,continent:Europe,2018,cell_RMSE_log1p,0.6124727522315976
+B1,continent:Europe,2018,cell_poisson_dev,19.11803721159854
+B1,continent:Europe,2018,cell_n,106667.0
+B1,continent:North America,2018,cell_MAE,2.4017493154389244
+B1,continent:North America,2018,cell_RMSE_log1p,0.763227408932519
+B1,continent:North America,2018,cell_poisson_dev,35.63935143321831
+B1,continent:North America,2018,cell_n,92444.0
+B1,continent:Oceania,2018,cell_MAE,4.938635209297027
+B1,continent:Oceania,2018,cell_RMSE_log1p,0.7898530165319296
+B1,continent:Oceania,2018,cell_poisson_dev,35.84234630755633
+B1,continent:Oceania,2018,cell_n,41229.0
+B1,continent:Seven seas (open ocean),2018,cell_MAE,1.1863056606959945
+B1,continent:Seven seas (open ocean),2018,cell_RMSE_log1p,0.8637034731264026
+B1,continent:Seven seas (open ocean),2018,cell_poisson_dev,38.660466611214225
+B1,continent:Seven seas (open ocean),2018,cell_n,25.0
+B1,continent:South America,2018,cell_MAE,3.5648126673308096
+B1,continent:South America,2018,cell_RMSE_log1p,0.9834767805934859
+B1,continent:South America,2018,cell_poisson_dev,47.54531740498844
+B1,continent:South America,2018,cell_n,107469.0
+B1,world,2019,month_total_MAE,33808.53241315234
+B1,world,2019,month_total_bias,0.9845572450639662
+B1,world,2019,month_total_pearson,0.9972874578766179
+B1,world,2019,month_total_spearman,0.9860139860139862
+B1,world,2019,month_total_n_months,12.0
+B1,korea,2019,month_total_MAE,62.83012082732526
+B1,korea,2019,month_total_bias,1.1828245754042046
+B1,korea,2019,month_total_pearson,0.5603385892885038
+B1,korea,2019,month_total_spearman,0.8391608391608393
+B1,korea,2019,month_total_n_months,12.0
+B1,argentina,2019,month_total_MAE,3120.103782040264
+B1,argentina,2019,month_total_bias,1.2280190058216365
+B1,argentina,2019,month_total_pearson,0.9973810086786491
+B1,argentina,2019,month_total_spearman,0.9860139860139862
+B1,argentina,2019,month_total_n_months,12.0
+B1,continent:Africa,2019,month_total_MAE,44582.50721195948
+B1,continent:Africa,2019,month_total_bias,0.953713080689945
+B1,continent:Africa,2019,month_total_pearson,0.9933197942138942
+B1,continent:Africa,2019,month_total_spearman,0.9860139860139862
+B1,continent:Africa,2019,month_total_n_months,12.0
+B1,continent:Antarctica,2019,month_total_MAE,7.359176508426883
+B1,continent:Antarctica,2019,month_total_bias,0.0
+B1,continent:Antarctica,2019,month_total_pearson,NaN
+B1,continent:Antarctica,2019,month_total_spearman,NaN
+B1,continent:Antarctica,2019,month_total_n_months,11.0
+B1,continent:Asia,2019,month_total_MAE,16836.15800519048
+B1,continent:Asia,2019,month_total_bias,0.9300411208081801
+B1,continent:Asia,2019,month_total_pearson,0.9970193039681684
+B1,continent:Asia,2019,month_total_spearman,1.0
+B1,continent:Asia,2019,month_total_n_months,12.0
+B1,continent:Europe,2019,month_total_MAE,7777.733338076569
+B1,continent:Europe,2019,month_total_bias,1.0261424873674114
+B1,continent:Europe,2019,month_total_pearson,0.9987447406660577
+B1,continent:Europe,2019,month_total_spearman,0.9930069930069931
+B1,continent:Europe,2019,month_total_n_months,12.0
+B1,continent:North America,2019,month_total_MAE,11300.081091486622
+B1,continent:North America,2019,month_total_bias,1.067029724154137
+B1,continent:North America,2019,month_total_pearson,0.9880231649431681
+B1,continent:North America,2019,month_total_spearman,0.9580419580419581
+B1,continent:North America,2019,month_total_n_months,12.0
+B1,continent:Oceania,2019,month_total_MAE,11902.02958227289
+B1,continent:Oceania,2019,month_total_bias,0.9164909012328597
+B1,continent:Oceania,2019,month_total_pearson,0.9959773949540661
+B1,continent:Oceania,2019,month_total_spearman,0.9930069930069931
+B1,continent:Oceania,2019,month_total_n_months,12.0
+B1,continent:Seven seas (open ocean),2019,month_total_MAE,11.018435739968268
+B1,continent:Seven seas (open ocean),2019,month_total_bias,0.8304797332792575
+B1,continent:Seven seas (open ocean),2019,month_total_pearson,0.5813758372495786
+B1,continent:Seven seas (open ocean),2019,month_total_spearman,0.8073734277593312
+B1,continent:Seven seas (open ocean),2019,month_total_n_months,11.0
+B1,continent:South America,2019,month_total_MAE,29705.440449114463
+B1,continent:South America,2019,month_total_bias,1.1380009399904243
+B1,continent:South America,2019,month_total_pearson,0.9977601490984183
+B1,continent:South America,2019,month_total_spearman,0.9930069930069931
+B1,continent:South America,2019,month_total_n_months,12.0
+B1,world,2019,cell_MAE,4.064605265229824
+B1,world,2019,cell_RMSE_log1p,0.8899907207283264
+B1,world,2019,cell_poisson_dev,42.842018210759186
+B1,world,2019,cell_n,705858.0
+B1,korea,2019,cell_MAE,1.0142474169503737
+B1,korea,2019,cell_RMSE_log1p,0.7509782360441815
+B1,korea,2019,cell_poisson_dev,19.361557624249464
+B1,korea,2019,cell_n,636.0
+B1,argentina,2019,cell_MAE,2.4585116249957637
+B1,argentina,2019,cell_RMSE_log1p,0.8270237337921821
+B1,argentina,2019,cell_poisson_dev,28.41066654700582
+B1,argentina,2019,cell_n,14875.0
+B1,continent:Africa,2019,cell_MAE,6.722533615724578
+B1,continent:Africa,2019,cell_RMSE_log1p,1.0108245883205524
+B1,continent:Africa,2019,cell_poisson_dev,62.19290842604164
+B1,continent:Africa,2019,cell_n,186792.0
+B1,continent:Antarctica,2019,cell_MAE,0.06655199897221463
+B1,continent:Antarctica,2019,cell_RMSE_log1p,0.19055516185490473
+B1,continent:Antarctica,2019,cell_poisson_dev,2.7710881686178013
+B1,continent:Antarctica,2019,cell_n,384.0
+B1,continent:Asia,2019,cell_MAE,3.3104289764544546
+B1,continent:Asia,2019,cell_RMSE_log1p,0.9313777498580348
+B1,continent:Asia,2019,cell_poisson_dev,46.42265667811801
+B1,continent:Asia,2019,cell_n,159860.0
+B1,continent:Europe,2019,cell_MAE,2.067284842374245
+B1,continent:Europe,2019,cell_RMSE_log1p,0.6270154939112447
+B1,continent:Europe,2019,cell_poisson_dev,19.132457087121402
+B1,continent:Europe,2019,cell_n,111069.0
+B1,continent:North America,2019,cell_MAE,2.209732045996055
+B1,continent:North America,2019,cell_RMSE_log1p,0.7458902159725125
+B1,continent:North America,2019,cell_poisson_dev,27.6759351779325
+B1,continent:North America,2019,cell_n,93120.0
+B1,continent:Oceania,2019,cell_MAE,4.367126884497247
+B1,continent:Oceania,2019,cell_RMSE_log1p,0.7502453919842422
+B1,continent:Oceania,2019,cell_poisson_dev,32.00574824282446
+B1,continent:Oceania,2019,cell_n,39915.0
+B1,continent:Seven seas (open ocean),2019,cell_MAE,2.055320853479905
+B1,continent:Seven seas (open ocean),2019,cell_RMSE_log1p,0.8605609857850764
+B1,continent:Seven seas (open ocean),2019,cell_poisson_dev,41.918569615026904
+B1,continent:Seven seas (open ocean),2019,cell_n,35.0
+B1,continent:South America,2019,cell_MAE,4.142524461919145
+B1,continent:South America,2019,cell_RMSE_log1p,0.986985416110772
+B1,continent:South America,2019,cell_poisson_dev,45.438842132392196
+B1,continent:South America,2019,cell_n,114385.0
+B1,world,2020,month_total_MAE,33585.89249727567
+B1,world,2020,month_total_bias,1.0121959136843646
+B1,world,2020,month_total_pearson,0.9963659169551929
+B1,world,2020,month_total_spearman,0.990909090909091
+B1,world,2020,month_total_n_months,11.0
+B1,korea,2020,month_total_MAE,48.22996250308736
+B1,korea,2020,month_total_bias,1.2406451892534838
+B1,korea,2020,month_total_pearson,0.9259112864247764
+B1,korea,2020,month_total_spearman,0.9
+B1,korea,2020,month_total_n_months,11.0
+B1,argentina,2020,month_total_MAE,4155.744530855843
+B1,argentina,2020,month_total_bias,1.1203233731070177
+B1,argentina,2020,month_total_pearson,0.9923553784090963
+B1,argentina,2020,month_total_spearman,0.990909090909091
+B1,argentina,2020,month_total_n_months,11.0
+B1,continent:Africa,2020,month_total_MAE,39846.60561222732
+B1,continent:Africa,2020,month_total_bias,0.9950277564127459
+B1,continent:Africa,2020,month_total_pearson,0.9898133136891053
+B1,continent:Africa,2020,month_total_spearman,0.9454545454545454
+B1,continent:Africa,2020,month_total_n_months,11.0
+B1,continent:Antarctica,2020,month_total_MAE,3.9289114116181785
+B1,continent:Antarctica,2020,month_total_bias,0.0
+B1,continent:Antarctica,2020,month_total_pearson,NaN
+B1,continent:Antarctica,2020,month_total_spearman,NaN
+B1,continent:Antarctica,2020,month_total_n_months,7.0
+B1,continent:Asia,2020,month_total_MAE,23536.183648382532
+B1,continent:Asia,2020,month_total_bias,0.9153477319484828
+B1,continent:Asia,2020,month_total_pearson,0.988030103400113
+B1,continent:Asia,2020,month_total_spearman,0.990909090909091
+B1,continent:Asia,2020,month_total_n_months,11.0
+B1,continent:Europe,2020,month_total_MAE,5000.265470264558
+B1,continent:Europe,2020,month_total_bias,1.040090109570814
+B1,continent:Europe,2020,month_total_pearson,0.9990685561321792
+B1,continent:Europe,2020,month_total_spearman,0.9363636363636365
+B1,continent:Europe,2020,month_total_n_months,11.0
+B1,continent:North America,2020,month_total_MAE,13300.313164045256
+B1,continent:North America,2020,month_total_bias,1.1190497806569224
+B1,continent:North America,2020,month_total_pearson,0.9866619337935504
+B1,continent:North America,2020,month_total_spearman,0.9545454545454546
+B1,continent:North America,2020,month_total_n_months,11.0
+B1,continent:Oceania,2020,month_total_MAE,14558.816490339943
+B1,continent:Oceania,2020,month_total_bias,0.8136050318823371
+B1,continent:Oceania,2020,month_total_pearson,0.9869349122850906
+B1,continent:Oceania,2020,month_total_spearman,0.9818181818181818
+B1,continent:Oceania,2020,month_total_n_months,11.0
+B1,continent:Seven seas (open ocean),2020,month_total_MAE,12.577936201543242
+B1,continent:Seven seas (open ocean),2020,month_total_bias,0.5462245253798284
+B1,continent:Seven seas (open ocean),2020,month_total_pearson,0.8501947437672588
+B1,continent:Seven seas (open ocean),2020,month_total_spearman,0.6939542359352536
+B1,continent:Seven seas (open ocean),2020,month_total_n_months,11.0
+B1,continent:South America,2020,month_total_MAE,39845.92895145306
+B1,continent:South America,2020,month_total_bias,1.1649603641029371
+B1,continent:South America,2020,month_total_pearson,0.9994669416741313
+B1,continent:South America,2020,month_total_spearman,0.990909090909091
+B1,continent:South America,2020,month_total_n_months,11.0
+B1,world,2020,cell_MAE,4.049812708255343
+B1,world,2020,cell_RMSE_log1p,0.8959974229455955
+B1,world,2020,cell_poisson_dev,43.28626930870065
+B1,world,2020,cell_n,645421.0
+B1,korea,2020,cell_MAE,1.0106887523581658
+B1,korea,2020,cell_RMSE_log1p,0.7288621258935225
+B1,korea,2020,cell_poisson_dev,18.94706818012566
+B1,korea,2020,cell_n,527.0
+B1,argentina,2020,cell_MAE,3.558428537745536
+B1,argentina,2020,cell_RMSE_log1p,0.8820806636807473
+B1,argentina,2020,cell_poisson_dev,35.69523754364094
+B1,argentina,2020,cell_n,15697.0
+B1,continent:Africa,2020,cell_MAE,6.9638682567554655
+B1,continent:Africa,2020,cell_RMSE_log1p,1.0363892750938588
+B1,continent:Africa,2020,cell_poisson_dev,65.69677645867002
+B1,continent:Africa,2020,cell_n,174169.0
+B1,continent:Antarctica,2020,cell_MAE,0.031302499828271615
+B1,continent:Antarctica,2020,cell_RMSE_log1p,0.13017215627711487
+B1,continent:Antarctica,2020,cell_poisson_dev,1.2553540634271851
+B1,continent:Antarctica,2020,cell_n,387.0
+B1,continent:Asia,2020,cell_MAE,3.09675832489881
+B1,continent:Asia,2020,cell_RMSE_log1p,0.9158868693783454
+B1,continent:Asia,2020,cell_poisson_dev,45.3773696823879
+B1,continent:Asia,2020,cell_n,140274.0
+B1,continent:Europe,2020,cell_MAE,1.7852033811989843
+B1,continent:Europe,2020,cell_RMSE_log1p,0.6041113420022477
+B1,continent:Europe,2020,cell_poisson_dev,17.330380526832723
+B1,continent:Europe,2020,cell_n,99752.0
+B1,continent:North America,2020,cell_MAE,2.2143339281269334
+B1,continent:North America,2020,cell_RMSE_log1p,0.7474105627894444
+B1,continent:North America,2020,cell_poisson_dev,25.30801376135255
+B1,continent:North America,2020,cell_n,86418.0
+B1,continent:Oceania,2020,cell_MAE,3.017962497065121
+B1,continent:Oceania,2020,cell_RMSE_log1p,0.7097737653329503
+B1,continent:Oceania,2020,cell_poisson_dev,30.193304735208525
+B1,continent:Oceania,2020,cell_n,35155.0
+B1,continent:Seven seas (open ocean),2020,cell_MAE,2.186742874824735
+B1,continent:Seven seas (open ocean),2020,cell_RMSE_log1p,0.9874250732658578
+B1,continent:Seven seas (open ocean),2020,cell_poisson_dev,53.04937402376147
+B1,continent:Seven seas (open ocean),2020,cell_n,43.0
+B1,continent:South America,2020,cell_MAE,4.505272531890571
+B1,continent:South America,2020,cell_RMSE_log1p,1.0090490884053416
+B1,continent:South America,2020,cell_poisson_dev,47.24362433435608
+B1,continent:South America,2020,cell_n,108947.0
+B1,world,2021,month_total_MAE,66834.11254872213
+B1,world,2021,month_total_bias,1.0063014424166739
+B1,world,2021,month_total_pearson,0.9936402883325993
+B1,world,2021,month_total_spearman,0.9930069930069931
+B1,world,2021,month_total_n_months,12.0
+B1,korea,2021,month_total_MAE,73.08402112088434
+B1,korea,2021,month_total_bias,1.555468069488811
+B1,korea,2021,month_total_pearson,0.4831611863810655
+B1,korea,2021,month_total_spearman,0.4125874125874127
+B1,korea,2021,month_total_n_months,12.0
+B1,argentina,2021,month_total_MAE,2860.970336214041
+B1,argentina,2021,month_total_bias,1.1725961020057285
+B1,argentina,2021,month_total_pearson,0.9982131356976753
+B1,argentina,2021,month_total_spearman,0.9790209790209792
+B1,argentina,2021,month_total_n_months,12.0
+B1,continent:Africa,2021,month_total_MAE,56892.90090884653
+B1,continent:Africa,2021,month_total_bias,0.9636158739860125
+B1,continent:Africa,2021,month_total_pearson,0.9808019948920832
+B1,continent:Africa,2021,month_total_spearman,0.9720279720279721
+B1,continent:Africa,2021,month_total_n_months,12.0
+B1,continent:Antarctica,2021,month_total_MAE,10.372109103018191
+B1,continent:Antarctica,2021,month_total_bias,0.0
+B1,continent:Antarctica,2021,month_total_pearson,NaN
+B1,continent:Antarctica,2021,month_total_spearman,NaN
+B1,continent:Antarctica,2021,month_total_n_months,11.0
+B1,continent:Asia,2021,month_total_MAE,16249.380921970493
+B1,continent:Asia,2021,month_total_bias,0.9173071572507827
+B1,continent:Asia,2021,month_total_pearson,0.9985017774317362
+B1,continent:Asia,2021,month_total_spearman,0.9510489510489512
+B1,continent:Asia,2021,month_total_n_months,12.0
+B1,continent:Europe,2021,month_total_MAE,26564.472959873
+B1,continent:Europe,2021,month_total_bias,1.1474403389557721
+B1,continent:Europe,2021,month_total_pearson,0.9959934220475296
+B1,continent:Europe,2021,month_total_spearman,0.9860139860139862
+B1,continent:Europe,2021,month_total_n_months,12.0
+B1,continent:North America,2021,month_total_MAE,12616.732294113659
+B1,continent:North America,2021,month_total_bias,1.0739178344807023
+B1,continent:North America,2021,month_total_pearson,0.9936679376469789
+B1,continent:North America,2021,month_total_spearman,0.9720279720279721
+B1,continent:North America,2021,month_total_n_months,12.0
+B1,continent:Oceania,2021,month_total_MAE,7381.308022215642
+B1,continent:Oceania,2021,month_total_bias,0.9607880746825023
+B1,continent:Oceania,2021,month_total_pearson,0.9801451562806671
+B1,continent:Oceania,2021,month_total_spearman,0.9860139860139862
+B1,continent:Oceania,2021,month_total_n_months,12.0
+B1,continent:Seven seas (open ocean),2021,month_total_MAE,10.217373736872693
+B1,continent:Seven seas (open ocean),2021,month_total_bias,0.3980681405880695
+B1,continent:Seven seas (open ocean),2021,month_total_pearson,0.38203446939825614
+B1,continent:Seven seas (open ocean),2021,month_total_spearman,0.27235653506347307
+B1,continent:Seven seas (open ocean),2021,month_total_n_months,11.0
+B1,continent:South America,2021,month_total_MAE,27894.236219923536
+B1,continent:South America,2021,month_total_bias,1.148876287928952
+B1,continent:South America,2021,month_total_pearson,0.9953436434835582
+B1,continent:South America,2021,month_total_spearman,0.9930069930069931
+B1,continent:South America,2021,month_total_n_months,12.0
+B1,world,2021,cell_MAE,4.0502686314246334
+B1,world,2021,cell_RMSE_log1p,0.888232226511747
+B1,world,2021,cell_poisson_dev,42.97861319003669
+B1,world,2021,cell_n,694186.0
+B1,korea,2021,cell_MAE,1.0419162366474553
+B1,korea,2021,cell_RMSE_log1p,0.7695624590811304
+B1,korea,2021,cell_poisson_dev,19.700597961775827
+B1,korea,2021,cell_n,655.0
+B1,argentina,2021,cell_MAE,2.609312948920265
+B1,argentina,2021,cell_RMSE_log1p,0.8252605405363669
+B1,argentina,2021,cell_poisson_dev,30.800564133351916
+B1,argentina,2021,cell_n,15300.0
+B1,continent:Africa,2021,cell_MAE,6.966744806699971
+B1,continent:Africa,2021,cell_RMSE_log1p,1.0489404211376618
+B1,continent:Africa,2021,cell_poisson_dev,67.68004391955266
+B1,continent:Africa,2021,cell_n,193152.0
+B1,continent:Antarctica,2021,cell_MAE,0.06463088781966332
+B1,continent:Antarctica,2021,cell_RMSE_log1p,0.1913718374720424
+B1,continent:Antarctica,2021,cell_poisson_dev,2.6435833907589257
+B1,continent:Antarctica,2021,cell_n,392.0
+B1,continent:Asia,2021,cell_MAE,2.968729313651357
+B1,continent:Asia,2021,cell_RMSE_log1p,0.8985214600225407
+B1,continent:Asia,2021,cell_poisson_dev,43.120805212924004
+B1,continent:Asia,2021,cell_n,149909.0
+B1,continent:Europe,2021,cell_MAE,2.3073671476708233
+B1,continent:Europe,2021,cell_RMSE_log1p,0.567469935263183
+B1,continent:Europe,2021,cell_poisson_dev,16.22524923978748
+B1,continent:Europe,2021,cell_n,104270.0
+B1,continent:North America,2021,cell_MAE,2.369647000346889
+B1,continent:North America,2021,cell_RMSE_log1p,0.7458352353613479
+B1,continent:North America,2021,cell_poisson_dev,25.795143543441494
+B1,continent:North America,2021,cell_n,94265.0
+B1,continent:Oceania,2021,cell_MAE,3.126392899961024
+B1,continent:Oceania,2021,cell_RMSE_log1p,0.724096842334529
+B1,continent:Oceania,2021,cell_poisson_dev,28.580116672266318
+B1,continent:Oceania,2021,cell_n,39362.0
+B1,continent:Seven seas (open ocean),2021,cell_MAE,1.484501537571254
+B1,continent:Seven seas (open ocean),2021,cell_RMSE_log1p,0.9167184804803136
+B1,continent:Seven seas (open ocean),2021,cell_poisson_dev,47.111339169313474
+B1,continent:Seven seas (open ocean),2021,cell_n,35.0
+B1,continent:South America,2021,cell_MAE,3.8552267445401287
+B1,continent:South America,2021,cell_RMSE_log1p,0.9769094788802263
+B1,continent:South America,2021,cell_poisson_dev,44.807072012306065
+B1,continent:South America,2021,cell_n,112498.0
+B1,world,2022,month_total_MAE,30206.2887121913
+B1,world,2022,month_total_bias,0.9936029265419272
+B1,world,2022,month_total_pearson,0.9966462548239724
+B1,world,2022,month_total_spearman,0.9636363636363635
+B1,world,2022,month_total_n_months,10.0
+B1,korea,2022,month_total_MAE,93.00841913707714
+B1,korea,2022,month_total_bias,0.7856639502977956
+B1,korea,2022,month_total_pearson,0.9913185036363061
+B1,korea,2022,month_total_spearman,0.7939393939393938
+B1,korea,2022,month_total_n_months,10.0
+B1,argentina,2022,month_total_MAE,2352.8687794901684
+B1,argentina,2022,month_total_bias,1.0344691190616004
+B1,argentina,2022,month_total_pearson,0.9872282854745181
+B1,argentina,2022,month_total_spearman,0.9878787878787878
+B1,argentina,2022,month_total_n_months,10.0
+B1,continent:Africa,2022,month_total_MAE,42773.30032879168
+B1,continent:Africa,2022,month_total_bias,0.9666761243506824
+B1,continent:Africa,2022,month_total_pearson,0.9930731324752784
+B1,continent:Africa,2022,month_total_spearman,0.9878787878787878
+B1,continent:Africa,2022,month_total_n_months,10.0
+B1,continent:Antarctica,2022,month_total_MAE,5.922223746518198
+B1,continent:Antarctica,2022,month_total_bias,0.33235594710016436
+B1,continent:Antarctica,2022,month_total_pearson,0.018397940086470298
+B1,continent:Antarctica,2022,month_total_spearman,0.0
+B1,continent:Antarctica,2022,month_total_n_months,9.0
+B1,continent:Asia,2022,month_total_MAE,10012.777260834648
+B1,continent:Asia,2022,month_total_bias,0.9220311948016886
+B1,continent:Asia,2022,month_total_pearson,0.9976625489060544
+B1,continent:Asia,2022,month_total_spearman,0.9636363636363635
+B1,continent:Asia,2022,month_total_n_months,10.0
+B1,continent:Europe,2022,month_total_MAE,3700.0187853346297
+B1,continent:Europe,2022,month_total_bias,1.0183887704942864
+B1,continent:Europe,2022,month_total_pearson,0.9987744804683231
+B1,continent:Europe,2022,month_total_spearman,0.9999999999999999
+B1,continent:Europe,2022,month_total_n_months,10.0
+B1,continent:North America,2022,month_total_MAE,7695.633372012146
+B1,continent:North America,2022,month_total_bias,1.0674121410735011
+B1,continent:North America,2022,month_total_pearson,0.9865521366886262
+B1,continent:North America,2022,month_total_spearman,0.9878787878787878
+B1,continent:North America,2022,month_total_n_months,10.0
+B1,continent:Oceania,2022,month_total_MAE,7988.569993043979
+B1,continent:Oceania,2022,month_total_bias,0.9229609686778317
+B1,continent:Oceania,2022,month_total_pearson,0.9692924574331968
+B1,continent:Oceania,2022,month_total_spearman,0.9393939393939393
+B1,continent:Oceania,2022,month_total_n_months,10.0
+B1,continent:Seven seas (open ocean),2022,month_total_MAE,13.618557781435182
+B1,continent:Seven seas (open ocean),2022,month_total_bias,0.4766072832603106
+B1,continent:Seven seas (open ocean),2022,month_total_pearson,0.9329754833273283
+B1,continent:Seven seas (open ocean),2022,month_total_spearman,0.6554771923189622
+B1,continent:Seven seas (open ocean),2022,month_total_n_months,10.0
+B1,continent:South America,2022,month_total_MAE,27190.46419063709
+B1,continent:South America,2022,month_total_bias,1.115268169708631
+B1,continent:South America,2022,month_total_pearson,0.9974911432982986
+B1,continent:South America,2022,month_total_spearman,0.9878787878787878
+B1,continent:South America,2022,month_total_n_months,10.0
+B1,world,2022,cell_MAE,3.8971931919395777
+B1,world,2022,cell_RMSE_log1p,0.8885144929479906
+B1,world,2022,cell_poisson_dev,43.86118249203318
+B1,world,2022,cell_n,555811.0
+B1,korea,2022,cell_MAE,1.6271550462750324
+B1,korea,2022,cell_RMSE_log1p,0.6745212076463994
+B1,korea,2022,cell_poisson_dev,15.83313177686372
+B1,korea,2022,cell_n,545.0
+B1,argentina,2022,cell_MAE,3.7068165012372636
+B1,argentina,2022,cell_RMSE_log1p,0.8912846585958106
+B1,argentina,2022,cell_poisson_dev,38.78614786269227
+B1,argentina,2022,cell_n,12910.0
+B1,continent:Africa,2022,cell_MAE,7.288671437279998
+B1,continent:Africa,2022,cell_RMSE_log1p,1.0429672014838283
+B1,continent:Africa,2022,cell_poisson_dev,68.16261188277912
+B1,continent:Africa,2022,cell_n,154778.0
+B1,continent:Antarctica,2022,cell_MAE,0.08618301537554829
+B1,continent:Antarctica,2022,cell_RMSE_log1p,0.22581400399292653
+B1,continent:Antarctica,2022,cell_poisson_dev,1.546825619553165
+B1,continent:Antarctica,2022,cell_n,310.0
+B1,continent:Asia,2022,cell_MAE,2.3271622459761443
+B1,continent:Asia,2022,cell_RMSE_log1p,0.888273126683093
+B1,continent:Asia,2022,cell_poisson_dev,40.04107733412989
+B1,continent:Asia,2022,cell_n,116394.0
+B1,continent:Europe,2022,cell_MAE,1.1739022590947217
+B1,continent:Europe,2022,cell_RMSE_log1p,0.558454639773371
+B1,continent:Europe,2022,cell_poisson_dev,15.62481165314176
+B1,continent:Europe,2022,cell_n,83517.0
+B1,continent:North America,2022,cell_MAE,2.133965352803222
+B1,continent:North America,2022,cell_RMSE_log1p,0.7482784928660031
+B1,continent:North America,2022,cell_poisson_dev,26.882816232009834
+B1,continent:North America,2022,cell_n,76030.0
+B1,continent:Oceania,2022,cell_MAE,3.0209973258021883
+B1,continent:Oceania,2022,cell_RMSE_log1p,0.7216313199065925
+B1,continent:Oceania,2022,cell_poisson_dev,29.35841953827948
+B1,continent:Oceania,2022,cell_n,31349.0
+B1,continent:Seven seas (open ocean),2022,cell_MAE,2.1021980901100266
+B1,continent:Seven seas (open ocean),2022,cell_RMSE_log1p,1.033372633887363
+B1,continent:Seven seas (open ocean),2022,cell_poisson_dev,77.39919859993215
+B1,continent:Seven seas (open ocean),2022,cell_n,37.0
+B1,continent:South America,2022,cell_MAE,4.420834268500378
+B1,continent:South America,2022,cell_RMSE_log1p,1.0019343980899753
+B1,continent:South America,2022,cell_poisson_dev,52.491326977918625
+B1,continent:South America,2022,cell_n,93175.0
+B1,world,2023,month_total_MAE,57646.508164034574
+B1,world,2023,month_total_bias,0.9928395908713596
+B1,world,2023,month_total_pearson,0.9932237163059002
+B1,world,2023,month_total_spearman,0.8251748251748254
+B1,world,2023,month_total_n_months,12.0
+B1,korea,2023,month_total_MAE,60.40030171704718
+B1,korea,2023,month_total_bias,1.396762000834981
+B1,korea,2023,month_total_pearson,0.9279435212065034
+B1,korea,2023,month_total_spearman,0.8881118881118882
+B1,korea,2023,month_total_n_months,12.0
+B1,argentina,2023,month_total_MAE,2306.725072014733
+B1,argentina,2023,month_total_bias,1.1317688076665542
+B1,argentina,2023,month_total_pearson,0.9744698810056005
+B1,argentina,2023,month_total_spearman,0.9720279720279721
+B1,argentina,2023,month_total_n_months,12.0
+B1,continent:Africa,2023,month_total_MAE,47451.23565505769
+B1,continent:Africa,2023,month_total_bias,0.948029795267302
+B1,continent:Africa,2023,month_total_pearson,0.9915692718820737
+B1,continent:Africa,2023,month_total_spearman,0.9860139860139862
+B1,continent:Africa,2023,month_total_n_months,12.0
+B1,continent:Antarctica,2023,month_total_MAE,4.799044553156395
+B1,continent:Antarctica,2023,month_total_bias,0.0
+B1,continent:Antarctica,2023,month_total_pearson,NaN
+B1,continent:Antarctica,2023,month_total_spearman,NaN
+B1,continent:Antarctica,2023,month_total_n_months,8.0
+B1,continent:Asia,2023,month_total_MAE,9386.250350725137
+B1,continent:Asia,2023,month_total_bias,0.9668162447312172
+B1,continent:Asia,2023,month_total_pearson,0.9985649441603269
+B1,continent:Asia,2023,month_total_spearman,0.9510489510489512
+B1,continent:Asia,2023,month_total_n_months,12.0
+B1,continent:Europe,2023,month_total_MAE,7490.7458394772575
+B1,continent:Europe,2023,month_total_bias,1.0537416146494172
+B1,continent:Europe,2023,month_total_pearson,0.996995731716629
+B1,continent:Europe,2023,month_total_spearman,0.9930069930069931
+B1,continent:Europe,2023,month_total_n_months,12.0
+B1,continent:North America,2023,month_total_MAE,26938.32446405164
+B1,continent:North America,2023,month_total_bias,0.9472757584892303
+B1,continent:North America,2023,month_total_pearson,0.9964523517270178
+B1,continent:North America,2023,month_total_spearman,1.0
+B1,continent:North America,2023,month_total_n_months,12.0
+B1,continent:Oceania,2023,month_total_MAE,17266.742148640576
+B1,continent:Oceania,2023,month_total_bias,1.0237605065347941
+B1,continent:Oceania,2023,month_total_pearson,0.9959397032015053
+B1,continent:Oceania,2023,month_total_spearman,0.9860139860139862
+B1,continent:Oceania,2023,month_total_n_months,12.0
+B1,continent:Seven seas (open ocean),2023,month_total_MAE,19.326129937226256
+B1,continent:Seven seas (open ocean),2023,month_total_bias,0.1632444474589721
+B1,continent:Seven seas (open ocean),2023,month_total_pearson,-0.04992705601678925
+B1,continent:Seven seas (open ocean),2023,month_total_spearman,-0.015595993903683134
+B1,continent:Seven seas (open ocean),2023,month_total_n_months,12.0
+B1,continent:South America,2023,month_total_MAE,42039.65438774266
+B1,continent:South America,2023,month_total_bias,1.2009908000089
+B1,continent:South America,2023,month_total_pearson,0.9958056707005886
+B1,continent:South America,2023,month_total_spearman,0.9580419580419581
+B1,continent:South America,2023,month_total_n_months,12.0
+B1,world,2023,cell_MAE,4.249263846603986
+B1,world,2023,cell_RMSE_log1p,0.8936307309841893
+B1,world,2023,cell_poisson_dev,42.5673759942372
+B1,world,2023,cell_n,708799.0
+B1,korea,2023,cell_MAE,1.0221170280853953
+B1,korea,2023,cell_RMSE_log1p,0.7537892724477299
+B1,korea,2023,cell_poisson_dev,15.406297229204991
+B1,korea,2023,cell_n,678.0
+B1,argentina,2023,cell_MAE,2.2548422742920744
+B1,argentina,2023,cell_RMSE_log1p,0.7875601672104723
+B1,argentina,2023,cell_poisson_dev,26.71309848716932
+B1,argentina,2023,cell_n,14653.0
+B1,continent:Africa,2023,cell_MAE,6.851108371479463
+B1,continent:Africa,2023,cell_RMSE_log1p,1.0228368891420734
+B1,continent:Africa,2023,cell_poisson_dev,63.271745171450036
+B1,continent:Africa,2023,cell_n,191297.0
+B1,continent:Antarctica,2023,cell_MAE,0.03505486946756135
+B1,continent:Antarctica,2023,cell_RMSE_log1p,0.14011703668396402
+B1,continent:Antarctica,2023,cell_poisson_dev,1.4149469755544704
+B1,continent:Antarctica,2023,cell_n,384.0
+B1,continent:Asia,2023,cell_MAE,3.198239449560949
+B1,continent:Asia,2023,cell_RMSE_log1p,0.9403847040383424
+B1,continent:Asia,2023,cell_poisson_dev,46.14970505129065
+B1,continent:Asia,2023,cell_n,157701.0
+B1,continent:Europe,2023,cell_MAE,1.3678823804016333
+B1,continent:Europe,2023,cell_RMSE_log1p,0.550878880051137
+B1,continent:Europe,2023,cell_poisson_dev,15.002570760624847
+B1,continent:Europe,2023,cell_n,102048.0
+B1,continent:North America,2023,cell_MAE,3.51304797021548
+B1,continent:North America,2023,cell_RMSE_log1p,0.7763774048606654
+B1,continent:North America,2023,cell_poisson_dev,29.244398786978646
+B1,continent:North America,2023,cell_n,97333.0
+B1,continent:Oceania,2023,cell_MAE,5.620479164637554
+B1,continent:Oceania,2023,cell_RMSE_log1p,0.7785777920349864
+B1,continent:Oceania,2023,cell_poisson_dev,32.4171563091791
+B1,continent:Oceania,2023,cell_n,42581.0
+B1,continent:Seven seas (open ocean),2023,cell_MAE,2.5206806837213316
+B1,continent:Seven seas (open ocean),2023,cell_RMSE_log1p,1.141064624692265
+B1,continent:Seven seas (open ocean),2023,cell_poisson_dev,106.39372415177635
+B1,continent:Seven seas (open ocean),2023,cell_n,36.0
+B1,continent:South America,2023,cell_MAE,4.062128187265511
+B1,continent:South America,2023,cell_RMSE_log1p,0.9727946270712258
+B1,continent:South America,2023,cell_poisson_dev,42.836872562567315
+B1,continent:South America,2023,cell_n,117106.0
+B1,world,2024,month_total_MAE,78459.0912603552
+B1,world,2024,month_total_bias,0.9851473071726522
+B1,world,2024,month_total_pearson,0.9897885542415653
+B1,world,2024,month_total_spearman,0.9580419580419581
+B1,world,2024,month_total_n_months,12.0
+B1,korea,2024,month_total_MAE,86.34361492391638
+B1,korea,2024,month_total_bias,1.9050116066529459
+B1,korea,2024,month_total_pearson,0.7597704492599288
+B1,korea,2024,month_total_spearman,0.7272727272727274
+B1,korea,2024,month_total_n_months,12.0
+B1,argentina,2024,month_total_MAE,3632.460754607789
+B1,argentina,2024,month_total_bias,1.2734008561885226
+B1,argentina,2024,month_total_pearson,0.9881763183724781
+B1,argentina,2024,month_total_spearman,0.9930069930069931
+B1,argentina,2024,month_total_n_months,12.0
+B1,continent:Africa,2024,month_total_MAE,60339.86633902744
+B1,continent:Africa,2024,month_total_bias,0.944158741839758
+B1,continent:Africa,2024,month_total_pearson,0.9905591019974928
+B1,continent:Africa,2024,month_total_spearman,0.9580419580419581
+B1,continent:Africa,2024,month_total_n_months,12.0
+B1,continent:Antarctica,2024,month_total_MAE,6.129869275461381
+B1,continent:Antarctica,2024,month_total_bias,0.0
+B1,continent:Antarctica,2024,month_total_pearson,NaN
+B1,continent:Antarctica,2024,month_total_spearman,NaN
+B1,continent:Antarctica,2024,month_total_n_months,8.0
+B1,continent:Asia,2024,month_total_MAE,14880.310387372303
+B1,continent:Asia,2024,month_total_bias,0.9247411230390131
+B1,continent:Asia,2024,month_total_pearson,0.9978103999152718
+B1,continent:Asia,2024,month_total_spearman,1.0
+B1,continent:Asia,2024,month_total_n_months,12.0
+B1,continent:Europe,2024,month_total_MAE,6762.029382688938
+B1,continent:Europe,2024,month_total_bias,0.9887455588059145
+B1,continent:Europe,2024,month_total_pearson,0.9981455595531022
+B1,continent:Europe,2024,month_total_spearman,0.9510489510489512
+B1,continent:Europe,2024,month_total_n_months,12.0
+B1,continent:North America,2024,month_total_MAE,13927.930164804604
+B1,continent:North America,2024,month_total_bias,0.9972344371314528
+B1,continent:North America,2024,month_total_pearson,0.9892804721933252
+B1,continent:North America,2024,month_total_spearman,0.9720279720279721
+B1,continent:North America,2024,month_total_n_months,12.0
+B1,continent:Oceania,2024,month_total_MAE,15256.723790634735
+B1,continent:Oceania,2024,month_total_bias,0.9835887822584443
+B1,continent:Oceania,2024,month_total_pearson,0.9780435990802613
+B1,continent:Oceania,2024,month_total_spearman,0.9790209790209792
+B1,continent:Oceania,2024,month_total_n_months,12.0
+B1,continent:Seven seas (open ocean),2024,month_total_MAE,9.762307902300325
+B1,continent:Seven seas (open ocean),2024,month_total_bias,0.6378647809332615
+B1,continent:Seven seas (open ocean),2024,month_total_pearson,0.8663394018612777
+B1,continent:Seven seas (open ocean),2024,month_total_spearman,0.7106115081357967
+B1,continent:Seven seas (open ocean),2024,month_total_n_months,12.0
+B1,continent:South America,2024,month_total_MAE,44712.102923513216
+B1,continent:South America,2024,month_total_bias,1.1301589991619823
+B1,continent:South America,2024,month_total_pearson,0.9916952997140829
+B1,continent:South America,2024,month_total_spearman,0.9790209790209792
+B1,continent:South America,2024,month_total_n_months,12.0
+B1,world,2024,cell_MAE,4.481357549919251
+B1,world,2024,cell_RMSE_log1p,0.9167379993364655
+B1,world,2024,cell_poisson_dev,45.29641208293777
+B1,world,2024,cell_n,702747.0
+B1,korea,2024,cell_MAE,1.0916884189018743
+B1,korea,2024,cell_RMSE_log1p,0.7737624841774918
+B1,korea,2024,cell_poisson_dev,18.495012768757622
+B1,korea,2024,cell_n,674.0
+B1,argentina,2024,cell_MAE,2.5060767681794838
+B1,argentina,2024,cell_RMSE_log1p,0.8191633571310278
+B1,argentina,2024,cell_poisson_dev,27.554772994738947
+B1,argentina,2024,cell_n,14505.0
+B1,continent:Africa,2024,cell_MAE,7.435801815240942
+B1,continent:Africa,2024,cell_RMSE_log1p,1.0637394524163233
+B1,continent:Africa,2024,cell_poisson_dev,70.13378939231062
+B1,continent:Africa,2024,cell_n,194918.0
+B1,continent:Antarctica,2024,cell_MAE,0.03795383914331283
+B1,continent:Antarctica,2024,cell_RMSE_log1p,0.1447203983086224
+B1,continent:Antarctica,2024,cell_poisson_dev,1.5269953631044846
+B1,continent:Antarctica,2024,cell_n,450.0
+B1,continent:Asia,2024,cell_MAE,3.019309382489604
+B1,continent:Asia,2024,cell_RMSE_log1p,0.9479316997024722
+B1,continent:Asia,2024,cell_poisson_dev,45.88219027473229
+B1,continent:Asia,2024,cell_n,154191.0
+B1,continent:Europe,2024,cell_MAE,1.7262389062303574
+B1,continent:Europe,2024,cell_RMSE_log1p,0.5631837222001175
+B1,continent:Europe,2024,cell_poisson_dev,16.101960777553163
+B1,continent:Europe,2024,cell_n,102044.0
+B1,continent:North America,2024,cell_MAE,2.736059089504994
+B1,continent:North America,2024,cell_RMSE_log1p,0.7614822624740228
+B1,continent:North America,2024,cell_poisson_dev,26.882480053325814
+B1,continent:North America,2024,cell_n,94949.0
+B1,continent:Oceania,2024,cell_MAE,4.144406894957017
+B1,continent:Oceania,2024,cell_RMSE_log1p,0.7847171506901168
+B1,continent:Oceania,2024,cell_poisson_dev,33.8837803192068
+B1,continent:Oceania,2024,cell_n,40248.0
+B1,continent:Seven seas (open ocean),2024,cell_MAE,2.377552645681102
+B1,continent:Seven seas (open ocean),2024,cell_RMSE_log1p,1.0895345834261558
+B1,continent:Seven seas (open ocean),2024,cell_poisson_dev,67.42376996751669
+B1,continent:Seven seas (open ocean),2024,cell_n,47.0
+B1,continent:South America,2024,cell_MAE,5.460310034617312
+B1,continent:South America,2024,cell_RMSE_log1p,1.0152484492241851
+B1,continent:South America,2024,cell_poisson_dev,47.74602425965027
+B1,continent:South America,2024,cell_n,115586.0
+B1,world,2025,month_total_MAE,104570.73244503612
+B1,world,2025,month_total_bias,0.9268504707821735
+B1,world,2025,month_total_pearson,0.9952197770448031
+B1,world,2025,month_total_spearman,0.9860139860139862
+B1,world,2025,month_total_n_months,12.0
+B1,korea,2025,month_total_MAE,87.34502447523266
+B1,korea,2025,month_total_bias,1.0724286850205256
+B1,korea,2025,month_total_pearson,0.9957911991505309
+B1,korea,2025,month_total_spearman,0.9580419580419581
+B1,korea,2025,month_total_n_months,12.0
+B1,argentina,2025,month_total_MAE,2524.1851003783554
+B1,argentina,2025,month_total_bias,1.148358760691693
+B1,argentina,2025,month_total_pearson,0.9386455733897866
+B1,argentina,2025,month_total_spearman,0.9370629370629372
+B1,argentina,2025,month_total_n_months,12.0
+B1,continent:Africa,2025,month_total_MAE,99625.13482883212
+B1,continent:Africa,2025,month_total_bias,0.8804669556634189
+B1,continent:Africa,2025,month_total_pearson,0.9930661619699016
+B1,continent:Africa,2025,month_total_spearman,0.9860139860139862
+B1,continent:Africa,2025,month_total_n_months,12.0
+B1,continent:Antarctica,2025,month_total_MAE,3.5377807405543535
+B1,continent:Antarctica,2025,month_total_bias,0.0
+B1,continent:Antarctica,2025,month_total_pearson,NaN
+B1,continent:Antarctica,2025,month_total_spearman,NaN
+B1,continent:Antarctica,2025,month_total_n_months,10.0
+B1,continent:Asia,2025,month_total_MAE,18879.93805696199
+B1,continent:Asia,2025,month_total_bias,0.9148327953992338
+B1,continent:Asia,2025,month_total_pearson,0.9955117928157942
+B1,continent:Asia,2025,month_total_spearman,0.9510489510489512
+B1,continent:Asia,2025,month_total_n_months,12.0
+B1,continent:Europe,2025,month_total_MAE,8378.836770558433
+B1,continent:Europe,2025,month_total_bias,0.9928345343778787
+B1,continent:Europe,2025,month_total_pearson,0.9647822039072259
+B1,continent:Europe,2025,month_total_spearman,0.9790209790209792
+B1,continent:Europe,2025,month_total_n_months,12.0
+B1,continent:North America,2025,month_total_MAE,15031.319944817196
+B1,continent:North America,2025,month_total_bias,0.9414415302214728
+B1,continent:North America,2025,month_total_pearson,0.9862703947655259
+B1,continent:North America,2025,month_total_spearman,0.9860139860139862
+B1,continent:North America,2025,month_total_n_months,12.0
+B1,continent:Oceania,2025,month_total_MAE,12881.494991453425
+B1,continent:Oceania,2025,month_total_bias,0.9378061300204685
+B1,continent:Oceania,2025,month_total_pearson,0.9867209214761825
+B1,continent:Oceania,2025,month_total_spearman,0.9300699300699302
+B1,continent:Oceania,2025,month_total_n_months,12.0
+B1,continent:Seven seas (open ocean),2025,month_total_MAE,12.580049960166956
+B1,continent:Seven seas (open ocean),2025,month_total_bias,0.3677639101683354
+B1,continent:Seven seas (open ocean),2025,month_total_pearson,0.4159405735267497
+B1,continent:Seven seas (open ocean),2025,month_total_spearman,0.4767312946227961
+B1,continent:Seven seas (open ocean),2025,month_total_n_months,11.0
+B1,continent:South America,2025,month_total_MAE,24530.83180904502
+B1,continent:South America,2025,month_total_bias,1.1861984942174413
+B1,continent:South America,2025,month_total_pearson,0.9816361985777691
+B1,continent:South America,2025,month_total_spearman,0.9160839160839163
+B1,continent:South America,2025,month_total_n_months,12.0
+B1,world,2025,cell_MAE,4.005248531121553
+B1,world,2025,cell_RMSE_log1p,0.9139190031929518
+B1,world,2025,cell_poisson_dev,44.41853540914388
+B1,world,2025,cell_n,695750.0
+B1,korea,2025,cell_MAE,1.2661960947408148
+B1,korea,2025,cell_RMSE_log1p,0.7105174929632169
+B1,korea,2025,cell_poisson_dev,13.676574157946554
+B1,korea,2025,cell_n,631.0
+B1,argentina,2025,cell_MAE,2.5770714635173357
+B1,argentina,2025,cell_RMSE_log1p,0.85690267211659
+B1,argentina,2025,cell_poisson_dev,30.961586724897323
+B1,argentina,2025,cell_n,14905.0
+B1,continent:Africa,2025,cell_MAE,7.103527830682089
+B1,continent:Africa,2025,cell_RMSE_log1p,1.0722400435868595
+B1,continent:Africa,2025,cell_poisson_dev,71.52203837531397
+B1,continent:Africa,2025,cell_n,191925.0
+B1,continent:Antarctica,2025,cell_MAE,0.019617867269472504
+B1,continent:Antarctica,2025,cell_RMSE_log1p,0.099797279231685
+B1,continent:Antarctica,2025,cell_poisson_dev,0.7790268184326076
+B1,continent:Antarctica,2025,cell_n,406.0
+B1,continent:Asia,2025,cell_MAE,2.9497463540279476
+B1,continent:Asia,2025,cell_RMSE_log1p,0.9427690174824409
+B1,continent:Asia,2025,cell_poisson_dev,44.128191716356234
+B1,continent:Asia,2025,cell_n,156215.0
+B1,continent:Europe,2025,cell_MAE,1.2429033121438113
+B1,continent:Europe,2025,cell_RMSE_log1p,0.5640343912948961
+B1,continent:Europe,2025,cell_poisson_dev,14.818980668832303
+B1,continent:Europe,2025,cell_n,102297.0
+B1,continent:North America,2025,cell_MAE,2.838979853639409
+B1,continent:North America,2025,cell_RMSE_log1p,0.7755243305521383
+B1,continent:North America,2025,cell_poisson_dev,27.94478797123436
+B1,continent:North America,2025,cell_n,95619.0
+B1,continent:Oceania,2025,cell_MAE,4.454089465209325
+B1,continent:Oceania,2025,cell_RMSE_log1p,0.815797790712672
+B1,continent:Oceania,2025,cell_poisson_dev,36.66377945411318
+B1,continent:Oceania,2025,cell_n,41865.0
+B1,continent:Seven seas (open ocean),2025,cell_MAE,1.7152152617180065
+B1,continent:Seven seas (open ocean),2025,cell_RMSE_log1p,0.9385876566533615
+B1,continent:Seven seas (open ocean),2025,cell_poisson_dev,53.14648622319999
+B1,continent:Seven seas (open ocean),2025,cell_n,42.0
+B1,continent:South America,2025,cell_MAE,3.5229893127771317
+B1,continent:South America,2025,cell_RMSE_log1p,0.9836486348470703
+B1,continent:South America,2025,cell_poisson_dev,42.54419577335012
+B1,continent:South America,2025,cell_n,107069.0
+B1_terra,world,2012,month_total_MAE,116711.76607790642
+B1_terra,world,2012,month_total_bias,1.0645395923102217
+B1_terra,world,2012,month_total_pearson,0.9927849416281416
+B1_terra,world,2012,month_total_spearman,0.9636363636363637
+B1_terra,world,2012,month_total_n_months,11.0
+B1_terra,korea,2012,month_total_MAE,97.6196369301434
+B1_terra,korea,2012,month_total_bias,2.054588368479199
+B1_terra,korea,2012,month_total_pearson,0.6858250263215653
+B1_terra,korea,2012,month_total_spearman,0.6727272727272727
+B1_terra,korea,2012,month_total_n_months,11.0
+B1_terra,argentina,2012,month_total_MAE,4760.434142372168
+B1_terra,argentina,2012,month_total_bias,1.296437001233115
+B1_terra,argentina,2012,month_total_pearson,0.9830318991591193
+B1_terra,argentina,2012,month_total_spearman,0.9090909090909091
+B1_terra,argentina,2012,month_total_n_months,11.0
+B1_terra,continent:Africa,2012,month_total_MAE,82239.68739811021
+B1_terra,continent:Africa,2012,month_total_bias,0.9206681631050113
+B1_terra,continent:Africa,2012,month_total_pearson,0.9774262046478036
+B1_terra,continent:Africa,2012,month_total_spearman,0.9818181818181818
+B1_terra,continent:Africa,2012,month_total_n_months,11.0
+B1_terra,continent:Antarctica,2012,month_total_MAE,8.284389424740304
+B1_terra,continent:Antarctica,2012,month_total_bias,0.0
+B1_terra,continent:Antarctica,2012,month_total_pearson,NaN
+B1_terra,continent:Antarctica,2012,month_total_spearman,NaN
+B1_terra,continent:Antarctica,2012,month_total_n_months,9.0
+B1_terra,continent:Asia,2012,month_total_MAE,32736.061497952636
+B1_terra,continent:Asia,2012,month_total_bias,0.99042369455314
+B1_terra,continent:Asia,2012,month_total_pearson,0.9811774775224043
+B1_terra,continent:Asia,2012,month_total_spearman,0.9636363636363637
+B1_terra,continent:Asia,2012,month_total_n_months,11.0
+B1_terra,continent:Europe,2012,month_total_MAE,8377.357684972654
+B1_terra,continent:Europe,2012,month_total_bias,1.0260543307481336
+B1_terra,continent:Europe,2012,month_total_pearson,0.9974947666818865
+B1_terra,continent:Europe,2012,month_total_spearman,1.0
+B1_terra,continent:Europe,2012,month_total_n_months,11.0
+B1_terra,continent:North America,2012,month_total_MAE,25985.125037791262
+B1_terra,continent:North America,2012,month_total_bias,1.2615958088962562
+B1_terra,continent:North America,2012,month_total_pearson,0.8900226985955783
+B1_terra,continent:North America,2012,month_total_spearman,0.8727272727272729
+B1_terra,continent:North America,2012,month_total_n_months,11.0
+B1_terra,continent:Oceania,2012,month_total_MAE,51899.659223830655
+B1_terra,continent:Oceania,2012,month_total_bias,1.257688668698014
+B1_terra,continent:Oceania,2012,month_total_pearson,0.9911324680898109
+B1_terra,continent:Oceania,2012,month_total_spearman,0.9636363636363637
+B1_terra,continent:Oceania,2012,month_total_n_months,11.0
+B1_terra,continent:Seven seas (open ocean),2012,month_total_MAE,20.791008858686492
+B1_terra,continent:Seven seas (open ocean),2012,month_total_bias,0.7086388438859795
+B1_terra,continent:Seven seas (open ocean),2012,month_total_pearson,0.10632544316941797
+B1_terra,continent:Seven seas (open ocean),2012,month_total_spearman,0.21809990272250832
+B1_terra,continent:Seven seas (open ocean),2012,month_total_n_months,11.0
+B1_terra,continent:South America,2012,month_total_MAE,98417.92631555727
+B1_terra,continent:South America,2012,month_total_bias,1.4572736995331537
+B1_terra,continent:South America,2012,month_total_pearson,0.9940402244949724
+B1_terra,continent:South America,2012,month_total_spearman,0.9545454545454546
+B1_terra,continent:South America,2012,month_total_n_months,11.0
+B1_terra,world,2012,cell_MAE,7.40229906938529
+B1_terra,world,2012,cell_RMSE_log1p,1.2439799591531675
+B1_terra,world,2012,cell_poisson_dev,123.18024286179606
+B1_terra,world,2012,cell_n,650408.0
+B1_terra,korea,2012,cell_MAE,1.090397534112428
+B1_terra,korea,2012,cell_RMSE_log1p,0.7325542820404002
+B1_terra,korea,2012,cell_poisson_dev,15.178851324532584
+B1_terra,korea,2012,cell_n,551.0
+B1_terra,argentina,2012,cell_MAE,4.227734205046536
+B1_terra,argentina,2012,cell_RMSE_log1p,1.0894235830012977
+B1_terra,argentina,2012,cell_poisson_dev,67.27006321851209
+B1_terra,argentina,2012,cell_n,14312.0
+B1_terra,continent:Africa,2012,cell_MAE,12.750617174582457
+B1_terra,continent:Africa,2012,cell_RMSE_log1p,1.6240145174366005
+B1_terra,continent:Africa,2012,cell_poisson_dev,254.68488879824645
+B1_terra,continent:Africa,2012,cell_n,171703.0
+B1_terra,continent:Antarctica,2012,cell_MAE,0.04403896492845281
+B1_terra,continent:Antarctica,2012,cell_RMSE_log1p,0.15468218819420654
+B1_terra,continent:Antarctica,2012,cell_poisson_dev,1.765518594996581
+B1_terra,continent:Antarctica,2012,cell_n,371.0
+B1_terra,continent:Asia,2012,cell_MAE,5.14494133567659
+B1_terra,continent:Asia,2012,cell_RMSE_log1p,1.1660716502322743
+B1_terra,continent:Asia,2012,cell_poisson_dev,96.23643204942913
+B1_terra,continent:Asia,2012,cell_n,141425.0
+B1_terra,continent:Europe,2012,cell_MAE,3.2528390207456415
+B1_terra,continent:Europe,2012,cell_RMSE_log1p,0.7815730077624663
+B1_terra,continent:Europe,2012,cell_poisson_dev,35.24085828582241
+B1_terra,continent:Europe,2012,cell_n,104647.0
+B1_terra,continent:North America,2012,cell_MAE,3.4244870266445466
+B1_terra,continent:North America,2012,cell_RMSE_log1p,0.911986153566196
+B1_terra,continent:North America,2012,cell_poisson_dev,45.09985130757272
+B1_terra,continent:North America,2012,cell_n,85871.0
+B1_terra,continent:Oceania,2012,cell_MAE,11.762051209643902
+B1_terra,continent:Oceania,2012,cell_RMSE_log1p,1.1415493924730642
+B1_terra,continent:Oceania,2012,cell_poisson_dev,112.0336934074502
+B1_terra,continent:Oceania,2012,cell_n,40247.0
+B1_terra,continent:Seven seas (open ocean),2012,cell_MAE,1.6100419482050436
+B1_terra,continent:Seven seas (open ocean),2012,cell_RMSE_log1p,0.9869311421599813
+B1_terra,continent:Seven seas (open ocean),2012,cell_poisson_dev,68.20758835009117
+B1_terra,continent:Seven seas (open ocean),2012,cell_n,33.0
+B1_terra,continent:South America,2012,cell_MAE,7.462149147437078
+B1_terra,continent:South America,2012,cell_RMSE_log1p,1.2803422521777192
+B1_terra,continent:South America,2012,cell_poisson_dev,101.12409900416661
+B1_terra,continent:South America,2012,cell_n,105805.0
+B1_terra,world,2013,month_total_MAE,79859.11882956122
+B1_terra,world,2013,month_total_bias,1.017300197898139
+B1_terra,world,2013,month_total_pearson,0.9837245929337066
+B1_terra,world,2013,month_total_spearman,0.9860139860139862
+B1_terra,world,2013,month_total_n_months,12.0
+B1_terra,korea,2013,month_total_MAE,127.17199036033607
+B1_terra,korea,2013,month_total_bias,2.2821266418714625
+B1_terra,korea,2013,month_total_pearson,0.7195159602012725
+B1_terra,korea,2013,month_total_spearman,0.8251748251748254
+B1_terra,korea,2013,month_total_n_months,12.0
+B1_terra,argentina,2013,month_total_MAE,4644.59729600869
+B1_terra,argentina,2013,month_total_bias,1.251055832060348
+B1_terra,argentina,2013,month_total_pearson,0.9878253569841177
+B1_terra,argentina,2013,month_total_spearman,0.9790209790209792
+B1_terra,argentina,2013,month_total_n_months,12.0
+B1_terra,continent:Africa,2013,month_total_MAE,84838.46662585587
+B1_terra,continent:Africa,2013,month_total_bias,0.9271371299094489
+B1_terra,continent:Africa,2013,month_total_pearson,0.9618929691288965
+B1_terra,continent:Africa,2013,month_total_spearman,0.8951048951048951
+B1_terra,continent:Africa,2013,month_total_n_months,12.0
+B1_terra,continent:Antarctica,2013,month_total_MAE,3.721677767685027
+B1_terra,continent:Antarctica,2013,month_total_bias,0.0
+B1_terra,continent:Antarctica,2013,month_total_pearson,NaN
+B1_terra,continent:Antarctica,2013,month_total_spearman,NaN
+B1_terra,continent:Antarctica,2013,month_total_n_months,9.0
+B1_terra,continent:Asia,2013,month_total_MAE,31042.597989409634
+B1_terra,continent:Asia,2013,month_total_bias,0.955483795763424
+B1_terra,continent:Asia,2013,month_total_pearson,0.9778933434230505
+B1_terra,continent:Asia,2013,month_total_spearman,0.9370629370629372
+B1_terra,continent:Asia,2013,month_total_n_months,12.0
+B1_terra,continent:Europe,2013,month_total_MAE,6021.660402817349
+B1_terra,continent:Europe,2013,month_total_bias,1.0303733797058048
+B1_terra,continent:Europe,2013,month_total_pearson,0.9979725535520286
+B1_terra,continent:Europe,2013,month_total_spearman,0.9860139860139862
+B1_terra,continent:Europe,2013,month_total_n_months,12.0
+B1_terra,continent:North America,2013,month_total_MAE,33916.559407052555
+B1_terra,continent:North America,2013,month_total_bias,1.2693880367121635
+B1_terra,continent:North America,2013,month_total_pearson,0.8983184442862935
+B1_terra,continent:North America,2013,month_total_spearman,0.8811188811188813
+B1_terra,continent:North America,2013,month_total_n_months,12.0
+B1_terra,continent:Oceania,2013,month_total_MAE,14202.437593481896
+B1_terra,continent:Oceania,2013,month_total_bias,1.1138427372036346
+B1_terra,continent:Oceania,2013,month_total_pearson,0.9549378255989731
+B1_terra,continent:Oceania,2013,month_total_spearman,0.9510489510489512
+B1_terra,continent:Oceania,2013,month_total_n_months,12.0
+B1_terra,continent:Seven seas (open ocean),2013,month_total_MAE,25.160029007458387
+B1_terra,continent:Seven seas (open ocean),2013,month_total_bias,0.6065306238722332
+B1_terra,continent:Seven seas (open ocean),2013,month_total_pearson,0.3415131807613274
+B1_terra,continent:Seven seas (open ocean),2013,month_total_spearman,0.631637753099167
+B1_terra,continent:Seven seas (open ocean),2013,month_total_n_months,12.0
+B1_terra,continent:South America,2013,month_total_MAE,60545.054690634395
+B1_terra,continent:South America,2013,month_total_bias,1.4098143701964727
+B1_terra,continent:South America,2013,month_total_pearson,0.9790414913837258
+B1_terra,continent:South America,2013,month_total_spearman,0.8251748251748254
+B1_terra,continent:South America,2013,month_total_n_months,12.0
+B1_terra,world,2013,cell_MAE,6.553081468805998
+B1_terra,world,2013,cell_RMSE_log1p,1.2113113155672093
+B1_terra,world,2013,cell_poisson_dev,115.40062201658891
+B1_terra,world,2013,cell_n,700081.0
+B1_terra,korea,2013,cell_MAE,1.3142036362847376
+B1_terra,korea,2013,cell_RMSE_log1p,0.755446941866586
+B1_terra,korea,2013,cell_poisson_dev,13.628852398318857
+B1_terra,korea,2013,cell_n,642.0
+B1_terra,argentina,2013,cell_MAE,4.492456683699112
+B1_terra,argentina,2013,cell_RMSE_log1p,1.1071637837815824
+B1_terra,argentina,2013,cell_poisson_dev,70.24665504751074
+B1_terra,argentina,2013,cell_n,15910.0
+B1_terra,continent:Africa,2013,cell_MAE,12.703995360837766
+B1_terra,continent:Africa,2013,cell_RMSE_log1p,1.5902591495379477
+B1_terra,continent:Africa,2013,cell_poisson_dev,241.76566788219267
+B1_terra,continent:Africa,2013,cell_n,191659.0
+B1_terra,continent:Antarctica,2013,cell_MAE,0.006101132370167903
+B1_terra,continent:Antarctica,2013,cell_RMSE_log1p,0.056242050423896336
+B1_terra,continent:Antarctica,2013,cell_poisson_dev,0.2429225528660841
+B1_terra,continent:Antarctica,2013,cell_n,394.0
+B1_terra,continent:Asia,2013,cell_MAE,4.620515215071358
+B1_terra,continent:Asia,2013,cell_RMSE_log1p,1.145103576526915
+B1_terra,continent:Asia,2013,cell_poisson_dev,89.8586282600943
+B1_terra,continent:Asia,2013,cell_n,156951.0
+B1_terra,continent:Europe,2013,cell_MAE,1.8377056263926337
+B1_terra,continent:Europe,2013,cell_RMSE_log1p,0.6815331911302541
+B1_terra,continent:Europe,2013,cell_poisson_dev,25.132772355776318
+B1_terra,continent:Europe,2013,cell_n,106621.0
+B1_terra,continent:North America,2013,cell_MAE,3.615454843152338
+B1_terra,continent:North America,2013,cell_RMSE_log1p,0.9035119813999156
+B1_terra,continent:North America,2013,cell_poisson_dev,47.12566254985772
+B1_terra,continent:North America,2013,cell_n,92904.0
+B1_terra,continent:Oceania,2013,cell_MAE,5.638710384418272
+B1_terra,continent:Oceania,2013,cell_RMSE_log1p,0.9813175939987885
+B1_terra,continent:Oceania,2013,cell_poisson_dev,77.61651989322395
+B1_terra,continent:Oceania,2013,cell_n,38959.0
+B1_terra,continent:Seven seas (open ocean),2013,cell_MAE,2.105748663101604
+B1_terra,continent:Seven seas (open ocean),2013,cell_RMSE_log1p,1.0498568407350846
+B1_terra,continent:Seven seas (open ocean),2013,cell_poisson_dev,92.14446700108005
+B1_terra,continent:Seven seas (open ocean),2013,cell_n,34.0
+B1_terra,continent:South America,2013,cell_MAE,6.02269338067373
+B1_terra,continent:South America,2013,cell_RMSE_log1p,1.2441340357187398
+B1_terra,continent:South America,2013,cell_poisson_dev,91.40475296171424
+B1_terra,continent:South America,2013,cell_n,112230.0
+B1_terra,world,2014,month_total_MAE,70519.15743829533
+B1_terra,world,2014,month_total_bias,1.0252698966145717
+B1_terra,world,2014,month_total_pearson,0.9873057610617683
+B1_terra,world,2014,month_total_spearman,0.9860139860139862
+B1_terra,world,2014,month_total_n_months,12.0
+B1_terra,korea,2014,month_total_MAE,119.44787947438199
+B1_terra,korea,2014,month_total_bias,1.7020734811695204
+B1_terra,korea,2014,month_total_pearson,0.9548176787612441
+B1_terra,korea,2014,month_total_spearman,0.8461538461538463
+B1_terra,korea,2014,month_total_n_months,12.0
+B1_terra,argentina,2014,month_total_MAE,4437.6057380987095
+B1_terra,argentina,2014,month_total_bias,1.4338341554629084
+B1_terra,argentina,2014,month_total_pearson,0.9902021999559362
+B1_terra,argentina,2014,month_total_spearman,0.9790209790209792
+B1_terra,argentina,2014,month_total_n_months,12.0
+B1_terra,continent:Africa,2014,month_total_MAE,88689.99525193534
+B1_terra,continent:Africa,2014,month_total_bias,0.9103474954261707
+B1_terra,continent:Africa,2014,month_total_pearson,0.9693608921846085
+B1_terra,continent:Africa,2014,month_total_spearman,0.9230769230769231
+B1_terra,continent:Africa,2014,month_total_n_months,12.0
+B1_terra,continent:Antarctica,2014,month_total_MAE,4.822054065559813
+B1_terra,continent:Antarctica,2014,month_total_bias,0.0
+B1_terra,continent:Antarctica,2014,month_total_pearson,NaN
+B1_terra,continent:Antarctica,2014,month_total_spearman,NaN
+B1_terra,continent:Antarctica,2014,month_total_n_months,9.0
+B1_terra,continent:Asia,2014,month_total_MAE,32695.748913972373
+B1_terra,continent:Asia,2014,month_total_bias,1.0141400356848815
+B1_terra,continent:Asia,2014,month_total_pearson,0.9721239128102729
+B1_terra,continent:Asia,2014,month_total_spearman,0.9860139860139862
+B1_terra,continent:Asia,2014,month_total_n_months,12.0
+B1_terra,continent:Europe,2014,month_total_MAE,8816.278301419352
+B1_terra,continent:Europe,2014,month_total_bias,1.0328381146661423
+B1_terra,continent:Europe,2014,month_total_pearson,0.9985981213059346
+B1_terra,continent:Europe,2014,month_total_spearman,0.9930069930069931
+B1_terra,continent:Europe,2014,month_total_n_months,12.0
+B1_terra,continent:North America,2014,month_total_MAE,30737.221321690635
+B1_terra,continent:North America,2014,month_total_bias,1.074860462181952
+B1_terra,continent:North America,2014,month_total_pearson,0.899361807501001
+B1_terra,continent:North America,2014,month_total_spearman,0.9090909090909092
+B1_terra,continent:North America,2014,month_total_n_months,12.0
+B1_terra,continent:Oceania,2014,month_total_MAE,30946.547979484214
+B1_terra,continent:Oceania,2014,month_total_bias,1.2219421648808904
+B1_terra,continent:Oceania,2014,month_total_pearson,0.9938018890679895
+B1_terra,continent:Oceania,2014,month_total_spearman,0.965034965034965
+B1_terra,continent:Oceania,2014,month_total_n_months,12.0
+B1_terra,continent:Seven seas (open ocean),2014,month_total_MAE,20.002408738809063
+B1_terra,continent:Seven seas (open ocean),2014,month_total_bias,0.412700308367429
+B1_terra,continent:Seven seas (open ocean),2014,month_total_pearson,0.46750065759652265
+B1_terra,continent:Seven seas (open ocean),2014,month_total_spearman,0.6046375812256706
+B1_terra,continent:Seven seas (open ocean),2014,month_total_n_months,12.0
+B1_terra,continent:South America,2014,month_total_MAE,74999.6235532372
+B1_terra,continent:South America,2014,month_total_bias,1.4450864349413552
+B1_terra,continent:South America,2014,month_total_pearson,0.9859680084496015
+B1_terra,continent:South America,2014,month_total_spearman,0.8741258741258742
+B1_terra,continent:South America,2014,month_total_n_months,12.0
+B1_terra,world,2014,cell_MAE,6.648049342016254
+B1_terra,world,2014,cell_RMSE_log1p,1.206143729049634
+B1_terra,world,2014,cell_poisson_dev,113.20013653799825
+B1_terra,world,2014,cell_n,715682.0
+B1_terra,korea,2014,cell_MAE,1.7222145413910581
+B1_terra,korea,2014,cell_RMSE_log1p,0.8434354228313105
+B1_terra,korea,2014,cell_poisson_dev,21.67000967464753
+B1_terra,korea,2014,cell_n,694.0
+B1_terra,argentina,2014,cell_MAE,3.187120462697679
+B1_terra,argentina,2014,cell_RMSE_log1p,0.9520649750410514
+B1_terra,argentina,2014,cell_poisson_dev,43.96607984353072
+B1_terra,argentina,2014,cell_n,13715.0
+B1_terra,continent:Africa,2014,cell_MAE,12.095959620712069
+B1_terra,continent:Africa,2014,cell_RMSE_log1p,1.5614419742152796
+B1_terra,continent:Africa,2014,cell_poisson_dev,231.36404911983553
+B1_terra,continent:Africa,2014,cell_n,187930.0
+B1_terra,continent:Antarctica,2014,cell_MAE,0.030203710026175033
+B1_terra,continent:Antarctica,2014,cell_RMSE_log1p,0.1299975690289498
+B1_terra,continent:Antarctica,2014,cell_poisson_dev,1.2231117449562017
+B1_terra,continent:Antarctica,2014,cell_n,404.0
+B1_terra,continent:Asia,2014,cell_MAE,5.344539622826173
+B1_terra,continent:Asia,2014,cell_RMSE_log1p,1.163224170869139
+B1_terra,continent:Asia,2014,cell_poisson_dev,94.34033910685012
+B1_terra,continent:Asia,2014,cell_n,163503.0
+B1_terra,continent:Europe,2014,cell_MAE,2.505389110201851
+B1_terra,continent:Europe,2014,cell_RMSE_log1p,0.7833279752336503
+B1_terra,continent:Europe,2014,cell_poisson_dev,36.95261726926374
+B1_terra,continent:Europe,2014,cell_n,117116.0
+B1_terra,continent:North America,2014,cell_MAE,3.2210249678071246
+B1_terra,continent:North America,2014,cell_RMSE_log1p,0.8830578426876089
+B1_terra,continent:North America,2014,cell_poisson_dev,42.71154346047682
+B1_terra,continent:North America,2014,cell_n,93798.0
+B1_terra,continent:Oceania,2014,cell_MAE,6.943208609361115
+B1_terra,continent:Oceania,2014,cell_RMSE_log1p,1.0228159395386822
+B1_terra,continent:Oceania,2014,cell_poisson_dev,81.27077338105745
+B1_terra,continent:Oceania,2014,cell_n,40717.0
+B1_terra,continent:Seven seas (open ocean),2014,cell_MAE,2.034881759465418
+B1_terra,continent:Seven seas (open ocean),2014,cell_RMSE_log1p,1.0134077668308739
+B1_terra,continent:Seven seas (open ocean),2014,cell_poisson_dev,75.22129077331972
+B1_terra,continent:Seven seas (open ocean),2014,cell_n,42.0
+B1_terra,continent:South America,2014,cell_MAE,6.547705726365468
+B1_terra,continent:South America,2014,cell_RMSE_log1p,1.2472046445683198
+B1_terra,continent:South America,2014,cell_poisson_dev,93.46969183895432
+B1_terra,continent:South America,2014,cell_n,111835.0
+B1_terra,world,2015,month_total_MAE,97190.67211082247
+B1_terra,world,2015,month_total_bias,1.0503119077541136
+B1_terra,world,2015,month_total_pearson,0.9836667261268368
+B1_terra,world,2015,month_total_spearman,0.9790209790209792
+B1_terra,world,2015,month_total_n_months,12.0
+B1_terra,korea,2015,month_total_MAE,102.4246060769736
+B1_terra,korea,2015,month_total_bias,1.5975626985467928
+B1_terra,korea,2015,month_total_pearson,0.6805678838824067
+B1_terra,korea,2015,month_total_spearman,0.7902097902097903
+B1_terra,korea,2015,month_total_n_months,12.0
+B1_terra,argentina,2015,month_total_MAE,5239.765100125954
+B1_terra,argentina,2015,month_total_bias,1.3335480105958075
+B1_terra,argentina,2015,month_total_pearson,0.9541654354496939
+B1_terra,argentina,2015,month_total_spearman,0.8601398601398602
+B1_terra,argentina,2015,month_total_n_months,12.0
+B1_terra,continent:Africa,2015,month_total_MAE,110488.06325933775
+B1_terra,continent:Africa,2015,month_total_bias,0.935965221894725
+B1_terra,continent:Africa,2015,month_total_pearson,0.9624225547647615
+B1_terra,continent:Africa,2015,month_total_spearman,0.9090909090909092
+B1_terra,continent:Africa,2015,month_total_n_months,12.0
+B1_terra,continent:Antarctica,2015,month_total_MAE,5.836154047280627
+B1_terra,continent:Antarctica,2015,month_total_bias,0.0
+B1_terra,continent:Antarctica,2015,month_total_pearson,NaN
+B1_terra,continent:Antarctica,2015,month_total_spearman,NaN
+B1_terra,continent:Antarctica,2015,month_total_n_months,7.0
+B1_terra,continent:Asia,2015,month_total_MAE,41996.55821726181
+B1_terra,continent:Asia,2015,month_total_bias,1.0189530975976693
+B1_terra,continent:Asia,2015,month_total_pearson,0.944099472061585
+B1_terra,continent:Asia,2015,month_total_spearman,0.965034965034965
+B1_terra,continent:Asia,2015,month_total_n_months,12.0
+B1_terra,continent:Europe,2015,month_total_MAE,6731.236604557137
+B1_terra,continent:Europe,2015,month_total_bias,0.9953724865633872
+B1_terra,continent:Europe,2015,month_total_pearson,0.9973394152154846
+B1_terra,continent:Europe,2015,month_total_spearman,0.9930069930069931
+B1_terra,continent:Europe,2015,month_total_n_months,12.0
+B1_terra,continent:North America,2015,month_total_MAE,25742.274157438766
+B1_terra,continent:North America,2015,month_total_bias,1.1804778093797637
+B1_terra,continent:North America,2015,month_total_pearson,0.9183538046048711
+B1_terra,continent:North America,2015,month_total_spearman,0.9300699300699302
+B1_terra,continent:North America,2015,month_total_n_months,12.0
+B1_terra,continent:Oceania,2015,month_total_MAE,21186.611479080824
+B1_terra,continent:Oceania,2015,month_total_bias,1.18401365549574
+B1_terra,continent:Oceania,2015,month_total_pearson,0.9921953649838319
+B1_terra,continent:Oceania,2015,month_total_spearman,0.9790209790209792
+B1_terra,continent:Oceania,2015,month_total_n_months,12.0
+B1_terra,continent:Seven seas (open ocean),2015,month_total_MAE,16.075635481111558
+B1_terra,continent:Seven seas (open ocean),2015,month_total_bias,1.6888072760011141
+B1_terra,continent:Seven seas (open ocean),2015,month_total_pearson,0.931721546183639
+B1_terra,continent:Seven seas (open ocean),2015,month_total_spearman,0.7390014881647085
+B1_terra,continent:Seven seas (open ocean),2015,month_total_n_months,12.0
+B1_terra,continent:South America,2015,month_total_MAE,99269.52772976935
+B1_terra,continent:South America,2015,month_total_bias,1.478451413016412
+B1_terra,continent:South America,2015,month_total_pearson,0.9947160529256656
+B1_terra,continent:South America,2015,month_total_spearman,0.9720279720279721
+B1_terra,continent:South America,2015,month_total_n_months,12.0
+B1_terra,world,2015,cell_MAE,7.054446032220864
+B1_terra,world,2015,cell_RMSE_log1p,1.2216553261497964
+B1_terra,world,2015,cell_poisson_dev,117.55026366491961
+B1_terra,world,2015,cell_n,715878.0
+B1_terra,korea,2015,cell_MAE,1.4213316769359081
+B1_terra,korea,2015,cell_RMSE_log1p,0.8392100975961382
+B1_terra,korea,2015,cell_poisson_dev,23.45930859856021
+B1_terra,korea,2015,cell_n,662.0
+B1_terra,argentina,2015,cell_MAE,3.624523101803809
+B1_terra,argentina,2015,cell_RMSE_log1p,1.042885291264023
+B1_terra,argentina,2015,cell_poisson_dev,58.31597613539428
+B1_terra,argentina,2015,cell_n,15052.0
+B1_terra,continent:Africa,2015,cell_MAE,12.922844882545997
+B1_terra,continent:Africa,2015,cell_RMSE_log1p,1.5808150468516917
+B1_terra,continent:Africa,2015,cell_poisson_dev,243.76686641037
+B1_terra,continent:Africa,2015,cell_n,190797.0
+B1_terra,continent:Antarctica,2015,cell_MAE,0.02400146907487393
+B1_terra,continent:Antarctica,2015,cell_RMSE_log1p,0.11910528578302339
+B1_terra,continent:Antarctica,2015,cell_poisson_dev,0.9801277120926446
+B1_terra,continent:Antarctica,2015,cell_n,385.0
+B1_terra,continent:Asia,2015,cell_MAE,5.591691066340286
+B1_terra,continent:Asia,2015,cell_RMSE_log1p,1.1708959639077197
+B1_terra,continent:Asia,2015,cell_poisson_dev,94.47916223149029
+B1_terra,continent:Asia,2015,cell_n,160155.0
+B1_terra,continent:Europe,2015,cell_MAE,2.2305264706691736
+B1_terra,continent:Europe,2015,cell_RMSE_log1p,0.7589263862818254
+B1_terra,continent:Europe,2015,cell_poisson_dev,33.12562985763863
+B1_terra,continent:Europe,2015,cell_n,113508.0
+B1_terra,continent:North America,2015,cell_MAE,3.1959407609726345
+B1_terra,continent:North America,2015,cell_RMSE_log1p,0.9026158508603088
+B1_terra,continent:North America,2015,cell_poisson_dev,43.77478416683028
+B1_terra,continent:North America,2015,cell_n,94215.0
+B1_terra,continent:Oceania,2015,cell_MAE,6.9508650976184825
+B1_terra,continent:Oceania,2015,cell_RMSE_log1p,1.043488406851081
+B1_terra,continent:Oceania,2015,cell_poisson_dev,85.39976692795462
+B1_terra,continent:Oceania,2015,cell_n,41264.0
+B1_terra,continent:Seven seas (open ocean),2015,cell_MAE,0.6345071605769829
+B1_terra,continent:Seven seas (open ocean),2015,cell_RMSE_log1p,0.6154224267049073
+B1_terra,continent:Seven seas (open ocean),2015,cell_poisson_dev,26.08531513548335
+B1_terra,continent:Seven seas (open ocean),2015,cell_n,35.0
+B1_terra,continent:South America,2015,cell_MAE,7.353263737544215
+B1_terra,continent:South America,2015,cell_RMSE_log1p,1.2663882485932973
+B1_terra,continent:South America,2015,cell_poisson_dev,96.09613466733181
+B1_terra,continent:South America,2015,cell_n,115213.0
+B1_terra,world,2016,month_total_MAE,114042.54118043587
+B1_terra,world,2016,month_total_bias,1.0565377098462156
+B1_terra,world,2016,month_total_pearson,0.9744422450903012
+B1_terra,world,2016,month_total_spearman,0.9370629370629372
+B1_terra,world,2016,month_total_n_months,12.0
+B1_terra,korea,2016,month_total_MAE,202.73931060142328
+B1_terra,korea,2016,month_total_bias,2.5690233968301674
+B1_terra,korea,2016,month_total_pearson,0.5201100397782648
+B1_terra,korea,2016,month_total_spearman,0.6923076923076924
+B1_terra,korea,2016,month_total_n_months,12.0
+B1_terra,argentina,2016,month_total_MAE,4670.420768736375
+B1_terra,argentina,2016,month_total_bias,1.24984859090498
+B1_terra,argentina,2016,month_total_pearson,0.9842793860076666
+B1_terra,argentina,2016,month_total_spearman,0.9370629370629372
+B1_terra,argentina,2016,month_total_n_months,12.0
+B1_terra,continent:Africa,2016,month_total_MAE,74867.49328382676
+B1_terra,continent:Africa,2016,month_total_bias,0.9737814704125386
+B1_terra,continent:Africa,2016,month_total_pearson,0.9765796075918834
+B1_terra,continent:Africa,2016,month_total_spearman,0.9370629370629372
+B1_terra,continent:Africa,2016,month_total_n_months,12.0
+B1_terra,continent:Antarctica,2016,month_total_MAE,5.370280417381867
+B1_terra,continent:Antarctica,2016,month_total_bias,0.0
+B1_terra,continent:Antarctica,2016,month_total_pearson,NaN
+B1_terra,continent:Antarctica,2016,month_total_spearman,NaN
+B1_terra,continent:Antarctica,2016,month_total_n_months,9.0
+B1_terra,continent:Asia,2016,month_total_MAE,27600.60145951591
+B1_terra,continent:Asia,2016,month_total_bias,0.9307550551397967
+B1_terra,continent:Asia,2016,month_total_pearson,0.99292684628095
+B1_terra,continent:Asia,2016,month_total_spearman,0.9160839160839163
+B1_terra,continent:Asia,2016,month_total_n_months,12.0
+B1_terra,continent:Europe,2016,month_total_MAE,8937.400042560643
+B1_terra,continent:Europe,2016,month_total_bias,1.0151864854338617
+B1_terra,continent:Europe,2016,month_total_pearson,0.9950274138179147
+B1_terra,continent:Europe,2016,month_total_spearman,0.9930069930069931
+B1_terra,continent:Europe,2016,month_total_n_months,12.0
+B1_terra,continent:North America,2016,month_total_MAE,20561.755559324538
+B1_terra,continent:North America,2016,month_total_bias,1.2781205998975116
+B1_terra,continent:North America,2016,month_total_pearson,0.9750051423422647
+B1_terra,continent:North America,2016,month_total_spearman,0.9090909090909092
+B1_terra,continent:North America,2016,month_total_n_months,12.0
+B1_terra,continent:Oceania,2016,month_total_MAE,13854.458418543882
+B1_terra,continent:Oceania,2016,month_total_bias,1.1268208613218456
+B1_terra,continent:Oceania,2016,month_total_pearson,0.9650500658922713
+B1_terra,continent:Oceania,2016,month_total_spearman,0.9720279720279721
+B1_terra,continent:Oceania,2016,month_total_n_months,12.0
+B1_terra,continent:Seven seas (open ocean),2016,month_total_MAE,18.742785283733177
+B1_terra,continent:Seven seas (open ocean),2016,month_total_bias,0.45653861227821946
+B1_terra,continent:Seven seas (open ocean),2016,month_total_pearson,-0.07215100432547818
+B1_terra,continent:Seven seas (open ocean),2016,month_total_spearman,0.19331582286767782
+B1_terra,continent:Seven seas (open ocean),2016,month_total_n_months,11.0
+B1_terra,continent:South America,2016,month_total_MAE,98059.31656851561
+B1_terra,continent:South America,2016,month_total_bias,1.5076939100060522
+B1_terra,continent:South America,2016,month_total_pearson,0.9777906789558687
+B1_terra,continent:South America,2016,month_total_spearman,0.9720279720279721
+B1_terra,continent:South America,2016,month_total_n_months,12.0
+B1_terra,world,2016,cell_MAE,6.770954701411849
+B1_terra,world,2016,cell_RMSE_log1p,1.1997038263058684
+B1_terra,world,2016,cell_poisson_dev,110.76263491521134
+B1_terra,world,2016,cell_n,704449.0
+B1_terra,korea,2016,cell_MAE,1.5172357353498218
+B1_terra,korea,2016,cell_RMSE_log1p,0.8265097465278173
+B1_terra,korea,2016,cell_poisson_dev,17.669844423527064
+B1_terra,korea,2016,cell_n,688.0
+B1_terra,argentina,2016,cell_MAE,3.7294888876009864
+B1_terra,argentina,2016,cell_RMSE_log1p,1.0368095458182802
+B1_terra,argentina,2016,cell_poisson_dev,55.56105183432929
+B1_terra,argentina,2016,cell_n,14699.0
+B1_terra,continent:Africa,2016,cell_MAE,13.201670439801163
+B1_terra,continent:Africa,2016,cell_RMSE_log1p,1.5460665102217044
+B1_terra,continent:Africa,2016,cell_poisson_dev,228.32359947153125
+B1_terra,continent:Africa,2016,cell_n,187891.0
+B1_terra,continent:Antarctica,2016,cell_MAE,0.023844627432381235
+B1_terra,continent:Antarctica,2016,cell_RMSE_log1p,0.11153565598266488
+B1_terra,continent:Antarctica,2016,cell_poisson_dev,0.950280501899334
+B1_terra,continent:Antarctica,2016,cell_n,409.0
+B1_terra,continent:Asia,2016,cell_MAE,4.646161909497352
+B1_terra,continent:Asia,2016,cell_RMSE_log1p,1.1544958121243165
+B1_terra,continent:Asia,2016,cell_poisson_dev,91.11219075820003
+B1_terra,continent:Asia,2016,cell_n,157160.0
+B1_terra,continent:Europe,2016,cell_MAE,2.091752763206741
+B1_terra,continent:Europe,2016,cell_RMSE_log1p,0.6863060467341907
+B1_terra,continent:Europe,2016,cell_poisson_dev,25.745858368737352
+B1_terra,continent:Europe,2016,cell_n,109084.0
+B1_terra,continent:North America,2016,cell_MAE,3.0622131175285356
+B1_terra,continent:North America,2016,cell_RMSE_log1p,0.9077013110278408
+B1_terra,continent:North America,2016,cell_poisson_dev,44.18245934968471
+B1_terra,continent:North America,2016,cell_n,93687.0
+B1_terra,continent:Oceania,2016,cell_MAE,5.0703634651198035
+B1_terra,continent:Oceania,2016,cell_RMSE_log1p,0.9764795976873784
+B1_terra,continent:Oceania,2016,cell_poisson_dev,70.99696450413086
+B1_terra,continent:Oceania,2016,cell_n,39047.0
+B1_terra,continent:Seven seas (open ocean),2016,cell_MAE,1.7871409644784886
+B1_terra,continent:Seven seas (open ocean),2016,cell_RMSE_log1p,1.0306494129482229
+B1_terra,continent:Seven seas (open ocean),2016,cell_poisson_dev,62.277200545826275
+B1_terra,continent:Seven seas (open ocean),2016,cell_n,38.0
+B1_terra,continent:South America,2016,cell_MAE,7.2400440964041755
+B1_terra,continent:South America,2016,cell_RMSE_log1p,1.2731909999813042
+B1_terra,continent:South America,2016,cell_poisson_dev,94.8191035628062
+B1_terra,continent:South America,2016,cell_n,116827.0
+B1_terra,world,2017,month_total_MAE,114734.64307202213
+B1_terra,world,2017,month_total_bias,1.0721004838114565
+B1_terra,world,2017,month_total_pearson,0.9937154882673332
+B1_terra,world,2017,month_total_spearman,0.9580419580419581
+B1_terra,world,2017,month_total_n_months,12.0
+B1_terra,korea,2017,month_total_MAE,136.50727073661622
+B1_terra,korea,2017,month_total_bias,1.9020604138706683
+B1_terra,korea,2017,month_total_pearson,0.847731476872718
+B1_terra,korea,2017,month_total_spearman,0.8601398601398602
+B1_terra,korea,2017,month_total_n_months,12.0
+B1_terra,argentina,2017,month_total_MAE,4685.9634868425865
+B1_terra,argentina,2017,month_total_bias,1.2830752946495056
+B1_terra,argentina,2017,month_total_pearson,0.9804818415028732
+B1_terra,argentina,2017,month_total_spearman,0.9440559440559443
+B1_terra,argentina,2017,month_total_n_months,12.0
+B1_terra,continent:Africa,2017,month_total_MAE,84423.52154520628
+B1_terra,continent:Africa,2017,month_total_bias,0.9435639872337879
+B1_terra,continent:Africa,2017,month_total_pearson,0.9627751899598841
+B1_terra,continent:Africa,2017,month_total_spearman,0.9230769230769231
+B1_terra,continent:Africa,2017,month_total_n_months,12.0
+B1_terra,continent:Antarctica,2017,month_total_MAE,7.558851218129912
+B1_terra,continent:Antarctica,2017,month_total_bias,0.0
+B1_terra,continent:Antarctica,2017,month_total_pearson,NaN
+B1_terra,continent:Antarctica,2017,month_total_spearman,NaN
+B1_terra,continent:Antarctica,2017,month_total_n_months,9.0
+B1_terra,continent:Asia,2017,month_total_MAE,22615.280406658843
+B1_terra,continent:Asia,2017,month_total_bias,0.9373694507382461
+B1_terra,continent:Asia,2017,month_total_pearson,0.988271576961659
+B1_terra,continent:Asia,2017,month_total_spearman,0.8811188811188813
+B1_terra,continent:Asia,2017,month_total_n_months,12.0
+B1_terra,continent:Europe,2017,month_total_MAE,12533.482127999741
+B1_terra,continent:Europe,2017,month_total_bias,1.1345581005417515
+B1_terra,continent:Europe,2017,month_total_pearson,0.9972926017522874
+B1_terra,continent:Europe,2017,month_total_spearman,0.9790209790209792
+B1_terra,continent:Europe,2017,month_total_n_months,12.0
+B1_terra,continent:North America,2017,month_total_MAE,35187.76335933611
+B1_terra,continent:North America,2017,month_total_bias,1.234970598777152
+B1_terra,continent:North America,2017,month_total_pearson,0.9341506669409696
+B1_terra,continent:North America,2017,month_total_spearman,0.8671328671328673
+B1_terra,continent:North America,2017,month_total_n_months,12.0
+B1_terra,continent:Oceania,2017,month_total_MAE,27247.874044188415
+B1_terra,continent:Oceania,2017,month_total_bias,1.2487572918155858
+B1_terra,continent:Oceania,2017,month_total_pearson,0.9816622027976775
+B1_terra,continent:Oceania,2017,month_total_spearman,0.9790209790209792
+B1_terra,continent:Oceania,2017,month_total_n_months,12.0
+B1_terra,continent:Seven seas (open ocean),2017,month_total_MAE,11.446033572739653
+B1_terra,continent:Seven seas (open ocean),2017,month_total_bias,1.2876917534880885
+B1_terra,continent:Seven seas (open ocean),2017,month_total_pearson,0.7308856969762391
+B1_terra,continent:Seven seas (open ocean),2017,month_total_spearman,0.6718195346951895
+B1_terra,continent:Seven seas (open ocean),2017,month_total_n_months,12.0
+B1_terra,continent:South America,2017,month_total_MAE,104110.71207126045
+B1_terra,continent:South America,2017,month_total_bias,1.5101764102824018
+B1_terra,continent:South America,2017,month_total_pearson,0.9949195026937413
+B1_terra,continent:South America,2017,month_total_spearman,0.965034965034965
+B1_terra,continent:South America,2017,month_total_n_months,12.0
+B1_terra,world,2017,cell_MAE,6.578829663509541
+B1_terra,world,2017,cell_RMSE_log1p,1.184777224282534
+B1_terra,world,2017,cell_poisson_dev,106.68982988172563
+B1_terra,world,2017,cell_n,708000.0
+B1_terra,korea,2017,cell_MAE,1.752370009345266
+B1_terra,korea,2017,cell_RMSE_log1p,0.9061655163470679
+B1_terra,korea,2017,cell_poisson_dev,18.551888082884975
+B1_terra,korea,2017,cell_n,718.0
+B1_terra,argentina,2017,cell_MAE,4.136329842018115
+B1_terra,argentina,2017,cell_RMSE_log1p,1.0686883586977955
+B1_terra,argentina,2017,cell_poisson_dev,62.654614972147805
+B1_terra,argentina,2017,cell_n,15189.0
+B1_terra,continent:Africa,2017,cell_MAE,12.281907845672958
+B1_terra,continent:Africa,2017,cell_RMSE_log1p,1.5365104273261854
+B1_terra,continent:Africa,2017,cell_poisson_dev,222.89350115333397
+B1_terra,continent:Africa,2017,cell_n,186893.0
+B1_terra,continent:Antarctica,2017,cell_MAE,0.03887890204916389
+B1_terra,continent:Antarctica,2017,cell_RMSE_log1p,0.14258064873682472
+B1_terra,continent:Antarctica,2017,cell_poisson_dev,1.5498206413025164
+B1_terra,continent:Antarctica,2017,cell_n,379.0
+B1_terra,continent:Asia,2017,cell_MAE,4.1502702168071925
+B1_terra,continent:Asia,2017,cell_RMSE_log1p,1.1145345817408732
+B1_terra,continent:Asia,2017,cell_poisson_dev,81.38047885733928
+B1_terra,continent:Asia,2017,cell_n,156906.0
+B1_terra,continent:Europe,2017,cell_MAE,1.9623730551415235
+B1_terra,continent:Europe,2017,cell_RMSE_log1p,0.7139596337758239
+B1_terra,continent:Europe,2017,cell_poisson_dev,27.123736731911844
+B1_terra,continent:Europe,2017,cell_n,111761.0
+B1_terra,continent:North America,2017,cell_MAE,3.773448477898641
+B1_terra,continent:North America,2017,cell_RMSE_log1p,0.9131537150416345
+B1_terra,continent:North America,2017,cell_poisson_dev,43.7143439120803
+B1_terra,continent:North America,2017,cell_n,96538.0
+B1_terra,continent:Oceania,2017,cell_MAE,7.332492680298064
+B1_terra,continent:Oceania,2017,cell_RMSE_log1p,1.0665669508225115
+B1_terra,continent:Oceania,2017,cell_poisson_dev,88.61594487751029
+B1_terra,continent:Oceania,2017,cell_n,42471.0
+B1_terra,continent:Seven seas (open ocean),2017,cell_MAE,3.4779181610752503
+B1_terra,continent:Seven seas (open ocean),2017,cell_RMSE_log1p,1.177322228589071
+B1_terra,continent:Seven seas (open ocean),2017,cell_poisson_dev,57.2919323423811
+B1_terra,continent:Seven seas (open ocean),2017,cell_n,42.0
+B1_terra,continent:South America,2017,cell_MAE,7.239873804943414
+B1_terra,continent:South America,2017,cell_RMSE_log1p,1.234510937580739
+B1_terra,continent:South America,2017,cell_poisson_dev,89.47974488480345
+B1_terra,continent:South America,2017,cell_n,112685.0
+B1_terra,world,2018,month_total_MAE,77087.30285833926
+B1_terra,world,2018,month_total_bias,1.0233819097935146
+B1_terra,world,2018,month_total_pearson,0.9792583555554787
+B1_terra,world,2018,month_total_spearman,0.9860139860139862
+B1_terra,world,2018,month_total_n_months,12.0
+B1_terra,korea,2018,month_total_MAE,88.1879810657726
+B1_terra,korea,2018,month_total_bias,1.3301163474941224
+B1_terra,korea,2018,month_total_pearson,0.7875119736059721
+B1_terra,korea,2018,month_total_spearman,0.7746670967243986
+B1_terra,korea,2018,month_total_n_months,12.0
+B1_terra,argentina,2018,month_total_MAE,2912.575379757867
+B1_terra,argentina,2018,month_total_bias,1.1719116400435245
+B1_terra,argentina,2018,month_total_pearson,0.9711800801007215
+B1_terra,argentina,2018,month_total_spearman,0.9160839160839163
+B1_terra,argentina,2018,month_total_n_months,12.0
+B1_terra,continent:Africa,2018,month_total_MAE,97091.7660197795
+B1_terra,continent:Africa,2018,month_total_bias,0.9536921961665298
+B1_terra,continent:Africa,2018,month_total_pearson,0.962511523508276
+B1_terra,continent:Africa,2018,month_total_spearman,0.9370629370629372
+B1_terra,continent:Africa,2018,month_total_n_months,12.0
+B1_terra,continent:Antarctica,2018,month_total_MAE,7.251317361891319
+B1_terra,continent:Antarctica,2018,month_total_bias,0.0
+B1_terra,continent:Antarctica,2018,month_total_pearson,NaN
+B1_terra,continent:Antarctica,2018,month_total_spearman,NaN
+B1_terra,continent:Antarctica,2018,month_total_n_months,10.0
+B1_terra,continent:Asia,2018,month_total_MAE,26868.96848730565
+B1_terra,continent:Asia,2018,month_total_bias,0.8655680877999621
+B1_terra,continent:Asia,2018,month_total_pearson,0.9941973981993781
+B1_terra,continent:Asia,2018,month_total_spearman,0.9090909090909092
+B1_terra,continent:Asia,2018,month_total_n_months,12.0
+B1_terra,continent:Europe,2018,month_total_MAE,9740.701939104245
+B1_terra,continent:Europe,2018,month_total_bias,1.0633362152805248
+B1_terra,continent:Europe,2018,month_total_pearson,0.9950913408310782
+B1_terra,continent:Europe,2018,month_total_spearman,0.9930069930069931
+B1_terra,continent:Europe,2018,month_total_n_months,12.0
+B1_terra,continent:North America,2018,month_total_MAE,21302.18371350509
+B1_terra,continent:North America,2018,month_total_bias,1.1159426353838717
+B1_terra,continent:North America,2018,month_total_pearson,0.951664655719208
+B1_terra,continent:North America,2018,month_total_spearman,0.9790209790209792
+B1_terra,continent:North America,2018,month_total_n_months,12.0
+B1_terra,continent:Oceania,2018,month_total_MAE,22508.78581555604
+B1_terra,continent:Oceania,2018,month_total_bias,1.1447461448772367
+B1_terra,continent:Oceania,2018,month_total_pearson,0.9799022406846792
+B1_terra,continent:Oceania,2018,month_total_spearman,0.9580419580419581
+B1_terra,continent:Oceania,2018,month_total_n_months,12.0
+B1_terra,continent:Seven seas (open ocean),2018,month_total_MAE,11.363622004797236
+B1_terra,continent:Seven seas (open ocean),2018,month_total_bias,0.8783209415234885
+B1_terra,continent:Seven seas (open ocean),2018,month_total_pearson,0.6468882446972216
+B1_terra,continent:Seven seas (open ocean),2018,month_total_spearman,0.6844001371068246
+B1_terra,continent:Seven seas (open ocean),2018,month_total_n_months,11.0
+B1_terra,continent:South America,2018,month_total_MAE,60488.71282887284
+B1_terra,continent:South America,2018,month_total_bias,1.4153544929262558
+B1_terra,continent:South America,2018,month_total_pearson,0.987301039707116
+B1_terra,continent:South America,2018,month_total_spearman,0.9510489510489512
+B1_terra,continent:South America,2018,month_total_n_months,12.0
+B1_terra,world,2018,cell_MAE,6.48724638051014
+B1_terra,world,2018,cell_RMSE_log1p,1.194343416555592
+B1_terra,world,2018,cell_poisson_dev,113.831664063507
+B1_terra,world,2018,cell_n,687260.0
+B1_terra,korea,2018,cell_MAE,1.3623794791691237
+B1_terra,korea,2018,cell_RMSE_log1p,0.8157979452753314
+B1_terra,korea,2018,cell_poisson_dev,27.94394951952819
+B1_terra,korea,2018,cell_n,644.0
+B1_terra,argentina,2018,cell_MAE,3.575831038017684
+B1_terra,argentina,2018,cell_RMSE_log1p,1.0303110051758066
+B1_terra,argentina,2018,cell_poisson_dev,63.99797794998542
+B1_terra,argentina,2018,cell_n,14886.0
+B1_terra,continent:Africa,2018,cell_MAE,12.486157320837597
+B1_terra,continent:Africa,2018,cell_RMSE_log1p,1.5619599245572335
+B1_terra,continent:Africa,2018,cell_poisson_dev,230.76443144049472
+B1_terra,continent:Africa,2018,cell_n,186272.0
+B1_terra,continent:Antarctica,2018,cell_MAE,0.05422351765317815
+B1_terra,continent:Antarctica,2018,cell_RMSE_log1p,0.1770905455093102
+B1_terra,continent:Antarctica,2018,cell_poisson_dev,2.2155281356179306
+B1_terra,continent:Antarctica,2018,cell_n,389.0
+B1_terra,continent:Asia,2018,cell_MAE,4.01925349911844
+B1_terra,continent:Asia,2018,cell_RMSE_log1p,1.117280300286521
+B1_terra,continent:Asia,2018,cell_poisson_dev,85.97937692894679
+B1_terra,continent:Asia,2018,cell_n,152430.0
+B1_terra,continent:Europe,2018,cell_MAE,1.9360228010061424
+B1_terra,continent:Europe,2018,cell_RMSE_log1p,0.6780280104561606
+B1_terra,continent:Europe,2018,cell_poisson_dev,26.574171779497156
+B1_terra,continent:Europe,2018,cell_n,106667.0
+B1_terra,continent:North America,2018,cell_MAE,3.342160644942415
+B1_terra,continent:North America,2018,cell_RMSE_log1p,0.900043540614055
+B1_terra,continent:North America,2018,cell_poisson_dev,53.954699086409725
+B1_terra,continent:North America,2018,cell_n,92444.0
+B1_terra,continent:Oceania,2018,cell_MAE,8.300331484938948
+B1_terra,continent:Oceania,2018,cell_RMSE_log1p,1.0750371365120648
+B1_terra,continent:Oceania,2018,cell_poisson_dev,99.59477303932547
+B1_terra,continent:Oceania,2018,cell_n,41229.0
+B1_terra,continent:Seven seas (open ocean),2018,cell_MAE,0.9075250626566416
+B1_terra,continent:Seven seas (open ocean),2018,cell_RMSE_log1p,0.7574002581781093
+B1_terra,continent:Seven seas (open ocean),2018,cell_poisson_dev,38.102905415215524
+B1_terra,continent:Seven seas (open ocean),2018,cell_n,25.0
+B1_terra,continent:South America,2018,cell_MAE,6.160506261459902
+B1_terra,continent:South America,2018,cell_RMSE_log1p,1.2350742521908666
+B1_terra,continent:South America,2018,cell_poisson_dev,94.94904878127056
+B1_terra,continent:South America,2018,cell_n,107469.0
+B1_terra,world,2019,month_total_MAE,83982.13756458856
+B1_terra,world,2019,month_total_bias,1.0446021418435103
+B1_terra,world,2019,month_total_pearson,0.9927020658506804
+B1_terra,world,2019,month_total_spearman,0.9510489510489512
+B1_terra,world,2019,month_total_n_months,12.0
+B1_terra,korea,2019,month_total_MAE,76.25296560594417
+B1_terra,korea,2019,month_total_bias,1.3268643093155483
+B1_terra,korea,2019,month_total_pearson,0.4944333324530675
+B1_terra,korea,2019,month_total_spearman,0.8461538461538463
+B1_terra,korea,2019,month_total_n_months,12.0
+B1_terra,argentina,2019,month_total_MAE,3649.555598322495
+B1_terra,argentina,2019,month_total_bias,1.2329297162702857
+B1_terra,argentina,2019,month_total_pearson,0.9760940906617258
+B1_terra,argentina,2019,month_total_spearman,0.9440559440559443
+B1_terra,argentina,2019,month_total_n_months,12.0
+B1_terra,continent:Africa,2019,month_total_MAE,82869.62794701317
+B1_terra,continent:Africa,2019,month_total_bias,0.9003280264967584
+B1_terra,continent:Africa,2019,month_total_pearson,0.9778601166743341
+B1_terra,continent:Africa,2019,month_total_spearman,0.9440559440559443
+B1_terra,continent:Africa,2019,month_total_n_months,12.0
+B1_terra,continent:Antarctica,2019,month_total_MAE,7.359176508426883
+B1_terra,continent:Antarctica,2019,month_total_bias,0.0
+B1_terra,continent:Antarctica,2019,month_total_pearson,NaN
+B1_terra,continent:Antarctica,2019,month_total_spearman,NaN
+B1_terra,continent:Antarctica,2019,month_total_n_months,11.0
+B1_terra,continent:Asia,2019,month_total_MAE,31583.631694452666
+B1_terra,continent:Asia,2019,month_total_bias,0.9889481267420629
+B1_terra,continent:Asia,2019,month_total_pearson,0.9579920363070743
+B1_terra,continent:Asia,2019,month_total_spearman,0.9370629370629372
+B1_terra,continent:Asia,2019,month_total_n_months,12.0
+B1_terra,continent:Europe,2019,month_total_MAE,7713.2555878442245
+B1_terra,continent:Europe,2019,month_total_bias,1.0428630373674403
+B1_terra,continent:Europe,2019,month_total_pearson,0.9987097169445515
+B1_terra,continent:Europe,2019,month_total_spearman,1.0
+B1_terra,continent:Europe,2019,month_total_n_months,12.0
+B1_terra,continent:North America,2019,month_total_MAE,28270.54070163463
+B1_terra,continent:North America,2019,month_total_bias,1.2454619759158938
+B1_terra,continent:North America,2019,month_total_pearson,0.9416444990334341
+B1_terra,continent:North America,2019,month_total_spearman,0.8601398601398602
+B1_terra,continent:North America,2019,month_total_n_months,12.0
+B1_terra,continent:Oceania,2019,month_total_MAE,18737.73954628131
+B1_terra,continent:Oceania,2019,month_total_bias,1.0975946157019165
+B1_terra,continent:Oceania,2019,month_total_pearson,0.9802600791295021
+B1_terra,continent:Oceania,2019,month_total_spearman,0.9020979020979022
+B1_terra,continent:Oceania,2019,month_total_n_months,12.0
+B1_terra,continent:Seven seas (open ocean),2019,month_total_MAE,24.10900779792635
+B1_terra,continent:Seven seas (open ocean),2019,month_total_bias,0.8641370200935886
+B1_terra,continent:Seven seas (open ocean),2019,month_total_pearson,-0.00007939529032109181
+B1_terra,continent:Seven seas (open ocean),2019,month_total_spearman,0.1487044791289829
+B1_terra,continent:Seven seas (open ocean),2019,month_total_n_months,11.0
+B1_terra,continent:South America,2019,month_total_MAE,114960.89047526075
+B1_terra,continent:South America,2019,month_total_bias,1.5340675212306125
+B1_terra,continent:South America,2019,month_total_pearson,0.9851226137456662
+B1_terra,continent:South America,2019,month_total_spearman,0.9580419580419581
+B1_terra,continent:South America,2019,month_total_n_months,12.0
+B1_terra,world,2019,cell_MAE,6.7112199705041355
+B1_terra,world,2019,cell_RMSE_log1p,1.1980821822736047
+B1_terra,world,2019,cell_poisson_dev,112.1221260247987
+B1_terra,world,2019,cell_n,705858.0
+B1_terra,korea,2019,cell_MAE,1.2281479258252659
+B1_terra,korea,2019,cell_RMSE_log1p,0.7849380216696445
+B1_terra,korea,2019,cell_poisson_dev,20.54135241948432
+B1_terra,korea,2019,cell_n,636.0
+B1_terra,argentina,2019,cell_MAE,3.7253683860880717
+B1_terra,argentina,2019,cell_RMSE_log1p,1.0516030201126139
+B1_terra,argentina,2019,cell_poisson_dev,62.44748255643748
+B1_terra,argentina,2019,cell_n,14875.0
+B1_terra,continent:Africa,2019,cell_MAE,11.919386890538496
+B1_terra,continent:Africa,2019,cell_RMSE_log1p,1.5583405192610258
+B1_terra,continent:Africa,2019,cell_poisson_dev,232.46151557538593
+B1_terra,continent:Africa,2019,cell_n,186792.0
+B1_terra,continent:Antarctica,2019,cell_MAE,0.06655199897221463
+B1_terra,continent:Antarctica,2019,cell_RMSE_log1p,0.19055516185490473
+B1_terra,continent:Antarctica,2019,cell_poisson_dev,2.7710881686178013
+B1_terra,continent:Antarctica,2019,cell_n,384.0
+B1_terra,continent:Asia,2019,cell_MAE,4.797959353059523
+B1_terra,continent:Asia,2019,cell_RMSE_log1p,1.1427447075539994
+B1_terra,continent:Asia,2019,cell_poisson_dev,89.48936004735073
+B1_terra,continent:Asia,2019,cell_n,159860.0
+B1_terra,continent:Europe,2019,cell_MAE,2.4040076651376947
+B1_terra,continent:Europe,2019,cell_RMSE_log1p,0.7103880542683846
+B1_terra,continent:Europe,2019,cell_poisson_dev,28.400168112880067
+B1_terra,continent:Europe,2019,cell_n,111069.0
+B1_terra,continent:North America,2019,cell_MAE,3.3005499601702692
+B1_terra,continent:North America,2019,cell_RMSE_log1p,0.8969709082724056
+B1_terra,continent:North America,2019,cell_poisson_dev,45.65447843467541
+B1_terra,continent:North America,2019,cell_n,93120.0
+B1_terra,continent:Oceania,2019,cell_MAE,7.10582261063511
+B1_terra,continent:Oceania,2019,cell_RMSE_log1p,0.9922577548905187
+B1_terra,continent:Oceania,2019,cell_poisson_dev,77.12668595442878
+B1_terra,continent:Oceania,2019,cell_n,39915.0
+B1_terra,continent:Seven seas (open ocean),2019,cell_MAE,3.6534789076184686
+B1_terra,continent:Seven seas (open ocean),2019,cell_RMSE_log1p,1.0696331414516318
+B1_terra,continent:Seven seas (open ocean),2019,cell_poisson_dev,62.29575608999182
+B1_terra,continent:Seven seas (open ocean),2019,cell_n,35.0
+B1_terra,continent:South America,2019,cell_MAE,7.737921873400404
+B1_terra,continent:South America,2019,cell_RMSE_log1p,1.255624264365055
+B1_terra,continent:South America,2019,cell_poisson_dev,95.33374705771682
+B1_terra,continent:South America,2019,cell_n,114385.0
+B1_terra,world,2020,month_total_MAE,80772.73755023773
+B1_terra,world,2020,month_total_bias,1.042907708164582
+B1_terra,world,2020,month_total_pearson,0.9774144924483689
+B1_terra,world,2020,month_total_spearman,0.9
+B1_terra,world,2020,month_total_n_months,11.0
+B1_terra,korea,2020,month_total_MAE,102.98837373888237
+B1_terra,korea,2020,month_total_bias,1.5931716304606771
+B1_terra,korea,2020,month_total_pearson,0.6912516248164414
+B1_terra,korea,2020,month_total_spearman,0.7744894808829488
+B1_terra,korea,2020,month_total_n_months,11.0
+B1_terra,argentina,2020,month_total_MAE,3971.141686009779
+B1_terra,argentina,2020,month_total_bias,1.0531051848280333
+B1_terra,argentina,2020,month_total_pearson,0.9843373831693617
+B1_terra,argentina,2020,month_total_spearman,0.9454545454545454
+B1_terra,argentina,2020,month_total_n_months,11.0
+B1_terra,continent:Africa,2020,month_total_MAE,80637.96192252295
+B1_terra,continent:Africa,2020,month_total_bias,0.9429863486940685
+B1_terra,continent:Africa,2020,month_total_pearson,0.9544043311802305
+B1_terra,continent:Africa,2020,month_total_spearman,0.9181818181818183
+B1_terra,continent:Africa,2020,month_total_n_months,11.0
+B1_terra,continent:Antarctica,2020,month_total_MAE,3.9289114116181785
+B1_terra,continent:Antarctica,2020,month_total_bias,0.0
+B1_terra,continent:Antarctica,2020,month_total_pearson,NaN
+B1_terra,continent:Antarctica,2020,month_total_spearman,NaN
+B1_terra,continent:Antarctica,2020,month_total_n_months,7.0
+B1_terra,continent:Asia,2020,month_total_MAE,20815.23699284525
+B1_terra,continent:Asia,2020,month_total_bias,0.9519898541690267
+B1_terra,continent:Asia,2020,month_total_pearson,0.9950203753064211
+B1_terra,continent:Asia,2020,month_total_spearman,0.990909090909091
+B1_terra,continent:Asia,2020,month_total_n_months,11.0
+B1_terra,continent:Europe,2020,month_total_MAE,5347.676918602879
+B1_terra,continent:Europe,2020,month_total_bias,1.0367698500538824
+B1_terra,continent:Europe,2020,month_total_pearson,0.9990762716523575
+B1_terra,continent:Europe,2020,month_total_spearman,0.990909090909091
+B1_terra,continent:Europe,2020,month_total_n_months,11.0
+B1_terra,continent:North America,2020,month_total_MAE,31304.69128536688
+B1_terra,continent:North America,2020,month_total_bias,1.3146993596682062
+B1_terra,continent:North America,2020,month_total_pearson,0.9375377354258265
+B1_terra,continent:North America,2020,month_total_spearman,0.9545454545454546
+B1_terra,continent:North America,2020,month_total_n_months,11.0
+B1_terra,continent:Oceania,2020,month_total_MAE,13893.73965191971
+B1_terra,continent:Oceania,2020,month_total_bias,0.8741994309475658
+B1_terra,continent:Oceania,2020,month_total_pearson,0.9359191005095456
+B1_terra,continent:Oceania,2020,month_total_spearman,1.0
+B1_terra,continent:Oceania,2020,month_total_n_months,11.0
+B1_terra,continent:Seven seas (open ocean),2020,month_total_MAE,16.462046297343463
+B1_terra,continent:Seven seas (open ocean),2020,month_total_bias,0.876816289119948
+B1_terra,continent:Seven seas (open ocean),2020,month_total_pearson,0.6892521399793519
+B1_terra,continent:Seven seas (open ocean),2020,month_total_spearman,0.5264616439283265
+B1_terra,continent:Seven seas (open ocean),2020,month_total_n_months,11.0
+B1_terra,continent:South America,2020,month_total_MAE,98248.29024197301
+B1_terra,continent:South America,2020,month_total_bias,1.406743528317612
+B1_terra,continent:South America,2020,month_total_pearson,0.9914291105991282
+B1_terra,continent:South America,2020,month_total_spearman,0.9363636363636365
+B1_terra,continent:South America,2020,month_total_n_months,11.0
+B1_terra,world,2020,cell_MAE,6.546547684018919
+B1_terra,world,2020,cell_RMSE_log1p,1.1945371871173178
+B1_terra,world,2020,cell_poisson_dev,110.56162087796434
+B1_terra,world,2020,cell_n,645421.0
+B1_terra,korea,2020,cell_MAE,1.2683825112681555
+B1_terra,korea,2020,cell_RMSE_log1p,0.7926905375990672
+B1_terra,korea,2020,cell_poisson_dev,22.026942033332148
+B1_terra,korea,2020,cell_n,527.0
+B1_terra,argentina,2020,cell_MAE,5.567424859326595
+B1_terra,argentina,2020,cell_RMSE_log1p,1.175767158719979
+B1_terra,argentina,2020,cell_poisson_dev,91.96904995196677
+B1_terra,argentina,2020,cell_n,15697.0
+B1_terra,continent:Africa,2020,cell_MAE,11.991247127793795
+B1_terra,continent:Africa,2020,cell_RMSE_log1p,1.554051003494537
+B1_terra,continent:Africa,2020,cell_poisson_dev,226.184483151617
+B1_terra,continent:Africa,2020,cell_n,174169.0
+B1_terra,continent:Antarctica,2020,cell_MAE,0.031302499828271615
+B1_terra,continent:Antarctica,2020,cell_RMSE_log1p,0.13017215627711487
+B1_terra,continent:Antarctica,2020,cell_poisson_dev,1.2553540634271851
+B1_terra,continent:Antarctica,2020,cell_n,387.0
+B1_terra,continent:Asia,2020,cell_MAE,4.4739770571504005
+B1_terra,continent:Asia,2020,cell_RMSE_log1p,1.1052060742007495
+B1_terra,continent:Asia,2020,cell_poisson_dev,83.23340353758994
+B1_terra,continent:Asia,2020,cell_n,140274.0
+B1_terra,continent:Europe,2020,cell_MAE,2.018376747527337
+B1_terra,continent:Europe,2020,cell_RMSE_log1p,0.6837028087913524
+B1_terra,continent:Europe,2020,cell_poisson_dev,26.33356819888345
+B1_terra,continent:Europe,2020,cell_n,99752.0
+B1_terra,continent:North America,2020,cell_MAE,3.4280653086028607
+B1_terra,continent:North America,2020,cell_RMSE_log1p,0.8979364484298403
+B1_terra,continent:North America,2020,cell_poisson_dev,44.3397805341897
+B1_terra,continent:North America,2020,cell_n,86418.0
+B1_terra,continent:Oceania,2020,cell_MAE,4.651406880271811
+B1_terra,continent:Oceania,2020,cell_RMSE_log1p,0.940947451232876
+B1_terra,continent:Oceania,2020,cell_poisson_dev,71.60960103571378
+B1_terra,continent:Oceania,2020,cell_n,35155.0
+B1_terra,continent:Seven seas (open ocean),2020,cell_MAE,3.411320082790431
+B1_terra,continent:Seven seas (open ocean),2020,cell_RMSE_log1p,1.1350379697016297
+B1_terra,continent:Seven seas (open ocean),2020,cell_poisson_dev,55.27684177053442
+B1_terra,continent:Seven seas (open ocean),2020,cell_n,43.0
+B1_terra,continent:South America,2020,cell_MAE,7.782274299420115
+B1_terra,continent:South America,2020,cell_RMSE_log1p,1.29055506764954
+B1_terra,continent:South America,2020,cell_poisson_dev,103.78364039705107
+B1_terra,continent:South America,2020,cell_n,108947.0
+B1_terra,world,2021,month_total_MAE,91252.26084584463
+B1_terra,world,2021,month_total_bias,1.0328554622498975
+B1_terra,world,2021,month_total_pearson,0.9928989933332747
+B1_terra,world,2021,month_total_spearman,0.9860139860139862
+B1_terra,world,2021,month_total_n_months,12.0
+B1_terra,korea,2021,month_total_MAE,115.53756478185726
+B1_terra,korea,2021,month_total_bias,1.7998043189489328
+B1_terra,korea,2021,month_total_pearson,0.21620062533374204
+B1_terra,korea,2021,month_total_spearman,0.18181818181818185
+B1_terra,korea,2021,month_total_n_months,12.0
+B1_terra,argentina,2021,month_total_MAE,4271.6546404035535
+B1_terra,argentina,2021,month_total_bias,1.2176194960811324
+B1_terra,argentina,2021,month_total_pearson,0.9848833732074768
+B1_terra,argentina,2021,month_total_spearman,0.965034965034965
+B1_terra,argentina,2021,month_total_n_months,12.0
+B1_terra,continent:Africa,2021,month_total_MAE,82119.78215575205
+B1_terra,continent:Africa,2021,month_total_bias,0.91069445470804
+B1_terra,continent:Africa,2021,month_total_pearson,0.9687399632560959
+B1_terra,continent:Africa,2021,month_total_spearman,0.965034965034965
+B1_terra,continent:Africa,2021,month_total_n_months,12.0
+B1_terra,continent:Antarctica,2021,month_total_MAE,10.372109103018191
+B1_terra,continent:Antarctica,2021,month_total_bias,0.0
+B1_terra,continent:Antarctica,2021,month_total_pearson,NaN
+B1_terra,continent:Antarctica,2021,month_total_spearman,NaN
+B1_terra,continent:Antarctica,2021,month_total_n_months,11.0
+B1_terra,continent:Asia,2021,month_total_MAE,23632.76498589214
+B1_terra,continent:Asia,2021,month_total_bias,0.8857328111023304
+B1_terra,continent:Asia,2021,month_total_pearson,0.9967497605306688
+B1_terra,continent:Asia,2021,month_total_spearman,0.8601398601398602
+B1_terra,continent:Asia,2021,month_total_n_months,12.0
+B1_terra,continent:Europe,2021,month_total_MAE,32897.39352637207
+B1_terra,continent:Europe,2021,month_total_bias,1.1905773392086287
+B1_terra,continent:Europe,2021,month_total_pearson,0.995379154316679
+B1_terra,continent:Europe,2021,month_total_spearman,0.9860139860139862
+B1_terra,continent:Europe,2021,month_total_n_months,12.0
+B1_terra,continent:North America,2021,month_total_MAE,26973.583155402415
+B1_terra,continent:North America,2021,month_total_bias,1.1977437739473555
+B1_terra,continent:North America,2021,month_total_pearson,0.9680194363284045
+B1_terra,continent:North America,2021,month_total_spearman,0.9370629370629372
+B1_terra,continent:North America,2021,month_total_n_months,12.0
+B1_terra,continent:Oceania,2021,month_total_MAE,15212.41345061137
+B1_terra,continent:Oceania,2021,month_total_bias,1.0705433225636787
+B1_terra,continent:Oceania,2021,month_total_pearson,0.934689778530328
+B1_terra,continent:Oceania,2021,month_total_spearman,0.9370629370629372
+B1_terra,continent:Oceania,2021,month_total_n_months,12.0
+B1_terra,continent:Seven seas (open ocean),2021,month_total_MAE,13.511412087090292
+B1_terra,continent:Seven seas (open ocean),2021,month_total_bias,0.45901639844315173
+B1_terra,continent:Seven seas (open ocean),2021,month_total_pearson,0.16559891046955266
+B1_terra,continent:Seven seas (open ocean),2021,month_total_spearman,-0.06757373783994859
+B1_terra,continent:Seven seas (open ocean),2021,month_total_n_months,11.0
+B1_terra,continent:South America,2021,month_total_MAE,90205.70493126998
+B1_terra,continent:South America,2021,month_total_bias,1.4814432054816302
+B1_terra,continent:South America,2021,month_total_pearson,0.9936976928589457
+B1_terra,continent:South America,2021,month_total_spearman,0.8741258741258742
+B1_terra,continent:South America,2021,month_total_n_months,12.0
+B1_terra,world,2021,cell_MAE,6.543813796424621
+B1_terra,world,2021,cell_RMSE_log1p,1.1908564936181902
+B1_terra,world,2021,cell_poisson_dev,111.92715700030716
+B1_terra,world,2021,cell_n,694186.0
+B1_terra,korea,2021,cell_MAE,1.0814718510977557
+B1_terra,korea,2021,cell_RMSE_log1p,0.7660962640576682
+B1_terra,korea,2021,cell_poisson_dev,20.80462823407004
+B1_terra,korea,2021,cell_n,655.0
+B1_terra,argentina,2021,cell_MAE,4.110729799763792
+B1_terra,argentina,2021,cell_RMSE_log1p,1.06641922337604
+B1_terra,argentina,2021,cell_poisson_dev,67.19985190306377
+B1_terra,argentina,2021,cell_n,15300.0
+B1_terra,continent:Africa,2021,cell_MAE,12.116025673281932
+B1_terra,continent:Africa,2021,cell_RMSE_log1p,1.579313312403633
+B1_terra,continent:Africa,2021,cell_poisson_dev,236.839341967858
+B1_terra,continent:Africa,2021,cell_n,193152.0
+B1_terra,continent:Antarctica,2021,cell_MAE,0.06463088781966332
+B1_terra,continent:Antarctica,2021,cell_RMSE_log1p,0.1913718374720424
+B1_terra,continent:Antarctica,2021,cell_poisson_dev,2.6435833907589257
+B1_terra,continent:Antarctica,2021,cell_n,392.0
+B1_terra,continent:Asia,2021,cell_MAE,4.1529249823538485
+B1_terra,continent:Asia,2021,cell_RMSE_log1p,1.0919338145542794
+B1_terra,continent:Asia,2021,cell_poisson_dev,81.98819904090247
+B1_terra,continent:Asia,2021,cell_n,149909.0
+B1_terra,continent:Europe,2021,cell_MAE,2.665156407139355
+B1_terra,continent:Europe,2021,cell_RMSE_log1p,0.6219273252380767
+B1_terra,continent:Europe,2021,cell_poisson_dev,22.797424747159447
+B1_terra,continent:Europe,2021,cell_n,104270.0
+B1_terra,continent:North America,2021,cell_MAE,3.429682556738465
+B1_terra,continent:North America,2021,cell_RMSE_log1p,0.8844764258033858
+B1_terra,continent:North America,2021,cell_poisson_dev,41.275362877406806
+B1_terra,continent:North America,2021,cell_n,94265.0
+B1_terra,continent:Oceania,2021,cell_MAE,5.081775590000884
+B1_terra,continent:Oceania,2021,cell_RMSE_log1p,0.9867147994058589
+B1_terra,continent:Oceania,2021,cell_poisson_dev,78.12263686707318
+B1_terra,continent:Oceania,2021,cell_n,39362.0
+B1_terra,continent:Seven seas (open ocean),2021,cell_MAE,1.891302531930695
+B1_terra,continent:Seven seas (open ocean),2021,cell_RMSE_log1p,1.009256804869651
+B1_terra,continent:Seven seas (open ocean),2021,cell_poisson_dev,51.28319369507733
+B1_terra,continent:Seven seas (open ocean),2021,cell_n,35.0
+B1_terra,continent:South America,2021,cell_MAE,6.918887504561932
+B1_terra,continent:South America,2021,cell_RMSE_log1p,1.2344219976038222
+B1_terra,continent:South America,2021,cell_poisson_dev,91.63743917443722
+B1_terra,continent:South America,2021,cell_n,112498.0
+B1_terra,world,2022,month_total_MAE,58445.45858172574
+B1_terra,world,2022,month_total_bias,0.9957922374088783
+B1_terra,world,2022,month_total_pearson,0.9947891273477036
+B1_terra,world,2022,month_total_spearman,0.9393939393939393
+B1_terra,world,2022,month_total_n_months,10.0
+B1_terra,korea,2022,month_total_MAE,117.30667840892804
+B1_terra,korea,2022,month_total_bias,0.8735853302659927
+B1_terra,korea,2022,month_total_pearson,0.9746570539314561
+B1_terra,korea,2022,month_total_spearman,0.8666666666666665
+B1_terra,korea,2022,month_total_n_months,10.0
+B1_terra,argentina,2022,month_total_MAE,2775.792514465578
+B1_terra,argentina,2022,month_total_bias,0.9375466151188028
+B1_terra,argentina,2022,month_total_pearson,0.9884008388386974
+B1_terra,argentina,2022,month_total_spearman,0.9757575757575757
+B1_terra,argentina,2022,month_total_n_months,10.0
+B1_terra,continent:Africa,2022,month_total_MAE,117915.17664054986
+B1_terra,continent:Africa,2022,month_total_bias,0.8620666627047369
+B1_terra,continent:Africa,2022,month_total_pearson,0.9871902109716996
+B1_terra,continent:Africa,2022,month_total_spearman,0.9757575757575757
+B1_terra,continent:Africa,2022,month_total_n_months,10.0
+B1_terra,continent:Antarctica,2022,month_total_MAE,5.36822197720053
+B1_terra,continent:Antarctica,2022,month_total_bias,0.0
+B1_terra,continent:Antarctica,2022,month_total_pearson,NaN
+B1_terra,continent:Antarctica,2022,month_total_spearman,NaN
+B1_terra,continent:Antarctica,2022,month_total_n_months,9.0
+B1_terra,continent:Asia,2022,month_total_MAE,16710.087478569814
+B1_terra,continent:Asia,2022,month_total_bias,0.8704224611278584
+B1_terra,continent:Asia,2022,month_total_pearson,0.9905726389787065
+B1_terra,continent:Asia,2022,month_total_spearman,0.9393939393939393
+B1_terra,continent:Asia,2022,month_total_n_months,10.0
+B1_terra,continent:Europe,2022,month_total_MAE,4717.237448986822
+B1_terra,continent:Europe,2022,month_total_bias,1.0142441605606258
+B1_terra,continent:Europe,2022,month_total_pearson,0.9981175450901493
+B1_terra,continent:Europe,2022,month_total_spearman,0.9878787878787878
+B1_terra,continent:Europe,2022,month_total_n_months,10.0
+B1_terra,continent:North America,2022,month_total_MAE,15354.792411689627
+B1_terra,continent:North America,2022,month_total_bias,1.144512829750682
+B1_terra,continent:North America,2022,month_total_pearson,0.9181256531400281
+B1_terra,continent:North America,2022,month_total_spearman,0.9636363636363635
+B1_terra,continent:North America,2022,month_total_n_months,10.0
+B1_terra,continent:Oceania,2022,month_total_MAE,14128.006979190954
+B1_terra,continent:Oceania,2022,month_total_bias,1.1140683395476116
+B1_terra,continent:Oceania,2022,month_total_pearson,0.9510470178837735
+B1_terra,continent:Oceania,2022,month_total_spearman,0.9393939393939393
+B1_terra,continent:Oceania,2022,month_total_n_months,10.0
+B1_terra,continent:Seven seas (open ocean),2022,month_total_MAE,14.86949384345875
+B1_terra,continent:Seven seas (open ocean),2022,month_total_bias,0.4116097662866916
+B1_terra,continent:Seven seas (open ocean),2022,month_total_pearson,0.9265906913272386
+B1_terra,continent:Seven seas (open ocean),2022,month_total_spearman,0.7006490497453707
+B1_terra,continent:Seven seas (open ocean),2022,month_total_n_months,10.0
+B1_terra,continent:South America,2022,month_total_MAE,106509.98880055596
+B1_terra,continent:South America,2022,month_total_bias,1.451526365223089
+B1_terra,continent:South America,2022,month_total_pearson,0.9806405672685907
+B1_terra,continent:South America,2022,month_total_spearman,0.8666666666666665
+B1_terra,continent:South America,2022,month_total_n_months,10.0
+B1_terra,world,2022,cell_MAE,6.510479459902925
+B1_terra,world,2022,cell_RMSE_log1p,1.204489197710137
+B1_terra,world,2022,cell_poisson_dev,120.13617035654738
+B1_terra,world,2022,cell_n,555811.0
+B1_terra,korea,2022,cell_MAE,1.7061434004730542
+B1_terra,korea,2022,cell_RMSE_log1p,0.665625158950093
+B1_terra,korea,2022,cell_poisson_dev,18.159063832212578
+B1_terra,korea,2022,cell_n,545.0
+B1_terra,argentina,2022,cell_MAE,5.236955411984476
+B1_terra,argentina,2022,cell_RMSE_log1p,1.1336663983332906
+B1_terra,argentina,2022,cell_poisson_dev,86.97853205919256
+B1_terra,argentina,2022,cell_n,12910.0
+B1_terra,continent:Africa,2022,cell_MAE,12.86237940895232
+B1_terra,continent:Africa,2022,cell_RMSE_log1p,1.6275687531785852
+B1_terra,continent:Africa,2022,cell_poisson_dev,266.1164020300689
+B1_terra,continent:Africa,2022,cell_n,154778.0
+B1_terra,continent:Antarctica,2022,cell_MAE,0.034384807326233474
+B1_terra,continent:Antarctica,2022,cell_RMSE_log1p,0.14298224038230692
+B1_terra,continent:Antarctica,2022,cell_poisson_dev,1.443229203467439
+B1_terra,continent:Antarctica,2022,cell_n,310.0
+B1_terra,continent:Asia,2022,cell_MAE,3.166776091685111
+B1_terra,continent:Asia,2022,cell_RMSE_log1p,1.0446130217463776
+B1_terra,continent:Asia,2022,cell_poisson_dev,69.45180671667704
+B1_terra,continent:Asia,2022,cell_n,116394.0
+B1_terra,continent:Europe,2022,cell_MAE,1.3924060140965087
+B1_terra,continent:Europe,2022,cell_RMSE_log1p,0.609558455903408
+B1_terra,continent:Europe,2022,cell_poisson_dev,22.032201793645374
+B1_terra,continent:Europe,2022,cell_n,83517.0
+B1_terra,continent:North America,2022,cell_MAE,2.913987429226285
+B1_terra,continent:North America,2022,cell_RMSE_log1p,0.87597877877239
+B1_terra,continent:North America,2022,cell_poisson_dev,42.81962704309532
+B1_terra,continent:North America,2022,cell_n,76030.0
+B1_terra,continent:Oceania,2022,cell_MAE,4.99524805925599
+B1_terra,continent:Oceania,2022,cell_RMSE_log1p,0.9588451067821254
+B1_terra,continent:Oceania,2022,cell_poisson_dev,76.37017840480975
+B1_terra,continent:Oceania,2022,cell_n,31349.0
+B1_terra,continent:Seven seas (open ocean),2022,cell_MAE,2.557856994611538
+B1_terra,continent:Seven seas (open ocean),2022,cell_RMSE_log1p,1.0801064725575122
+B1_terra,continent:Seven seas (open ocean),2022,cell_poisson_dev,81.68802997809146
+B1_terra,continent:Seven seas (open ocean),2022,cell_n,37.0
+B1_terra,continent:South America,2022,cell_MAE,8.20548060851736
+B1_terra,continent:South America,2022,cell_RMSE_log1p,1.2732648887795026
+B1_terra,continent:South America,2022,cell_poisson_dev,107.35210705716692
+B1_terra,continent:South America,2022,cell_n,93175.0
+B1_terra,world,2023,month_total_MAE,156423.5322587511
+B1_terra,world,2023,month_total_bias,0.9522949124731459
+B1_terra,world,2023,month_total_pearson,0.9598749673041258
+B1_terra,world,2023,month_total_spearman,0.6923076923076924
+B1_terra,world,2023,month_total_n_months,12.0
+B1_terra,korea,2023,month_total_MAE,86.3463782474853
+B1_terra,korea,2023,month_total_bias,1.6410617795170361
+B1_terra,korea,2023,month_total_pearson,0.9413372914574252
+B1_terra,korea,2023,month_total_spearman,0.9510489510489512
+B1_terra,korea,2023,month_total_n_months,12.0
+B1_terra,argentina,2023,month_total_MAE,2558.967396451454
+B1_terra,argentina,2023,month_total_bias,1.1704217855242243
+B1_terra,argentina,2023,month_total_pearson,0.9701921931551345
+B1_terra,argentina,2023,month_total_spearman,0.965034965034965
+B1_terra,argentina,2023,month_total_n_months,12.0
+B1_terra,continent:Africa,2023,month_total_MAE,216030.27670192058
+B1_terra,continent:Africa,2023,month_total_bias,0.7445839902366633
+B1_terra,continent:Africa,2023,month_total_pearson,0.9612935256220562
+B1_terra,continent:Africa,2023,month_total_spearman,0.9720279720279721
+B1_terra,continent:Africa,2023,month_total_n_months,12.0
+B1_terra,continent:Antarctica,2023,month_total_MAE,4.799044553156395
+B1_terra,continent:Antarctica,2023,month_total_bias,0.0
+B1_terra,continent:Antarctica,2023,month_total_pearson,NaN
+B1_terra,continent:Antarctica,2023,month_total_spearman,NaN
+B1_terra,continent:Antarctica,2023,month_total_n_months,8.0
+B1_terra,continent:Asia,2023,month_total_MAE,14262.896927772077
+B1_terra,continent:Asia,2023,month_total_bias,0.9379530516016632
+B1_terra,continent:Asia,2023,month_total_pearson,0.9957192506610251
+B1_terra,continent:Asia,2023,month_total_spearman,0.9860139860139862
+B1_terra,continent:Asia,2023,month_total_n_months,12.0
+B1_terra,continent:Europe,2023,month_total_MAE,6107.4427695383565
+B1_terra,continent:Europe,2023,month_total_bias,1.0370556929417714
+B1_terra,continent:Europe,2023,month_total_pearson,0.9978524200063321
+B1_terra,continent:Europe,2023,month_total_spearman,1.0
+B1_terra,continent:Europe,2023,month_total_n_months,12.0
+B1_terra,continent:North America,2023,month_total_MAE,39042.699150832996
+B1_terra,continent:North America,2023,month_total_bias,0.9789759657459016
+B1_terra,continent:North America,2023,month_total_pearson,0.9843828854184936
+B1_terra,continent:North America,2023,month_total_spearman,1.0
+B1_terra,continent:North America,2023,month_total_n_months,12.0
+B1_terra,continent:Oceania,2023,month_total_MAE,44248.11131517077
+B1_terra,continent:Oceania,2023,month_total_bias,1.2281111399460525
+B1_terra,continent:Oceania,2023,month_total_pearson,0.9939321590112731
+B1_terra,continent:Oceania,2023,month_total_spearman,0.965034965034965
+B1_terra,continent:Oceania,2023,month_total_n_months,12.0
+B1_terra,continent:Seven seas (open ocean),2023,month_total_MAE,21.452015310609834
+B1_terra,continent:Seven seas (open ocean),2023,month_total_bias,0.2299251109573848
+B1_terra,continent:Seven seas (open ocean),2023,month_total_pearson,-0.19510825696318465
+B1_terra,continent:Seven seas (open ocean),2023,month_total_spearman,-0.23652495839563306
+B1_terra,continent:Seven seas (open ocean),2023,month_total_n_months,12.0
+B1_terra,continent:South America,2023,month_total_MAE,112790.74981561583
+B1_terra,continent:South America,2023,month_total_bias,1.5392504617177312
+B1_terra,continent:South America,2023,month_total_pearson,0.992639060111476
+B1_terra,continent:South America,2023,month_total_spearman,0.9720279720279721
+B1_terra,continent:South America,2023,month_total_n_months,12.0
+B1_terra,world,2023,cell_MAE,6.900123510931244
+B1_terra,world,2023,cell_RMSE_log1p,1.2296526034163153
+B1_terra,world,2023,cell_poisson_dev,125.05394494384163
+B1_terra,world,2023,cell_n,708799.0
+B1_terra,korea,2023,cell_MAE,1.1465949944240328
+B1_terra,korea,2023,cell_RMSE_log1p,0.7803004785780159
+B1_terra,korea,2023,cell_poisson_dev,17.481490751305753
+B1_terra,korea,2023,cell_n,678.0
+B1_terra,argentina,2023,cell_MAE,3.3796398143607185
+B1_terra,argentina,2023,cell_RMSE_log1p,0.9931574747759734
+B1_terra,argentina,2023,cell_poisson_dev,55.78308386200587
+B1_terra,argentina,2023,cell_n,14653.0
+B1_terra,continent:Africa,2023,cell_MAE,12.006540830964004
+B1_terra,continent:Africa,2023,cell_RMSE_log1p,1.6315559396944166
+B1_terra,continent:Africa,2023,cell_poisson_dev,271.0567092392265
+B1_terra,continent:Africa,2023,cell_n,191297.0
+B1_terra,continent:Antarctica,2023,cell_MAE,0.03505486946756135
+B1_terra,continent:Antarctica,2023,cell_RMSE_log1p,0.14011703668396402
+B1_terra,continent:Antarctica,2023,cell_poisson_dev,1.4149469755544704
+B1_terra,continent:Antarctica,2023,cell_n,384.0
+B1_terra,continent:Asia,2023,cell_MAE,4.530334999333512
+B1_terra,continent:Asia,2023,cell_RMSE_log1p,1.1517407707125558
+B1_terra,continent:Asia,2023,cell_poisson_dev,91.32405938571016
+B1_terra,continent:Asia,2023,cell_n,157701.0
+B1_terra,continent:Europe,2023,cell_MAE,1.5635093753952314
+B1_terra,continent:Europe,2023,cell_RMSE_log1p,0.6045477155893106
+B1_terra,continent:Europe,2023,cell_poisson_dev,21.257338030088704
+B1_terra,continent:Europe,2023,cell_n,102048.0
+B1_terra,continent:North America,2023,cell_MAE,4.711398708618118
+B1_terra,continent:North America,2023,cell_RMSE_log1p,0.9403880693849627
+B1_terra,continent:North America,2023,cell_poisson_dev,53.07132959790667
+B1_terra,continent:North America,2023,cell_n,97333.0
+B1_terra,continent:Oceania,2023,cell_MAE,9.53981986549491
+B1_terra,continent:Oceania,2023,cell_RMSE_log1p,1.0691360745606653
+B1_terra,continent:Oceania,2023,cell_poisson_dev,99.06847903176991
+B1_terra,continent:Oceania,2023,cell_n,42581.0
+B1_terra,continent:Seven seas (open ocean),2023,cell_MAE,2.7609373844477147
+B1_terra,continent:Seven seas (open ocean),2023,cell_RMSE_log1p,1.162996399977325
+B1_terra,continent:Seven seas (open ocean),2023,cell_poisson_dev,106.7522306943624
+B1_terra,continent:Seven seas (open ocean),2023,cell_n,36.0
+B1_terra,continent:South America,2023,cell_MAE,7.299661738819789
+B1_terra,continent:South America,2023,cell_RMSE_log1p,1.243584749655809
+B1_terra,continent:South America,2023,cell_poisson_dev,92.3491984444562
+B1_terra,continent:South America,2023,cell_n,117106.0
+B1_terra,world,2024,month_total_MAE,205097.01053359205
+B1_terra,world,2024,month_total_bias,0.9060018841265943
+B1_terra,world,2024,month_total_pearson,0.966682747801091
+B1_terra,world,2024,month_total_spearman,0.9370629370629372
+B1_terra,world,2024,month_total_n_months,12.0
+B1_terra,korea,2024,month_total_MAE,115.10664957825877
+B1_terra,korea,2024,month_total_bias,2.2215237254455915
+B1_terra,korea,2024,month_total_pearson,0.7510640356759329
+B1_terra,korea,2024,month_total_spearman,0.6993006993006995
+B1_terra,korea,2024,month_total_n_months,12.0
+B1_terra,argentina,2024,month_total_MAE,2604.8966698288436
+B1_terra,argentina,2024,month_total_bias,1.1196238212816865
+B1_terra,argentina,2024,month_total_pearson,0.9776625998514149
+B1_terra,argentina,2024,month_total_spearman,0.9230769230769231
+B1_terra,argentina,2024,month_total_n_months,12.0
+B1_terra,continent:Africa,2024,month_total_MAE,296896.6765492611
+B1_terra,continent:Africa,2024,month_total_bias,0.6757819214337698
+B1_terra,continent:Africa,2024,month_total_pearson,0.9719811967515641
+B1_terra,continent:Africa,2024,month_total_spearman,0.9790209790209792
+B1_terra,continent:Africa,2024,month_total_n_months,12.0
+B1_terra,continent:Antarctica,2024,month_total_MAE,6.129869275461381
+B1_terra,continent:Antarctica,2024,month_total_bias,0.0
+B1_terra,continent:Antarctica,2024,month_total_pearson,NaN
+B1_terra,continent:Antarctica,2024,month_total_spearman,NaN
+B1_terra,continent:Antarctica,2024,month_total_n_months,8.0
+B1_terra,continent:Asia,2024,month_total_MAE,23775.543882706766
+B1_terra,continent:Asia,2024,month_total_bias,0.8860596450146805
+B1_terra,continent:Asia,2024,month_total_pearson,0.9980249623020738
+B1_terra,continent:Asia,2024,month_total_spearman,0.9440559440559443
+B1_terra,continent:Asia,2024,month_total_n_months,12.0
+B1_terra,continent:Europe,2024,month_total_MAE,9003.4330330708
+B1_terra,continent:Europe,2024,month_total_bias,0.9395276453817224
+B1_terra,continent:Europe,2024,month_total_pearson,0.9981918784618317
+B1_terra,continent:Europe,2024,month_total_spearman,0.9930069930069931
+B1_terra,continent:Europe,2024,month_total_n_months,12.0
+B1_terra,continent:North America,2024,month_total_MAE,23857.683087989004
+B1_terra,continent:North America,2024,month_total_bias,0.9983637185511202
+B1_terra,continent:North America,2024,month_total_pearson,0.9673849863751688
+B1_terra,continent:North America,2024,month_total_spearman,0.9720279720279721
+B1_terra,continent:North America,2024,month_total_n_months,12.0
+B1_terra,continent:Oceania,2024,month_total_MAE,24419.486426965464
+B1_terra,continent:Oceania,2024,month_total_bias,1.0603763262281747
+B1_terra,continent:Oceania,2024,month_total_pearson,0.9686994993589527
+B1_terra,continent:Oceania,2024,month_total_spearman,0.9930069930069931
+B1_terra,continent:Oceania,2024,month_total_n_months,12.0
+B1_terra,continent:Seven seas (open ocean),2024,month_total_MAE,14.56197848003115
+B1_terra,continent:Seven seas (open ocean),2024,month_total_bias,0.5945257062834691
+B1_terra,continent:Seven seas (open ocean),2024,month_total_pearson,0.7776098798547445
+B1_terra,continent:Seven seas (open ocean),2024,month_total_spearman,0.6531921414788123
+B1_terra,continent:Seven seas (open ocean),2024,month_total_n_months,12.0
+B1_terra,continent:South America,2024,month_total_MAE,153104.10156303804
+B1_terra,continent:South America,2024,month_total_bias,1.4764337422332143
+B1_terra,continent:South America,2024,month_total_pearson,0.998118544577999
+B1_terra,continent:South America,2024,month_total_spearman,0.9440559440559443
+B1_terra,continent:South America,2024,month_total_n_months,12.0
+B1_terra,world,2024,cell_MAE,7.184648615190384
+B1_terra,world,2024,cell_RMSE_log1p,1.2620245994939931
+B1_terra,world,2024,cell_poisson_dev,138.20820365755222
+B1_terra,world,2024,cell_n,702747.0
+B1_terra,korea,2024,cell_MAE,1.3823927706388952
+B1_terra,korea,2024,cell_RMSE_log1p,0.8161561601881673
+B1_terra,korea,2024,cell_poisson_dev,20.00277843591386
+B1_terra,korea,2024,cell_n,674.0
+B1_terra,argentina,2024,cell_MAE,3.406648292506867
+B1_terra,argentina,2024,cell_RMSE_log1p,1.0237101469690244
+B1_terra,argentina,2024,cell_poisson_dev,62.88499384484841
+B1_terra,argentina,2024,cell_n,14505.0
+B1_terra,continent:Africa,2024,cell_MAE,12.669103252041737
+B1_terra,continent:Africa,2024,cell_RMSE_log1p,1.7090793328858505
+B1_terra,continent:Africa,2024,cell_poisson_dev,310.23571904149134
+B1_terra,continent:Africa,2024,cell_n,194918.0
+B1_terra,continent:Antarctica,2024,cell_MAE,0.03795383914331283
+B1_terra,continent:Antarctica,2024,cell_RMSE_log1p,0.1447203983086224
+B1_terra,continent:Antarctica,2024,cell_poisson_dev,1.5269953631044846
+B1_terra,continent:Antarctica,2024,cell_n,450.0
+B1_terra,continent:Asia,2024,cell_MAE,4.22957817160033
+B1_terra,continent:Asia,2024,cell_RMSE_log1p,1.1407085762433136
+B1_terra,continent:Asia,2024,cell_poisson_dev,87.16021347847769
+B1_terra,continent:Asia,2024,cell_n,154191.0
+B1_terra,continent:Europe,2024,cell_MAE,1.7946738042083736
+B1_terra,continent:Europe,2024,cell_RMSE_log1p,0.6170922529545938
+B1_terra,continent:Europe,2024,cell_poisson_dev,23.663036796194444
+B1_terra,continent:Europe,2024,cell_n,102044.0
+B1_terra,continent:North America,2024,cell_MAE,3.7478146665530785
+B1_terra,continent:North America,2024,cell_RMSE_log1p,0.9096360896400066
+B1_terra,continent:North America,2024,cell_poisson_dev,48.58612814826479
+B1_terra,continent:North America,2024,cell_n,94949.0
+B1_terra,continent:Oceania,2024,cell_MAE,6.500463732908965
+B1_terra,continent:Oceania,2024,cell_RMSE_log1p,1.0570704920193383
+B1_terra,continent:Oceania,2024,cell_poisson_dev,97.49069228989202
+B1_terra,continent:Oceania,2024,cell_n,40248.0
+B1_terra,continent:Seven seas (open ocean),2024,cell_MAE,2.485802997147117
+B1_terra,continent:Seven seas (open ocean),2024,cell_RMSE_log1p,1.075240484001886
+B1_terra,continent:Seven seas (open ocean),2024,cell_poisson_dev,68.49686907673299
+B1_terra,continent:Seven seas (open ocean),2024,cell_n,47.0
+B1_terra,continent:South America,2024,cell_MAE,9.742832714956814
+B1_terra,continent:South America,2024,cell_RMSE_log1p,1.2710696723222183
+B1_terra,continent:South America,2024,cell_poisson_dev,106.01321986086857
+B1_terra,continent:South America,2024,cell_n,115586.0
+B1_terra,world,2025,month_total_MAE,366198.1257139332
+B1_terra,world,2025,month_total_bias,0.7438363500943792
+B1_terra,world,2025,month_total_pearson,0.9124357520735592
+B1_terra,world,2025,month_total_spearman,0.8321678321678322
+B1_terra,world,2025,month_total_n_months,12.0
+B1_terra,korea,2025,month_total_MAE,161.56690254657306
+B1_terra,korea,2025,month_total_bias,1.4705904733860204
+B1_terra,korea,2025,month_total_pearson,0.9954092441098822
+B1_terra,korea,2025,month_total_spearman,0.9230769230769231
+B1_terra,korea,2025,month_total_n_months,12.0
+B1_terra,argentina,2025,month_total_MAE,2506.862941530135
+B1_terra,argentina,2025,month_total_bias,0.8506936789617393
+B1_terra,argentina,2025,month_total_pearson,0.927385361338092
+B1_terra,argentina,2025,month_total_spearman,0.9580419580419581
+B1_terra,argentina,2025,month_total_n_months,12.0
+B1_terra,continent:Africa,2025,month_total_MAE,375725.94818677084
+B1_terra,continent:Africa,2025,month_total_bias,0.5491934189080198
+B1_terra,continent:Africa,2025,month_total_pearson,0.9000578710449029
+B1_terra,continent:Africa,2025,month_total_spearman,0.9160839160839163
+B1_terra,continent:Africa,2025,month_total_n_months,12.0
+B1_terra,continent:Antarctica,2025,month_total_MAE,3.5377807405543535
+B1_terra,continent:Antarctica,2025,month_total_bias,0.0
+B1_terra,continent:Antarctica,2025,month_total_pearson,NaN
+B1_terra,continent:Antarctica,2025,month_total_spearman,NaN
+B1_terra,continent:Antarctica,2025,month_total_n_months,10.0
+B1_terra,continent:Asia,2025,month_total_MAE,31618.597488456235
+B1_terra,continent:Asia,2025,month_total_bias,0.8336259455177542
+B1_terra,continent:Asia,2025,month_total_pearson,0.990027966331052
+B1_terra,continent:Asia,2025,month_total_spearman,0.8531468531468532
+B1_terra,continent:Asia,2025,month_total_n_months,12.0
+B1_terra,continent:Europe,2025,month_total_MAE,9651.318440343308
+B1_terra,continent:Europe,2025,month_total_bias,0.8717737015028583
+B1_terra,continent:Europe,2025,month_total_pearson,0.9674191692988262
+B1_terra,continent:Europe,2025,month_total_spearman,0.9720279720279721
+B1_terra,continent:Europe,2025,month_total_n_months,12.0
+B1_terra,continent:North America,2025,month_total_MAE,22989.030859376133
+B1_terra,continent:North America,2025,month_total_bias,0.932567192749642
+B1_terra,continent:North America,2025,month_total_pearson,0.9706248893073577
+B1_terra,continent:North America,2025,month_total_spearman,0.9510489510489512
+B1_terra,continent:North America,2025,month_total_n_months,12.0
+B1_terra,continent:Oceania,2025,month_total_MAE,26869.258147362765
+B1_terra,continent:Oceania,2025,month_total_bias,1.1003478847701118
+B1_terra,continent:Oceania,2025,month_total_pearson,0.9818426121761812
+B1_terra,continent:Oceania,2025,month_total_spearman,0.9370629370629372
+B1_terra,continent:Oceania,2025,month_total_n_months,12.0
+B1_terra,continent:Seven seas (open ocean),2025,month_total_MAE,17.56007289159716
+B1_terra,continent:Seven seas (open ocean),2025,month_total_bias,0.1393120938477551
+B1_terra,continent:Seven seas (open ocean),2025,month_total_pearson,-0.19211262855850522
+B1_terra,continent:Seven seas (open ocean),2025,month_total_spearman,-0.20000000000000004
+B1_terra,continent:Seven seas (open ocean),2025,month_total_n_months,11.0
+B1_terra,continent:South America,2025,month_total_MAE,43921.40801323715
+B1_terra,continent:South America,2025,month_total_bias,1.3285273625876421
+B1_terra,continent:South America,2025,month_total_pearson,0.985719932726952
+B1_terra,continent:South America,2025,month_total_spearman,0.965034965034965
+B1_terra,continent:South America,2025,month_total_n_months,12.0
+B1_terra,world,2025,cell_MAE,6.110506339430267
+B1_terra,world,2025,cell_RMSE_log1p,1.2477234397237493
+B1_terra,world,2025,cell_poisson_dev,139.17312881927901
+B1_terra,world,2025,cell_n,695750.0
+B1_terra,korea,2025,cell_MAE,1.705291472632257
+B1_terra,korea,2025,cell_RMSE_log1p,0.6772443990323583
+B1_terra,korea,2025,cell_poisson_dev,16.18481046938461
+B1_terra,korea,2025,cell_n,631.0
+B1_terra,argentina,2025,cell_MAE,3.0606128925592193
+B1_terra,argentina,2025,cell_RMSE_log1p,1.0194743448350005
+B1_terra,argentina,2025,cell_poisson_dev,68.81459123808892
+B1_terra,argentina,2025,cell_n,14905.0
+B1_terra,continent:Africa,2025,cell_MAE,11.758824942639844
+B1_terra,continent:Africa,2025,cell_RMSE_log1p,1.721220860470231
+B1_terra,continent:Africa,2025,cell_poisson_dev,325.73472216984874
+B1_terra,continent:Africa,2025,cell_n,191925.0
+B1_terra,continent:Antarctica,2025,cell_MAE,0.019617867269472504
+B1_terra,continent:Antarctica,2025,cell_RMSE_log1p,0.099797279231685
+B1_terra,continent:Antarctica,2025,cell_poisson_dev,0.7790268184326076
+B1_terra,continent:Antarctica,2025,cell_n,406.0
+B1_terra,continent:Asia,2025,cell_MAE,4.081850420619289
+B1_terra,continent:Asia,2025,cell_RMSE_log1p,1.1428673813597883
+B1_terra,continent:Asia,2025,cell_poisson_dev,89.28106506786396
+B1_terra,continent:Asia,2025,cell_n,156215.0
+B1_terra,continent:Europe,2025,cell_MAE,1.3758386407841228
+B1_terra,continent:Europe,2025,cell_RMSE_log1p,0.6164418192340857
+B1_terra,continent:Europe,2025,cell_poisson_dev,22.944462580853113
+B1_terra,continent:Europe,2025,cell_n,102297.0
+B1_terra,continent:North America,2025,cell_MAE,3.6458293171286744
+B1_terra,continent:North America,2025,cell_RMSE_log1p,0.9064536258509029
+B1_terra,continent:North America,2025,cell_poisson_dev,48.62686988014529
+B1_terra,continent:North America,2025,cell_n,95619.0
+B1_terra,continent:Oceania,2025,cell_MAE,7.06989310534504
+B1_terra,continent:Oceania,2025,cell_RMSE_log1p,1.0766041126212815
+B1_terra,continent:Oceania,2025,cell_poisson_dev,102.45869100421912
+B1_terra,continent:Oceania,2025,cell_n,41865.0
+B1_terra,continent:Seven seas (open ocean),2025,cell_MAE,1.3666622305452891
+B1_terra,continent:Seven seas (open ocean),2025,cell_RMSE_log1p,0.9140377272461945
+B1_terra,continent:Seven seas (open ocean),2025,cell_poisson_dev,57.36710061701016
+B1_terra,continent:Seven seas (open ocean),2025,cell_n,42.0
+B1_terra,continent:South America,2025,cell_MAE,5.3355541833241364
+B1_terra,continent:South America,2025,cell_RMSE_log1p,1.1614487798811906
+B1_terra,continent:South America,2025,cell_poisson_dev,84.74621407859279
+B1_terra,continent:South America,2025,cell_n,107069.0
+B1_terra,continent:Oceania,pooled,month_total_MAE,24257.39114649931
+B1_terra,continent:Oceania,pooled,month_total_bias,1.1506080684619022
+B1_terra,continent:Oceania,pooled,month_total_pearson,0.9774808973538971
+B1_terra,continent:Oceania,pooled,month_total_spearman,0.9731965774760926
+B1_terra,continent:Oceania,pooled,month_total_n_months,164.0
+B1,continent:Seven seas (open ocean),pooled,month_total_MAE,11.58029620567698
+B1,continent:Seven seas (open ocean),pooled,month_total_bias,0.6540702762486718
+B1,continent:Seven seas (open ocean),pooled,month_total_pearson,0.7619578664833891
+B1,continent:Seven seas (open ocean),pooled,month_total_spearman,0.6237769218581797
+B1,continent:Seven seas (open ocean),pooled,month_total_n_months,159.0
+B1,continent:Antarctica,pooled,month_total_MAE,6.189183978981924
+B1,continent:Antarctica,pooled,month_total_bias,0.020723263010672333
+B1,continent:Antarctica,pooled,month_total_pearson,-0.012047343537082335
+B1,continent:Antarctica,pooled,month_total_spearman,0.0012296088851913717
+B1,continent:Antarctica,pooled,month_total_n_months,126.0
+B1_terra,argentina,pooled,month_total_MAE,3841.4612161593727
+B1_terra,argentina,pooled,month_total_bias,1.1647925493817561
+B1_terra,argentina,pooled,month_total_pearson,0.9627276461307485
+B1_terra,argentina,pooled,month_total_spearman,0.956124767048005
+B1_terra,argentina,pooled,month_total_n_months,164.0
+B1_terra,continent:Seven seas (open ocean),pooled,month_total_MAE,17.616425490293203
+B1_terra,continent:Seven seas (open ocean),pooled,month_total_bias,0.643886139894023
+B1_terra,continent:Seven seas (open ocean),pooled,month_total_pearson,0.42361417608632695
+B1_terra,continent:Seven seas (open ocean),pooled,month_total_spearman,0.38564642572608815
+B1_terra,continent:Seven seas (open ocean),pooled,month_total_n_months,159.0
+B1,continent:Europe,pooled,month_total_MAE,9220.698220709926
+B1,continent:Europe,pooled,month_total_bias,1.046224155584275
+B1,continent:Europe,pooled,month_total_pearson,0.9934348135387482
+B1,continent:Europe,pooled,month_total_spearman,0.9906928026335476
+B1,continent:Europe,pooled,month_total_n_months,164.0
+B1,continent:Oceania,pooled,month_total_MAE,11675.807986300399
+B1,continent:Oceania,pooled,month_total_bias,0.9606719747398154
+B1,continent:Oceania,pooled,month_total_pearson,0.9884616618940865
+B1,continent:Oceania,pooled,month_total_spearman,0.9899582386788731
+B1,continent:Oceania,pooled,month_total_n_months,164.0
+B1_terra,continent:Europe,pooled,month_total_MAE,9853.603588028816
+B1_terra,continent:Europe,pooled,month_total_bias,1.0409373263178936
+B1_terra,continent:Europe,pooled,month_total_pearson,0.9914777825719556
+B1_terra,continent:Europe,pooled,month_total_spearman,0.9928992151048113
+B1_terra,continent:Europe,pooled,month_total_n_months,164.0
+B1,continent:Asia,pooled,month_total_MAE,17524.851755723023
+B1,continent:Asia,pooled,month_total_bias,0.9500449898760432
+B1,continent:Asia,pooled,month_total_pearson,0.9910171719078905
+B1,continent:Asia,pooled,month_total_spearman,0.9862854189054995
+B1,continent:Asia,pooled,month_total_n_months,164.0
+B1,korea,pooled,month_total_MAE,83.80640449841913
+B1,korea,pooled,month_total_bias,1.4100107627136205
+B1,korea,pooled,month_total_pearson,0.8855849706258793
+B1,korea,pooled,month_total_spearman,0.8445857663227426
+B1,korea,pooled,month_total_n_months,164.0
+B1,continent:South America,pooled,month_total_MAE,30822.847403359905
+B1,continent:South America,pooled,month_total_bias,1.1523117819929265
+B1,continent:South America,pooled,month_total_pearson,0.9955916041426306
+B1,continent:South America,pooled,month_total_spearman,0.9936800293825582
+B1,continent:South America,pooled,month_total_n_months,164.0
+B1_terra,korea,pooled,month_total_MAE,118.01968835582944
+B1_terra,korea,pooled,month_total_bias,1.6440701439231342
+B1_terra,korea,pooled,month_total_pearson,0.8766590150308744
+B1_terra,korea,pooled,month_total_spearman,0.7954749619705708
+B1_terra,korea,pooled,month_total_n_months,164.0
+B1,continent:North America,pooled,month_total_MAE,14947.690617539187
+B1,continent:North America,pooled,month_total_bias,1.0407556583993078
+B1,continent:North America,pooled,month_total_pearson,0.9838763083791338
+B1,continent:North America,pooled,month_total_spearman,0.985134602043176
+B1,continent:North America,pooled,month_total_n_months,164.0
+B1,world,pooled,month_total_MAE,48512.44061659393
+B1,world,pooled,month_total_bias,1.0003217979794523
+B1,world,pooled,month_total_pearson,0.9913369723470308
+B1,world,pooled,month_total_spearman,0.9841987131527755
+B1,world,pooled,month_total_n_months,164.0
+B1,argentina,pooled,month_total_MAE,3241.9207277710148
+B1,argentina,pooled,month_total_bias,1.1875917945152135
+B1,argentina,pooled,month_total_pearson,0.9859662638898007
+B1,argentina,pooled,month_total_spearman,0.9844163617319385
+B1,argentina,pooled,month_total_n_months,164.0
+B1_terra,continent:South America,pooled,month_total_MAE,93767.67010382276
+B1_terra,continent:South America,pooled,month_total_bias,1.4663174410722652
+B1_terra,continent:South America,pooled,month_total_pearson,0.9906234105629236
+B1_terra,continent:South America,pooled,month_total_spearman,0.9622080448356072
+B1_terra,continent:South America,pooled,month_total_n_months,164.0
+B1_terra,continent:Antarctica,pooled,month_total_MAE,6.1496124240306616
+B1_terra,continent:Antarctica,pooled,month_total_bias,0.0
+B1_terra,continent:Antarctica,pooled,month_total_pearson,NaN
+B1_terra,continent:Antarctica,pooled,month_total_spearman,NaN
+B1_terra,continent:Antarctica,pooled,month_total_n_months,126.0
+B1,continent:Africa,pooled,month_total_MAE,44340.80837596224
+B1,continent:Africa,pooled,month_total_bias,0.9704187810219596
+B1,continent:Africa,pooled,month_total_pearson,0.9888118743375364
+B1,continent:Africa,pooled,month_total_spearman,0.9879014596057839
+B1,continent:Africa,pooled,month_total_n_months,164.0
+B1_terra,continent:Asia,pooled,month_total_MAE,27124.899046495873
+B1_terra,continent:Asia,pooled,month_total_bias,0.9426857481127091
+B1_terra,continent:Asia,pooled,month_total_pearson,0.979504388962237
+B1_terra,continent:Asia,pooled,month_total_spearman,0.955779249928584
+B1_terra,continent:Asia,pooled,month_total_n_months,164.0
+B1_terra,continent:Africa,pooled,month_total_MAE,134751.86170275838
+B1_terra,continent:Africa,pooled,month_total_bias,0.8665452833684083
+B1_terra,continent:Africa,pooled,month_total_pearson,0.9091868112585101
+B1_terra,continent:Africa,pooled,month_total_spearman,0.9257573490403058
+B1_terra,continent:Africa,pooled,month_total_n_months,164.0
+B1_terra,world,pooled,month_total_MAE,123374.52533293336
+B1_terra,world,pooled,month_total_bias,1.002464069062592
+B1_terra,world,pooled,month_total_pearson,0.9476740920920271
+B1_terra,world,pooled,month_total_spearman,0.927074122944241
+B1_terra,world,pooled,month_total_n_months,164.0
+B1_terra,continent:North America,pooled,month_total_MAE,27357.996569235554
+B1_terra,continent:North America,pooled,month_total_bias,1.1315593284953391
+B1_terra,continent:North America,pooled,month_total_pearson,0.9417895214156972
+B1_terra,continent:North America,pooled,month_total_spearman,0.9504332567028959
+B1_terra,continent:North America,pooled,month_total_n_months,164.0
