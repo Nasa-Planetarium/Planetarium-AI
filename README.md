@@ -248,7 +248,7 @@ uv run python -m planetarium.modeling.m2         # n20_bridge
 ## 지역·기간별 열원 탐지 확률
 
 `store.occurrence_forecast`에 위치나 여러 범위와 시작일·종료일을 넘기면 지역별 날짜마다 `p_any`를 반환합니다.
-받은 일별 관측의 간격으로 기준일 다음 스텝부터 연속 예측합니다. [조회 예시와 전 세계 검증](reports/forecast_benchmark.md)
+받은 일별 관측의 간격으로 기준일 다음 날부터 연속 예측합니다. [지역·기간 조회 예시](reports/forecast_benchmark.md) · [월말 관측 갱신 방식의 전 세계 검증](reports/forecast_monthly_backtest.md)
 
 ## 크레딧 (Acknowledgements)
 

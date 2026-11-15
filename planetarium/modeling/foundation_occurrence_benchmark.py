@@ -86,6 +86,34 @@ def prepare_inputs(panel, path: Path) -> None:
     print(f"{offset:,} region-origins, {len(keys):,} distinct contexts", flush=True)
 
 
+def history_features(keys: np.ndarray) -> np.ndarray:
+    context = np.unpackbits(keys.view(np.uint8).reshape(-1, CONTEXT // 8), axis=1)
+    return np.column_stack([context[:, -n:].mean(axis=1) for n in (1, 2, 7, CONTEXT)])
+
+
+def fit_probability_head(features, indices, truth):
+    counts = np.vstack(
+        [
+            np.bincount(indices[truth == label], minlength=len(features))
+            for label in (0, 1)
+        ]
+    )
+    labels, rows = np.nonzero(counts)
+    weights = counts[labels, rows]
+    scaler = StandardScaler().fit(features[rows], sample_weight=weights)
+    model = LogisticRegression(max_iter=200).fit(
+        scaler.transform(features[rows]), labels, sample_weight=weights
+    )
+    p = model.predict_proba(scaler.transform(features))[:, 1]
+    return p, {
+        "mean": scaler.mean_.tolist(),
+        "scale": scaler.scale_.tolist(),
+        "coef": model.coef_[0].tolist(),
+        "intercept": float(model.intercept_[0]),
+        "fit_rows": int(weights.sum()),
+    }
+
+
 def score(
     path: Path, quantiles: np.ndarray | None, name: str
 ) -> tuple[pl.DataFrame, dict]:
@@ -93,12 +121,7 @@ def score(
     results = []
     heads = {}
     with np.load(path) as inputs:
-        context = np.unpackbits(
-            inputs["keys"].view(np.uint8).reshape(-1, CONTEXT // 8), axis=1
-        )
-        history_rates = np.column_stack(
-            [context[:, -n:].mean(axis=1) for n in (1, 2, 7, CONTEXT)]
-        )
+        history_rates = history_features(inputs["keys"])
         for grain in GRAINS:
             tables = {
                 period: (
@@ -114,27 +137,9 @@ def score(
                     features = np.column_stack(
                         [features, quantiles[:, column].clip(-1, 2)]
                     )
-                y = truth[:, column]
-                counts = np.vstack(
-                    [
-                        np.bincount(indices[y == label], minlength=len(features))
-                        for label in (0, 1)
-                    ]
+                p, heads[f"{grain}_{lead}"] = fit_probability_head(
+                    features, indices, truth[:, column]
                 )
-                labels, rows = np.nonzero(counts)
-                weights = counts[labels, rows]
-                scaler = StandardScaler().fit(features[rows], sample_weight=weights)
-                model = LogisticRegression(max_iter=200).fit(
-                    scaler.transform(features[rows]), labels, sample_weight=weights
-                )
-                p = model.predict_proba(scaler.transform(features))[:, 1]
-                heads[f"{grain}_{lead}"] = {
-                    "mean": scaler.mean_.tolist(),
-                    "scale": scaler.scale_.tolist(),
-                    "coef": model.coef_[0].tolist(),
-                    "intercept": float(model.intercept_[0]),
-                    "fit_rows": int(weights.sum()),
-                }
                 for period, (keys, labels_by_lead) in tables.items():
                     if period == "validation":
                         continue

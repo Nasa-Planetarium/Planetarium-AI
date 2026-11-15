@@ -104,20 +104,31 @@ def history_stats(
     series: Series, dates: np.ndarray, coverage: np.ndarray, stop: int
 ) -> Transitions:
     """Estimate calendar-conditioned transitions from positions before stop."""
-    events = series.events[:stop]
-    bins = calendar_bin(dates[:stop])
     count = np.zeros((SEASONS, len(series.sides), STATE_COUNT), dtype=np.float32)
     hits = np.zeros_like(count)
-    observed = usable(coverage[:stop], series.sides)
+    add_transition_counts(series, dates, coverage, 2, stop, count, hits)
+    return smooth_transitions(count, hits)
+
+
+def add_transition_counts(series, dates, coverage, start, stop, count, hits) -> None:
+    """Update counts for outcomes in [start, stop), leaving previous slices intact."""
+    start = max(2, start)
+    bins = calendar_bin(dates[start:stop])
+    events = series.events
     for season in range(SEASONS):
-        t = np.flatnonzero(bins[2:] == season) + 2
+        t = np.flatnonzero(bins == season) + start
+        if not len(t):
+            continue
         previous = 2 * events[t - 2] + events[t - 1]
         current = events[t] > 0
-        known = observed[t] & observed[t - 1] & observed[t - 2]
+        known = usable(coverage[t] & coverage[t - 1] & coverage[t - 2], series.sides)
         for state in range(STATE_COUNT):
             valid = known & (previous == state)
-            count[season, :, state] = valid.sum(axis=0)
-            hits[season, :, state] = (valid & current).sum(axis=0)
+            count[season, :, state] += valid.sum(axis=0)
+            hits[season, :, state] += (valid & current).sum(axis=0)
+
+
+def smooth_transitions(count: np.ndarray, hits: np.ndarray) -> Transitions:
     # A circular three-bin window retains the yearly season without sharp
     # boundary estimates from adjacent fortnight-sized groups.
     count = count + np.roll(count, 1, axis=0) + np.roll(count, -1, axis=0)
