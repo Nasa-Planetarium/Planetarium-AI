@@ -44,18 +44,21 @@ Planetarium-AI/
 
 ## 데이터 받기 (GitHub Release)
 
-처리 결과는 용량 때문에 저장소가 아니라 Release에 올려 두었습니다.
-[data-v1.1-m2v-2026-11-14](https://github.com/Nasa-Planetarium/Planetarium-AI/releases/tag/data-v1.1-m2v-2026-11-14)에는
-칸·지역 표(`harmonized_cell_month`, `harmonized_cell_day`, `harmonized_residual_cell_month`, `aoi_month`, `aoi_month_compare`, `aoi_list`,
-`aoi_boundaries.geojson`, `m2v_meta.json`)가,
-[data-v1.1-hotspots-2026-11-14](https://github.com/Nasa-Planetarium/Planetarium-AI/releases/tag/data-v1.1-hotspots-2026-11-14)에는
-통합 핫스팟 점(`harmonized_hotspots_<연도>.tar`, 2000~2026, 2026-11-14 약 11:38 UTC 기준)이 있습니다.
+처리 결과는 용량 때문에 저장소가 아니라 Release에 올려 두었습니다 (최신 **v1.2, 2026-11-15 데이터 확정**).
+[data-v1.2-2026-11-15](https://github.com/Nasa-Planetarium/Planetarium-AI/releases/tag/data-v1.2-2026-11-15)에는
+칸·지역 표(고정 열원 점 제외본), 위성 상태, 확산 가능성·화재 사건·불 유형·FWI·다음 달 전망, 2026년 점(`harmonized_hotspots_2026.tar`),
+고정 열원 점 표시(`harmonized_hotspots_static_flags.tar`), 모델·meta, `release_manifest.csv`(행 수·크기·sha256)가 있습니다.
+2000~2025년 점은 v1.1과 같으므로 [data-v1.1-hotspots-2026-11-14](https://github.com/Nasa-Planetarium/Planetarium-AI/releases/tag/data-v1.1-hotspots-2026-11-14)의
+`harmonized_hotspots_<연도>.tar`를 그대로 씁니다.
 받은 파일은 `data/processed/`에 두고, tar는 같은 곳에 풀면 `harmonized_hotspots/{reference,other}/year=YYYY/month=MM/` 구조가 됩니다.
-지역 합계는 `aoi_month`를 그대로 쓰고, 점 합계는 `is_reference = true`인 점의 `harmonized_weight`만 더합니다
-(자세한 규칙: `docs/backend-handoff.md`, `docs/api_contract.md`, `docs/release_v1.1-m2v-2026-11-14.md`).
+지역 합계는 `aoi_month`를 그대로 쓰고, 점 합계는 `is_reference = true`인 점의 `harmonized_weight`만 더하되
+**고정 열원 점(`harmonized_hotspots_static_flags`)은 anti-join으로 뺍니다**
+(자세한 규칙: `docs/backend-quickstart.md`, `docs/api_contract.md`, `docs/release_v1.2-2026-11-15.md`).
 
 ```powershell
-gh release download data-v1.1-m2v-2026-11-14 --repo Nasa-Planetarium/Planetarium-AI --dir data/processed
+gh release download data-v1.2-2026-11-15 --repo Nasa-Planetarium/Planetarium-AI --dir data/processed
+tar -xf data/processed/harmonized_hotspots_2026.tar -C data/processed
+tar -xf data/processed/harmonized_hotspots_static_flags.tar -C data/processed
 gh release download data-v1.1-hotspots-2026-11-14 --repo Nasa-Planetarium/Planetarium-AI --dir data/processed --pattern "harmonized_hotspots_2025.tar"
 tar -xf data/processed/harmonized_hotspots_2025.tar -C data/processed
 ```

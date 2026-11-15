@@ -1,6 +1,6 @@
 # 백엔드 빠른 시작 — Planetarium 통합 화재 데이터
 
-작성 2026-11-15 · 데이터 `v1.1-m2v-2026-11-14` (모델 `v1-m2v-2026-11-14`) · 오늘 18:00 이후 `v1.2`로 갱신 예정
+작성 2026-11-15 · 데이터 **`v1.2-2026-11-15`** (모델 `v1-m2v-2026-11-14`, 다시 학습하지 않음)
 
 > 이 문서는 **"무엇을 받아서, 어떤 파일로, 어떤 API를 만들면 되는지"**만 짧게 정리한 시작 안내예요.
 > 컬럼·규칙의 자세한 설명은 `docs/api_contract.md`(확정 명세), 배경·검증은 `docs/backend-handoff.md`를 보세요.
@@ -20,7 +20,9 @@
 | 내일 확산 가능성 | `spread_nowcast_latest.parquet` | 한국·아르헨티나 | ✅ (v1.2에 포함) |
 | 화재 사건·불탄 면적 | `fire_events.parquet` | 한국·아르헨티나 | ✅ (v1.2에 포함) |
 | 불 유형 배지 | `aoi_month_fire_regime.parquet` | 한국·아르헨티나 | ✅ (v1.2에 포함) |
-| 산불 기상 위험도 배지 | `fwi_aoi_day.parquet` (+ `fwi_clim_aoi_month.parquet`) | 한국·아르헨티나 | ✅ 2025년까지, 2026년은 오늘 추가 (v1.2) |
+| 산불 기상 위험도 배지 | `fwi_aoi_day.parquet` (+ `fwi_clim_aoi_month.parquet`) | 한국·아르헨티나, 2012-01-01 ~ 2026-11-11 | ✅ (v1.2) |
+| 다음 달 전망 | `recurrence_nextmonth_latest.parquet`, `recurrent_burn_sites.parquet` | 아르헨티나 확률, 한국 반복 횟수 | ✅ (v1.2) |
+| 고정 열원(공장) 점 표시 | `harmonized_hotspots_static_flags/` | 2000~2026 | ✅ (v1.2, 점 지도에서 빼기) |
 | 실시간 갱신 | `uv run python -m planetarium.fetch_nrt ...` | 최근 1~5일 | ✅ |
 
 ---
@@ -31,19 +33,21 @@
 
 | Release | 내용 |
 |---|---|
-| [`data-v1.1-m2v-2026-11-14`](https://github.com/Nasa-Planetarium/Planetarium-AI/releases/tag/data-v1.1-m2v-2026-11-14) | `harmonized_cell_month`, `harmonized_cell_day`, `harmonized_residual_cell_month`, `aoi_month`, `aoi_month_compare`, `aoi_list`, `aoi_boundaries.geojson`, `m2v_meta.json` (약 1.7 GB) |
-| [`data-v1.1-hotspots-2026-11-14`](https://github.com/Nasa-Planetarium/Planetarium-AI/releases/tag/data-v1.1-hotspots-2026-11-14) | `harmonized_hotspots_<연도>.tar` 27개 (약 6.9 GB) |
+| [`data-v1.2-2026-11-15`](https://github.com/Nasa-Planetarium/Planetarium-AI/releases/tag/data-v1.2-2026-11-15) | 칸·지역 표 전부(고정 열원 제외본), 위성 상태, 확산·사건·불 유형·FWI·다음 달 전망, `harmonized_hotspots_2026.tar`, `harmonized_hotspots_static_flags.tar`, 모델·meta, `release_manifest.csv`(sha256) (약 2.8 GB) |
+| [`data-v1.1-hotspots-2026-11-14`](https://github.com/Nasa-Planetarium/Planetarium-AI/releases/tag/data-v1.1-hotspots-2026-11-14) | 점 파일 2000~2025년 (`harmonized_hotspots_<연도>.tar`, v1.2와 같음). **2026년은 v1.2의 tar를 쓰세요** |
 
 ```powershell
-# 캘린더·지역·날짜용 (먼저 이것만 받아도 핵심 화면이 돼요)
-gh release download data-v1.1-m2v-2026-11-14 -D data/processed
-# 점 지도용 (필요한 연도만 받아도 됨)
-gh release download data-v1.1-hotspots-2026-11-14 -p "harmonized_hotspots_2025.tar" -D tmp
+# 표·레이어 전부 (models/, reports/의 파일도 같은 폴더에 받아짐)
+gh release download data-v1.2-2026-11-15 --repo Nasa-Planetarium/Planetarium-AI -D data/processed
+tar -xf data/processed/harmonized_hotspots_2026.tar -C data/processed
+tar -xf data/processed/harmonized_hotspots_static_flags.tar -C data/processed
+# 점 지도 2000~2025 (필요한 연도만)
+gh release download data-v1.1-hotspots-2026-11-14 --repo Nasa-Planetarium/Planetarium-AI -p "harmonized_hotspots_2025.tar" -D tmp
 tar -xf tmp/harmonized_hotspots_2025.tar -C data/processed
 ```
 
-- 확산·사건·불 유형·FWI 파일은 **오늘 18:00 이후 `v1.2` Release**에 들어가요. 그 전에는 데이터 담당 PC의 `C:\Planetarium-AI\data\processed\`에 있어요(필요하면 요청).
-- v1.2가 나오면 같은 이름 파일을 바꿔 끼우기만 하면 돼요(컬럼 구조 동일).
+- 받은 파일은 `release_manifest.csv`의 sha256으로 확인할 수 있어요.
+- v1.1에서 바뀐 점: 공장 등 고정 열원 점을 합계에서 뺐어요(한국 약 20%, 아르헨티나 약 1%). 기존 컬럼은 그대로이고 `static_removed*` 열만 늘었어요 → `docs/release_v1.2-2026-11-15.md`.
 
 ### 서버 폴더 구조 (권장)
 
@@ -54,8 +58,11 @@ data/processed/
 ├── harmonized_cell_month.parquet, harmonized_cell_day.parquet, harmonized_residual_cell_month.parquet
 ├── harmonized_hotspots/reference/year=YYYY/month=MM/part-0.parquet
 ├── harmonized_hotspots/other/year=YYYY/month=MM/part-0.parquet
-├── spread_nowcast_latest.parquet, fire_events.parquet, aoi_month_fire_regime.parquet   (v1.2)
-└── fwi_aoi_day.parquet, fwi_clim_aoi_month.parquet                                     (v1.2)
+├── harmonized_hotspots_static_flags/year=YYYY.parquet     (v1.2, 점 지도에서 뺄 점)
+├── satellite_day_status.parquet, satellite_month_status.parquet
+├── spread_nowcast_latest.parquet, fire_events.parquet, aoi_month_fire_regime.parquet
+├── fwi_aoi_day.parquet, fwi_clim_aoi_month.parquet
+└── recurrence_nextmonth_latest.parquet, recurrent_burn_sites.parquet
 ```
 
 ---
@@ -74,7 +81,9 @@ data/processed/
 | `GET /spread?aoi_id\|bbox` | `spread_nowcast_latest` | 내일 확산 가능성 레이어 | 높음 |
 | `GET /events?aoi_id&start&end` | `fire_events` | 화재 사건 목록·영역 | 중간 |
 | `GET /regime?aoi_id` | `aoi_month_fire_regime` | 불 유형 배지 | 중간 |
-| `GET /fwi?aoi_id&date` | `fwi_aoi_day` | 산불 기상 위험도 배지 | 중간 |
+| `GET /fwi?aoi_id&date` | `fwi_aoi_day` | 산불 기상 위험도 배지 (기준일 표시) | 중간 |
+| `GET /recurrence?aoi_id\|bbox` | `recurrence_nextmonth_latest` (+ `recurrent_burn_sites`) | 다음 달 전망 (아르헨티나 확률, 한국 반복 횟수) | 중간 |
+| `POST /harmonize` | 사용자 업로드 → `planetarium.converter` | FIRMS 파일 변환 (CSV + summary.json) | 낮음 |
 | `GET /method` | `m2v_meta.json` | 방법·검증 설명 | 낮음 |
 | `GET /weather?lat&lon` | Open-Meteo Forecast API (외부, 실시간) | 현재 바람·습도 | 낮음 |
 
@@ -97,9 +106,12 @@ cal = (pl.scan_parquet(f"{P}/aoi_month.parquet")
                on=["aoi_id", "year", "month"], how="left")
          .sort("year", "month").collect())
 
-# 점 지도: 확대된 영역·기간만 (폴더째 읽고 필터)
+# 점 지도: 확대된 영역·기간만 (폴더째 읽고 필터) + v1.2 고정 열원 점 빼기
+KEY = ["satellite", "latitude", "longitude", "acq_datetime_utc"]
+static = pl.scan_parquet(f"{P}/harmonized_hotspots_static_flags/year=2025.parquet").select(KEY)
 pts = (pl.scan_parquet(f"{P}/harmonized_hotspots/reference/**/*.parquet", hive_partitioning=True)
          .filter((pl.col("year") == 2025) & (pl.col("month") == 3))
+         .join(static, on=KEY, how="anti")
          .filter(pl.col("longitude").is_between(128.4, 129.6) & pl.col("latitude").is_between(36.0, 36.8))
          .select("latitude", "longitude", "acq_datetime_utc", "date_local", "satellite", "frp",
                  "confidence", "harmonized_weight")
@@ -113,7 +125,7 @@ spread = (pl.read_parquet(f"{P}/spread_nowcast_latest.parquet")
                             .otherwise(pl.lit("low")).alias("level")))
 ```
 
-- 큰 파일(`harmonized_cell_day` 965 MB, `harmonized_hotspots` 7 GB)은 **`scan_parquet` + 필터**로 필요한 부분만 읽으세요. 서버 시작 시 전체를 메모리에 올리지 마세요.
+- 큰 파일(`harmonized_cell_day` 974 MB, `harmonized_hotspots` 7 GB)은 **`scan_parquet` + 필터**로 필요한 부분만 읽으세요. 서버 시작 시 전체를 메모리에 올리지 마세요.
 - 작은 파일(`aoi_month`, `aoi_month_compare`, `aoi_list`, `fire_events`, `fwi_aoi_day`, `spread_nowcast_latest`)은 시작 시 읽어 두면 빨라요.
 
 ---
@@ -132,7 +144,10 @@ spread = (pl.read_parquet(f"{P}/spread_nowcast_latest.parquet")
 10. **FWI 배지**: 기본은 상대 등급 `fwi_rel_class`(평년보다 낮음/평년/높음/매우 높음), 상세 화면에 절대 등급 `fwi_class`. 문구: "기상으로 본 산불 위험도. 실제 발화·확산을 예측하지 않음."
 11. **불 유형 배지와 캘린더 값이 다를 수 있음**: 캘린더 값은 `aoi_month`, 불 유형은 `fire_regime` 기준(점 위치로 지역을 정해서 작은 값이 있는 시군구도 `none`일 수 있음).
 12. **출처 표시**: 앱 하단 또는 About 페이지에 NASA FIRMS 인정 문구, 경계 데이터(CC BY), NASA POWER, MCD64A1, Open-Meteo(실시간 기상) 출처 → `docs/references.md`.
-13. **비밀값**: `FIRMS_MAP_KEY`는 서버 `.env`에만(설정 방법은 6-1). 프론트엔드 코드·GitHub·채팅에 절대 넣지 않기.
+13. **고정 열원 점(v1.2)**: 점 지도에서는 `harmonized_hotspots_static_flags`와 anti-join 해서 빼요(합계에서는 이미 빠짐). 칸 값이 0보다 조금 작으면 0으로 그려요.
+14. **다음 달 전망**: 아르헨티나는 확률(`p_active`, "과거 반복 패턴 기반 전망" + 예측 정확도), **한국은 "지난 25년 중 이 달 N번 활성"(확률이라고 부르지 않음)**.
+15. **FWI 기준일**: 마지막 NASA POWER 자료일(현재 2026-11-11, 약 4일 늦음)을 배지 옆에 꼭 표시.
+16. **비밀값**: `FIRMS_MAP_KEY`는 서버 `.env`에만(설정 방법은 6-1). 프론트엔드 코드·GitHub·채팅에 절대 넣지 않기.
 
 ---
 
@@ -180,5 +195,5 @@ uv run python -m planetarium.fetch_nrt --status
 - 확정 명세: `docs/api_contract.md`
 - 배경·검증·컬럼 전체: `docs/backend-handoff.md`
 - 출처·라이선스: `docs/references.md`
-- 데이터 배포 노트: `docs/release_v1.1-m2v-2026-11-14.md` (v1.2는 오늘 저녁)
+- 데이터 배포 노트: `docs/release_v1.2-2026-11-15.md` (이전: `docs/release_v1.1-m2v-2026-11-14.md`)
 - 데이터·모델 담당: 팀장
