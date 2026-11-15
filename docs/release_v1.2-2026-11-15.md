@@ -64,6 +64,42 @@ for Korea and Argentina. Files: `data/processed/release_v1.2-2026-11-15/` (GitHu
 - `forecast(region, start, end)` / `POST /forecast`: probability of ≥ 1 satellite detection and expected detections (q10–q90) for an aoi_id,
   a bbox or a GeoJSON polygon, 1–7 days and 1–12 months ahead, from precomputed 0.5° grid forecasts — see the section below.
 
+### 7. Same-month comparison: baseline period per region (2026-11-15)
+- `aoi_month_compare` now picks the baseline period per region with a **continuity check**: continuity_ratio = (harmonized 2013–2021 ÷ 2003–2011) ÷
+  (raw MODIS 2013–2021 ÷ 2003–2011). Within 0.85–1.15 the baseline is 2001–2025; otherwise 2012–2025 (VIIRS period only), and months before 2012
+  in those regions get `verdict = uncertain`. Small regions (fewer than 50 raw MODIS detections in either period) inherit the parent region's ratio.
+  Minimum baseline years: 8 (was 10). New columns: `baseline_period`, `continuity_ratio`, `continuity_source`.
+  Korea 0.68 → 2012–2025; Argentina 1.05 and the world 1.02 → 2001–2025. 3,036 regions use 2001–2025,
+  2,015 use 2012–2025. FireBridge values and all models are unchanged.
+
+| Group | Regions | Changed verdicts | Direction | Last 3 years before (above / similar / below) | After |
+|---|---|---|---|---|---|
+| KR | 1 | 174 (56%) | 41 up · 0 down · 133 to uncertain | 8% / 39% / 53% | 19% / 47% / 33% |
+| ADM0_ARG | 1 | 0 (0%) | 0 up · 0 down · 0 to uncertain | 6% / 58% / 36% | 6% / 58% / 36% |
+| WORLD | 1 | 0 (0%) | 0 up · 0 down · 0 to uncertain | 22% / 50% / 28% | 22% / 50% / 28% |
+| continuity pass (all) | 3,020 | 0 (0%) | 0 up · 0 down · 0 to uncertain | 18% / 48% / 35% | 18% / 48% / 35% |
+| continuity fail (all) | 1,968 | 248,877 (40%) | 41,958 up · 6,827 down · 194,013 to uncertain | 16% / 46% / 37% | 20% / 56% / 24% |
+| fail: Korea sgg | 218 | 6,066 (9%) | 448 up · 168 down · 4,370 to uncertain | 21% / 37% / 42% | 20% / 54% / 26% |
+| fail: countries | 55 | 9,067 (53%) | 1,816 up · 229 down · 6,881 to uncertain | 16% / 48% / 36% | 20% / 56% / 24% |
+| fail: adm1 | 1,679 | 231,484 (44%) | 39,294 up · 6,366 down · 181,015 to uncertain | 16% / 47% / 37% | 20% / 56% / 24% |
+
+  Regions that pass the check are unchanged. For regions that fail it, the recent-year verdicts moved from "below" toward a balanced split
+  (Korea: 8% / 39% / 53% → 19% / 47% / 33%). About 19 thousand post-2012 region-months became `uncertain` because the lower VIIRS-period
+  baseline made them `low_sample` (75th percentile < 1). Files: `reports/compare_continuity_validation.csv`, `reports/compare_continuity_ratios.csv`.
+- **Month-end estimate (`value_projected`) — tested, not adopted.** Dividing month-to-date by the share of the month's climatological detections
+  (daily weights) instead of the share of days was better for grid cells, adm1, countries and continents, but worse for Korea at days 15 and 20
+  and biased low (−19%) at day 5; a half-and-half blend was also worse for Korea. The day-ratio method is kept. WAPE (day ratio / climatology / blend),
+  2018–2025, months cut at day 5 · 10 · 15 · 20 (`reports/projection_method_validation.csv`):
+
+| Unit | Day 5 | Day 10 | Day 15 | Day 20 |
+|---|---|---|---|---|
+| 0.5° grid cells | 0.77 / 0.65 / 0.69 | 0.60 / 0.52 / 0.54 | 0.44 / 0.39 / 0.39 | 0.30 / 0.27 / 0.27 |
+| Korea sgg | 1.35 / 1.16 / 1.22 | 1.08 / 1.00 / 1.15 | 0.80 / 1.06 / 0.86 | 0.61 / 0.72 / 0.64 |
+| Korea sido | 1.17 / 0.99 / 1.05 | 0.96 / 0.87 / 1.02 | 0.71 / 0.96 / 0.77 | 0.55 / 0.65 / 0.58 |
+| adm1 | 0.54 / 0.45 / 0.47 | 0.42 / 0.34 / 0.36 | 0.31 / 0.25 / 0.26 | 0.21 / 0.17 / 0.18 |
+| countries | 0.42 / 0.36 / 0.36 | 0.33 / 0.25 / 0.27 | 0.24 / 0.19 / 0.20 | 0.16 / 0.13 / 0.13 |
+| world | 0.16 / 0.22 / 0.17 | 0.12 / 0.11 / 0.11 | 0.09 / 0.07 / 0.07 | 0.06 / 0.06 / 0.05 |
+
 ### 5. Other
 - `satellite_day_status` and `satellite_month_status` are now part of the release.
 - Verification after all changes: points + residual = cell value, AOI sums = `aoi_month`, daily table monthly sums = `aoi_month` — 0 mismatches for
@@ -245,7 +281,7 @@ Ratios by year: `reports/frp_snpp_ratios.csv`. Point-level values are not distri
 | `aoi_boundaries.geojson` | — | 12.9 MB | AOI boundaries (WGS84) |
 | `aoi_list.parquet` | 5,051 | 76.3 KB | AOI id, name, level, parent, `n_cells`, `hidden` |
 | `aoi_month.parquet` | 1,580,963 | 30.4 MB | AOI × month totals (5,051 AOIs); recomputed after static-source removal |
-| `aoi_month_compare.parquet` | 1,580,963 | 31.0 MB | Same-month comparison with previous years; verdicts recomputed |
+| `aoi_month_compare.parquet` | 1,580,963 | 29.4 MB | Same-month comparison with previous years; verdicts recomputed; **baseline period per region** (`baseline_period`, `continuity_ratio`, `continuity_source`) |
 | `aoi_month_fire_regime.parquet` | 92,335 | 0.3 MB | **New.** AOI × month fire-type badge (`large_fire`, `many_small`, `mixed`, `none`) |
 | `aoi_occurrence_nextmonth_latest.parquet` | 252 | 11.0 KB | **New.** Next month (2026-12) probability of ≥ 1 detection per Korean municipality (`p_any`, `p_none`, `baseline_p`, `suspected_industrial`) |
 | `fire_events.parquet` | 1,240,978 | 47.3 MB | **New.** Fire events (space-time linked reference points), Korea + Argentina, satellite-confirmed burned area (lower bound) |
@@ -292,7 +328,7 @@ Ratios by year: `reports/frp_snpp_ratios.csv`. Point-level values are not distri
 | `satellite_month_status.parquet` | 934 | 10.2 KB | **New in release.** Satellite × month status |
 | `spread_nowcast_latest.parquet` | 10,189 | 0.1 MB | **New.** Next-day spread likelihood, 0.025° candidate cells, Korea box + Argentina (model v1.2-ops) |
 
-Reports (CSV, PNG): `frp_snpp_ratios.csv`, `grid_occurrence_calibration.png`, `grid_occurrence_metrics.csv`, `grid_occurrence_persistence_by_country.csv`, `grid_occurrence_persistence_check.csv`, `hotspots_verify_aoi_month.csv`, `hotspots_verify_cell_month.csv`, `occurrence_base_rate_extremes.csv`, `occurrence_calibration.png`, `occurrence_industrial_flags.csv`, `occurrence_metrics.csv`, `occurrence_metrics_by_year.csv`, `spread_ops_importance.csv`, `spread_ops_metrics.csv`, `static_exclusion_before_after_kr_examples.csv`, `static_exclusion_before_after_totals.csv`, `static_exclusion_months.csv`, `static_exclusion_verdict_changes_KR_national.csv`, `static_exclusion_verdict_changes_kr.csv`, `static_source_impact_aoi.csv`, `static_source_impact_kr_sites.csv`, `static_source_impact_monthly_points.csv`, `static_source_impact_points.csv`; FireOutlook Planner: `planner_count_routing.csv`, `planner_daily_count_baseline.csv`, `planner_daily_metrics.csv`, `planner_dayweights_validation.csv`, `planner_grid_h1_vs_grid_occurrence.csv`, `planner_monthly_metrics.csv`, `planner_region_count_compare.csv`, `planner_region_metrics.csv`, `planner_sgg_compare.csv`, `planner_30d_validation.csv`, `planner_30d_calibration.csv`, `planner_30d_calibration_after.csv`, `planner_30d_latency.csv`, `planner_30d_fire_days_check.csv`.
+Reports (CSV, PNG): `frp_snpp_ratios.csv`, `grid_occurrence_calibration.png`, `grid_occurrence_metrics.csv`, `grid_occurrence_persistence_by_country.csv`, `grid_occurrence_persistence_check.csv`, `hotspots_verify_aoi_month.csv`, `hotspots_verify_cell_month.csv`, `occurrence_base_rate_extremes.csv`, `occurrence_calibration.png`, `occurrence_industrial_flags.csv`, `occurrence_metrics.csv`, `occurrence_metrics_by_year.csv`, `spread_ops_importance.csv`, `spread_ops_metrics.csv`, `static_exclusion_before_after_kr_examples.csv`, `static_exclusion_before_after_totals.csv`, `static_exclusion_months.csv`, `static_exclusion_verdict_changes_KR_national.csv`, `static_exclusion_verdict_changes_kr.csv`, `static_source_impact_aoi.csv`, `static_source_impact_kr_sites.csv`, `static_source_impact_monthly_points.csv`, `static_source_impact_points.csv`; FireOutlook Planner: `planner_count_routing.csv`, `planner_daily_count_baseline.csv`, `planner_daily_metrics.csv`, `planner_dayweights_validation.csv`, `planner_grid_h1_vs_grid_occurrence.csv`, `planner_monthly_metrics.csv`, `planner_region_count_compare.csv`, `planner_region_metrics.csv`, `planner_sgg_compare.csv`, `planner_30d_validation.csv`, `planner_30d_calibration.csv`, `planner_30d_calibration_after.csv`, `planner_30d_latency.csv`, `planner_30d_fire_days_check.csv`; comparison baseline: `compare_continuity_validation.csv`, `compare_continuity_ratios.csv`, `projection_method_validation.csv`.
 `static_source_impact_*` were measured before the fix (v1.1 data); `static_exclusion_*` are before/after the fix.
 
 **Hotspot points.** The point files of 2000–2025 are identical to the v1.1 tars (checked year by year: expected tar size from the current files equals
@@ -327,7 +363,7 @@ static-source points: **remove them with an anti-join on `harmonized_hotspots_st
 97f3adc0ef8f3711cbb94f270c50cf51346f87879ce739867d2bfe3e23719dac  aoi_boundaries.geojson
 f6dd727a7e36bdc86b6e543bd346c840f0c31eabcd0ad39ed3e95358abb30a02  aoi_list.parquet
 d0220c39bdc2075e067d255f31ed36002fe18617d56f03e23bfa08bed200031f  aoi_month.parquet
-4c73677d8706417f6d198d8e6c0777cf04be1b38fe65b06fd88502750cb37431  aoi_month_compare.parquet
+4b108682d98822dc010c25ce3834ef978951d0b812dba8b6dca60c8ce5be814b  aoi_month_compare.parquet
 b3b21a178879f2fdd222c983f632e464243bc9fd2890bc2fc90e15f9e37d5ead  aoi_month_fire_regime.parquet
 c8953e5049c46321b9d82ed61218c34cf89cea9daddc32d80ce87b4e97d7b2f6  aoi_occurrence_nextmonth_latest.parquet
 d3041069967186d15e31397cf24b81bd96a6967dfc890b5af239f624e8bb172f  fire_events.parquet
@@ -370,6 +406,8 @@ d0f1b14ab32516ee7b0ae31677dce37e40d419b2a6142d1488ae287047a7111a  planner_sgg_ch
 0b04c5261618b8c90e3da11f97bccd62f13723153c1c4c89dcfb0754d00d26e8  planner_sgg_monthly.parquet
 c654290c9d393399d033c403d4c28fa7f317878b9075a16443d5c935ee6c6009  recurrence_nextmonth_latest.parquet
 f58c7643164d4d8d176e30751eebfac02e329ff15f566d7992a4250a262b0719  recurrent_burn_sites.parquet
+646de868d62ef805ec81bd03baef7deaa84a9901a109e0955c2bad0ab1635f3a  reports/compare_continuity_ratios.csv
+a94f36a2bf2c848034ce5055507d254c6e9f93e356064155abe2a427598b495c  reports/compare_continuity_validation.csv
 c5a21d19a189789e1bb15d51d14a9e09b34020d927448fac0691cb5776d6f517  reports/frp_snpp_ratios.csv
 0ab4da12eae3639ba52f8bd5eb2f56801c26e088c747a18b8098782ccdeee79b  reports/grid_occurrence_calibration.png
 1f6b0347b9d785c13f237bf02bb3c243f90a4fdaed78c3398650c6612826a611  reports/grid_occurrence_metrics.csv
@@ -396,6 +434,7 @@ a42f469a888a7524d8c90583e85036c9e1aac01fd5b8ded71a94015290e3ae03  reports/planne
 482020b98f310facab81aeb0a0211afc4233a6c4654e21df6f0cf8d156e4cef9  reports/planner_region_count_compare.csv
 c4d6a5cbe38a771e3b041f55e6e4431a1679e8bfb6f0c36b3788c119bf1eca82  reports/planner_region_metrics.csv
 d4680217d56d485522ed2112c889e87b5fcd480a7e79104b9172fa11b240cf53  reports/planner_sgg_compare.csv
+14b3c85fc7d33941fdbdbc00e45b8c61983107f971bd900581186a564c6f32f7  reports/projection_method_validation.csv
 68f33cec8d6ce472f683c0dbf27342812d6679daf11ee8a16714b43305513df2  reports/spread_ops_importance.csv
 4041874e0a32509d40f7f188df2aaf0e3ca1d2c4169e59b22adb7670d4b3168b  reports/spread_ops_metrics.csv
 ec7a757e62061731509e25b955babc9255d2d28420e364efa2854c4aae496b10  reports/static_exclusion_before_after_kr_examples.csv
