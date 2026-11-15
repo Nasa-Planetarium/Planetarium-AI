@@ -20,4 +20,3 @@ dependencies = { file = ["requirements.txt"] }
 [tool.setuptools.package-data]
 firms_backend = ["release-manifest.json"]
 "firms_backend.converter" = ["global/*.joblib"]
-"firms_backend.forecasting" = ["models/*/*.txt", "models/*/metadata.json"]

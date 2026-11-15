@@ -5,7 +5,7 @@
 | `dataset/` | 2000-11-01~2026-11-14 UTC 전 세계 통합 데이터. 개별 관측 660,831,145건, 1km 격자·일 357,814,169행, 격자 경계와 월·시간 요약. |
 | `converter/` | FIRMS MODIS 또는 VIIRS CSV를 동일한 스키마로 바꾸는 코드와 학습 모델. |
 | `forecasting/` | TimesFM 3.0으로 1km 격자의 일별 7일 및 월별 12개월 예측을 생성하는 코드입니다. |
-| `predictions/` | 기존 전 세계 TimesFM 3.0+LightGBM 결합 실험 결과입니다. `daily/`는 2026-11-15~21일, `annual/`은 2026-12~2027-11월 예측입니다. |
+| `predictions/` | TimesFM 3.0으로 다시 계산한 전 세계 1km 후보 격자 예측입니다. `daily/`는 2026-11-15~21일 13,956,663행, `annual/`은 2026-12~2027-11월 161,452,896행입니다. |
 
 이 패키지의 기본 키는 관측·일별 예측의 `date_utc, grid_id`, 월별 예측의 `target_month, grid_id`입니다. `grid_id`는 1km 등면적 격자의 `grid_x:grid_y`입니다. 조회 API의 좌표는 WGS84 경도·위도입니다.
 
@@ -56,11 +56,11 @@ python -m firms_backend.forecasting.predict annual --cache work/monthly \
   --bbox 124 33 132 39 --output next/predictions/annual
 ```
 
-`predict`는 기본으로 공식 TimesFM 3.0 체크포인트를 사용합니다. 다른 위치에 체크포인트를 설치했다면 `--checkpoint-3` 또는 `FIRMS_BACKEND_TIMESFM_CHECKPOINT`로 경로를 지정합니다. 기존 LightGBM 비교 모델은 `--method lightgbm_calibrated`로 직접 선택할 수 있습니다. 공식 체크포인트와 연구 출력은 비상업적·비운영 용도입니다. [TimesFM 3.0 라이선스](https://huggingface.co/google/timesfm-3.0-pytorch/blob/main/LICENSE)
+`predict`는 공식 TimesFM 3.0 체크포인트를 사용합니다. 다른 위치에 체크포인트를 설치했다면 `--checkpoint-3` 또는 `FIRMS_BACKEND_TIMESFM_CHECKPOINT`로 경로를 지정합니다. 공식 체크포인트와 연구 출력은 비상업적·비운영 용도입니다. [TimesFM 3.0 라이선스](https://huggingface.co/google/timesfm-3.0-pytorch/blob/main/LICENSE)
 
-TimesFM은 격자의 검출 여부와 로그 FRP를 두 시계열로 받아 직접 예측합니다. 입력은 일별 64일 또는 완결된 월별 36개월입니다. 검출 확률은 0~1로 제한한 분위수의 적분으로 추정하며 별도 확률 보정을 적용하지 않습니다. 유효 FRP 이력이 없는 격자의 FRP는 `null`입니다. 월별 실행은 기준 달 첫 14일의 자료까지 확보한 뒤 다음 달부터 12개월을 출력합니다.
+TimesFM은 격자의 검출 여부와 로그 FRP를 각각 예측합니다. 입력은 일별 64일 또는 완결된 월별 36개월입니다. 검출 확률은 0~1로 제한한 분위수의 적분으로 추정하며 별도 확률 보정을 적용하지 않습니다. FRP는 센서별 보정 비율을 적용한 관측으로 입력을 만들고, 예측 범위를 0부터 해당 격자의 이력상 최댓값까지로 제한합니다. 유효 FRP 이력이 없는 격자의 FRP는 `null`입니다. 월별 실행은 기준 달 첫 14일의 자료까지 확보한 뒤 다음 달부터 12개월을 출력합니다.
 
-`--bbox`를 생략하면 전 세계 후보 격자를 계산합니다. 범위를 지정하면 그 경계 안에 중심이 있는 원래 1km 격자를 예측합니다. `--data`로 갱신한 통합 아카이브를 선택하고, 같은 아카이브의 기존 작업 캐시는 `--reuse-cache`로 읽습니다. 위 예제의 결과를 백엔드에서 읽으려면 `FirmsStore(asset_root="next")`로 열면 됩니다.
+`--bbox`를 생략하면 전 세계 후보 격자를 계산합니다. 범위를 지정하면 그 경계 안에 중심이 있는 원래 1km 격자를 예측합니다. `--data`로 갱신한 통합 아카이브를 선택하고, 이 버전으로 만든 작업 캐시는 `--reuse-cache`로 읽습니다. 위 예제의 결과를 백엔드에서 읽으려면 `FirmsStore(asset_root="next")`로 열면 됩니다.
 
 ```python
 from firms_backend.forecasting.predict import predict_from_cache
@@ -75,19 +75,11 @@ predict_from_cache("annual", "work/monthly", "next/predictions/annual",
 
 | 예측 | 검증 행 | Brier (낮을수록 좋음), TimesFM / 검출 빈도 | 평균 정밀도 (높을수록 좋음), TimesFM / 검출 빈도 |
 |---|---:|---:|---:|
-| 일별 7일 | 105,000 | 0.02121 / 0.01489 | 0.05695 / 0.08775 |
-| 월별 12개월 | 120,000 | 0.08204 / 0.07253 | 0.14323 / 0.14051 |
+| 일별 7일 | 105,000 | 0.02446 / 0.01489 | 0.04925 / 0.08775 |
+| 월별 12개월 | 120,000 | 0.08262 / 0.07253 | 0.14811 / 0.14051 |
 
-일별 검증 기준일은 2026-09-14, 2026-10-14, 2026-11-07 UTC이고 월별 기준월은 2024-09, 2025-09입니다. 검출과 FRP 실측 및 예측이 함께 있는 행에서 FRP 평균 절대 오차는 일별 5.80 MW, 월별 11.26 MW였습니다.
+일별 검증 기준일은 2026-09-14, 2026-10-14, 2026-11-07 UTC이고 월별 기준월은 2024-09, 2025-09입니다. 관측에서 센서별 비율로 변환한 FRP와 예측 FRP가 함께 있는 행에서 평균 절대 오차는 일별 7.55 MW, 월별 12.24 MW였습니다.
 
 ## GitHub 데이터 자산 구성
 
-전체 아카이브와 예측 파일은 약 24 GiB입니다. `release-manifest.json`에는 파일 크기와 SHA-256이 있습니다. 작성된 데이터 자산은 로컬 전달본의 `.release-assets/`에 있습니다. 같은 태그의 GitHub Release에 tar를 업로드한 뒤에 원격 `install`을 사용할 수 있습니다.
-
-```sh
-git push origin HEAD:refs/heads/handoff/firms-1km-backend
-gh release create firms-1km-backend-2026-11-14 firms_backend/.release-assets/*.tar \
-  --repo Nasa-Planetarium/Planetarium-AI --target handoff/firms-1km-backend \
-  --title "FIRMS 1km backend data" --notes "Harmonized dataset and research forecast snapshots" \
-  --latest=false
-```
+전체 아카이브와 예측 파일은 약 24 GiB입니다. `release-manifest.json`에는 파일 크기와 SHA-256이 있습니다. 예측 자료는 `firms-1km-timesfm3-daily-*.tar`와 `firms-1km-timesfm3-annual-*.tar`에서 받을 수 있습니다. [GitHub 데이터 Release](https://github.com/Nasa-Planetarium/Planetarium-AI/releases/tag/firms-1km-backend-2026-11-14)

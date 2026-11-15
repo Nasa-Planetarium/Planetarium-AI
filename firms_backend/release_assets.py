@@ -27,12 +27,14 @@ class TarSink:
         return count
 
 
-def pack(source, output, manifest):
+def pack(source, output, manifest, groups=SCOPES):
     output.mkdir(parents=True, exist_ok=True)
     if any(output.glob("*.tar")):
         raise FileExistsError(f"Use an empty output folder: {output}")
     entries = []
     for group, scope in SCOPES.items():
+        if group not in groups:
+            continue
         partition = source / scope
         if not (partition / "metadata.json").is_file():
             raise FileNotFoundError(partition / "metadata.json")
@@ -50,7 +52,8 @@ def pack(source, output, manifest):
             batches[-1].append((file, size))
             total += tar_size
         for index, batch in enumerate(batches, start=1):
-            name = f"firms-1km-{group}-{index:02d}.tar"
+            prefix = "firms-1km" if group == "archive" else "firms-1km-timesfm3"
+            name = f"{prefix}-{group}-{index:02d}.tar"
             path = output / name
             partial = path.with_suffix(".part")
             with partial.open("wb") as stream:
@@ -111,6 +114,7 @@ def main():
     create.add_argument("--source", type=Path, default=ROOT)
     create.add_argument("--output", type=Path, default=ROOT / ".release-assets")
     create.add_argument("--manifest", type=Path, default=MANIFEST)
+    create.add_argument("--group", choices=SCOPES, action="append")
     retrieve = sub.add_parser("install", help="Install and verify release archives for this backend")
     retrieve.add_argument("--destination", type=Path, default=ROOT)
     retrieve.add_argument("--manifest", type=Path, default=MANIFEST)
@@ -118,7 +122,7 @@ def main():
     retrieve.add_argument("--local", type=Path, help="Read the archive files from a local directory")
     args = parser.parse_args()
     if args.action == "pack":
-        pack(args.source, args.output, args.manifest)
+        pack(args.source, args.output, args.manifest, args.group or SCOPES)
     else:
         install(args.destination, args.manifest, args.group or SCOPES, args.local)
 

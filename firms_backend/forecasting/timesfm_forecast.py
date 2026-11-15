@@ -5,10 +5,10 @@ import duckdb
 import numpy as np
 
 from ..api import _spatial
-from . import grid_1km, monthly_cells, year_1km
+from . import daily_cells, monthly_cells
 
 MODEL_ID = "google/timesfm-3.0-pytorch"
-MODEL_REVISION = year_1km.MODEL_REVISION
+MODEL_REVISION = "43046b85ec22d584a13f8098c2ed39c889e129c2"
 METHOD = "timesfm_3"
 
 
@@ -19,25 +19,68 @@ class TimesFM:
 
         torch.set_num_threads(threads)
         torch.set_float32_matmul_precision("high")
+        self.torch = torch
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
-        self.model = TimesFM3Evaluator(ModelConfig(
+        self.batch_size = batch_size
+        evaluator = TimesFM3Evaluator(ModelConfig(
             checkpoint_path=str(checkpoint), per_core_batch_size=batch_size, device=self.device,
         ))
-        self.levels = np.r_[0, self.model.config.quantiles, 1]
+        self.model = evaluator.model
+        self.median = evaluator.config.median_quantile_index
+        self.levels = np.r_[0, evaluator.config.quantiles, 1]
+        self.horizon_patch = evaluator.config.output_patch_length
+        self.mixed_precision = self.device == "cuda" and torch.cuda.is_bf16_supported()
+
+    def _decode(self, contexts, horizon):
+        torch = self.torch
+        # Cells with identical model inputs share the exact same forward pass.
+        contexts = np.ascontiguousarray(contexts, dtype=np.float32)
+        keys = contexts.view(np.dtype((np.void, contexts.shape[1] * contexts.itemsize))).ravel()
+        _, rows, inverse = np.unique(keys, return_index=True, return_inverse=True)
+        decoded = np.empty((len(rows), horizon, len(self.levels) - 2), dtype=np.float32)
+        padded_horizon = ((horizon + self.horizon_patch - 1) // self.horizon_patch) * self.horizon_patch
+        with torch.inference_mode(), torch.autocast(self.device, dtype=torch.bfloat16,
+                                                   enabled=self.mixed_precision):
+            for start in range(0, len(rows), self.batch_size):
+                batch = slice(start, start + self.batch_size)
+                values = torch.from_numpy(contexts[rows[batch], None, :]).to(self.device)
+                result = self.model.decode(values, horizon=padded_horizon)
+                decoded[batch] = result[:, 0, :horizon].float().cpu().numpy()
+        return np.sort(decoded, axis=-1)[inverse]
 
     def score(self, history, horizon):
-        has_frp = np.isfinite(history[:, 1, :]).any(axis=1)
-        forecasts = list(self.model.predict_batch(
-            contexts=list(history), horizon=horizon, return_quantiles=True,
-            use_symmetric_averaging=False, sort_quantiles=True,
-        ))
         # The mean of the binary detection distribution estimates its event probability.
-        quantiles = np.clip(np.stack([item.quantiles[0] for item in forecasts]), 0, 1)
+        quantiles = np.clip(self._decode(history[:, 0, :], horizon), 0, 1)
         padded = np.pad(quantiles, ((0, 0), (0, 0), (1, 1)), mode="edge")
         probability = np.trapezoid(padded, self.levels, axis=-1).astype(np.float32)
-        log_frp = np.stack([item.forecast[1] for item in forecasts])
-        strength = np.where(has_frp[:, None], np.expm1(np.maximum(0, log_frp)), np.nan)
+        frp = history[:, 1, :]
+        has_frp = np.isfinite(frp).any(axis=1)
+        strength = np.full_like(probability, np.nan)
+        if has_frp.any():
+            values, low, high, scale = _normalize_frp(frp[has_frp])
+            log_frp = self._decode(values, horizon)[..., self.median] * scale + low
+            # Bound long-horizon extrapolation before reversing the logarithm.
+            strength[has_frp] = np.expm1(np.clip(log_frp, 0, high))
         return probability, strength
+
+
+def _normalize_frp(values):
+    """Scale each log-FRP history and linearly interpolate its unobserved periods."""
+    known = np.isfinite(values)
+    low = np.min(values, axis=1, where=known, initial=np.inf, keepdims=True)
+    high = np.max(values, axis=1, where=known, initial=-np.inf, keepdims=True)
+    scale = np.where(high > low, high - low, 1)
+    width = values.shape[1]
+    periods = np.arange(width, dtype=np.int16)
+    left = np.maximum.accumulate(np.where(known, periods, -1), axis=1)
+    right = np.minimum.accumulate(np.where(known, periods, width)[:, ::-1], axis=1)[:, ::-1]
+    left = np.where(left < 0, right, left)
+    right = np.where(right == width, left, right)
+    normalized = (values - low) / scale
+    start = np.take_along_axis(normalized, left, axis=1)
+    end = np.take_along_axis(normalized, right, axis=1)
+    fraction = (periods - left) / np.maximum(right - left, 1)
+    return (start + fraction * (end - start)).astype(np.float32), low, high, scale
 
 
 def _history(cells, periods):
@@ -74,35 +117,39 @@ def _coordinates(cells, bbox):
 def forecast(kind, cache, cutoff, output, *, model, bbox, threads, batch_size):
     daily = kind == "daily"
     if daily:
-        read = grid_1km.archive(cache)
-        candidates = grid_1km.candidate_cells(read, cutoff)
-        periods = [read(cutoff - timedelta(days=i)) for i in reversed(range(grid_1km.CONTEXT))]
-        targets = [str(cutoff + timedelta(days=h)) for h in range(1, grid_1km.HORIZON + 1)]
+        read = daily_cells.archive(cache)
+        candidates = daily_cells.candidate_cells(read, cutoff)
+        periods = [read(cutoff - timedelta(days=i)) for i in reversed(range(daily_cells.CONTEXT))]
+        targets = [str(cutoff + timedelta(days=h)) for h in range(1, daily_cells.HORIZON + 1)]
         skip, partition, target, lead, p_column = 0, "day", "date_utc", "lead_days", "p_detected"
     else:
         origin = np.datetime64(cutoff, "M")
         cutoff = cutoff.replace(day=14)
         read = monthly_cells.reader(cache)
-        candidates = year_1km.candidates(read, origin)
+        candidates = monthly_cells.candidates(read, origin)
         periods = [(keys, frp) for keys, _, _, frp in (
-            read(origin - i * monthly_cells.MONTH) for i in reversed(range(1, year_1km.CONTEXT + 1))
+            read(origin - i * monthly_cells.MONTH) for i in reversed(range(1, monthly_cells.CONTEXT + 1))
         )]
-        targets = [str(origin + h * monthly_cells.MONTH) for h in year_1km.LEADS]
+        targets = [str(origin + h * monthly_cells.MONTH) for h in range(1, monthly_cells.HORIZON + 1)]
         # The first forecast step is the incomplete origin month.
         skip, partition, target, lead, p_column = 1, "month", "target_month", "lead_months", "p_detected_any"
 
     cells, coords = _coordinates(candidates, bbox)
+    print(f"TimesFM 3.0: scoring {len(cells):,} {kind} candidate cells", flush=True)
     probability = np.empty((len(cells), len(targets)), dtype=np.float32)
     strength = np.empty_like(probability)
     recent = np.empty(len(cells), dtype=np.uint8) if daily else None
-    for i in range(0, len(cells), batch_size):
-        batch = slice(i, i + batch_size)
+    chunk_size = max(32_768, batch_size)
+    for i in range(0, len(cells), chunk_size):
+        batch = slice(i, i + chunk_size)
         history = _history(cells[batch], periods)
         p, frp = model.score(history, len(targets) + skip)
         probability[batch] = p[:, skip:]
         strength[batch] = frp[:, skip:]
         if daily:
             recent[batch] = history[:, 0, -14:].sum(axis=1, dtype=np.uint8)
+        if i % (chunk_size * 8) == 0 or i + chunk_size >= len(cells):
+            print(f"Scored {min(i + chunk_size, len(cells)):,}/{len(cells):,} cells", flush=True)
 
     with duckdb.connect(config={"threads": str(threads)}) as db:
         for h, time in enumerate(targets):

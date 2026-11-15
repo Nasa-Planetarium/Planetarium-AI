@@ -6,7 +6,6 @@ from pathlib import Path
 
 import duckdb
 import joblib
-from lightgbm import LGBMClassifier, LGBMRegressor
 import numpy as np
 from sklearn.ensemble import HistGradientBoostingClassifier
 from sklearn.isotonic import IsotonicRegression
@@ -54,7 +53,6 @@ def route_probabilities(bundle, rows):
 def standardized_frp(bundle, rows):
     native_frp = np.ma.filled(rows["grid_frp_mw"], np.nan)
     eligible = np.isfinite(native_frp)
-    features = feature_matrix({**rows, "target_platform": np.full(len(native_frp), 3)})
     values = np.full(len(native_frp), np.nan)
     methods = np.full(len(native_frp), "", dtype="U18")
     reference = eligible & (rows["platform"] == 3)
@@ -62,8 +60,8 @@ def standardized_frp(bundle, rows):
         mask = eligible & (rows["platform"] == source)
         if mask.any():
             chosen = bundle["selected_frp"][source * len(PLATFORMS) + target]
-            values[mask] = frp_prediction(bundle["frp_models"], chosen, source, features[mask], native_frp[mask])
-            methods[mask] = "model_estimated" if chosen not in ("native", "ratio") else chosen
+            values[mask] = frp_prediction(bundle["frp_models"], chosen, source, native_frp[mask])
+            methods[mask] = chosen
     values[reference] = native_frp[reference]
     methods[reference] = "noaa20_observed"
     return values, methods
@@ -118,18 +116,12 @@ def train_agreement(rows, x, train, cal, selection, test_masks):
     route_id = rows["platform"] * len(PLATFORMS) + rows["target_platform"]
     models = {
         "logistic": make_pipeline(StandardScaler(), LogisticRegression(max_iter=180)),
-        "lightgbm": LGBMClassifier(n_estimators=220, learning_rate=.08, num_leaves=48,
-                                   min_child_samples=125, reg_lambda=3, verbosity=-1,
-                                   n_jobs=8, random_state=42),
         "hist_boosting": HistGradientBoostingClassifier(max_iter=140, max_leaf_nodes=31,
             l2_regularization=2, early_stopping=False, random_state=42),
     }
     for name, model in models.items():
         x_train = np.nan_to_num(x[train], nan=-1.0) if name == "logistic" else x[train]
-        if name == "lightgbm":
-            model.fit(x_train, y[train], categorical_feature=[0, 1])
-        else:
-            model.fit(x_train, y[train])
+        model.fit(x_train, y[train])
         print(f"agreement model fitted: {name}", flush=True)
     bundle = {
         "version": 2, "features": FEATURES, "grid_km": 1,
@@ -175,32 +167,19 @@ def train_agreement(rows, x, train, cal, selection, test_masks):
     return bundle, comparison
 
 
-def frp_prediction(models, method, source, x, native):
+def frp_prediction(models, method, source, native):
     if method == "native":
         return native
     if method == "ratio":
         return native * models["ratios"][source]
-    estimate = models[method].booster_.predict(x)
-    return np.maximum(0, np.expm1(estimate) if method == "log_l1" else estimate)
+    raise ValueError(f"Unsupported FRP conversion method: {method}")
 
 
-def train_frp(rows, x, train, selection, test_masks):
+def train_frp(rows, train, selection, test_masks):
     source_frp = np.ma.filled(rows["grid_frp_mw"], np.nan)
     target_frp = np.ma.filled(rows["target_frp"], np.nan)
     eligible = np.isfinite(source_frp) & np.isfinite(target_frp) & (rows["target_platform"] == 3)
-    active_train = train & eligible
     models = {"ratios": {}}
-    for method, objective in (("l1", "regression_l1"), ("log_l1", "regression_l1"),
-                              ("tweedie", "tweedie")):
-        model = LGBMRegressor(objective=objective, tweedie_variance_power=1.5,
-                             n_estimators=220, learning_rate=.065, num_leaves=48,
-                             min_child_samples=100, reg_lambda=3, verbosity=-1,
-                             n_jobs=8, random_state=42)
-        labels = target_frp[active_train]
-        if method == "log_l1":
-            labels = np.log1p(labels)
-        model.fit(x[active_train], labels, categorical_feature=[0, 1])
-        models[method] = model
     summary = {}
     selected = {}
     for source, target in FRP_ROUTES:
@@ -216,8 +195,8 @@ def train_frp(rows, x, train, selection, test_masks):
                 continue
             truth = target_frp[items]
             report[period] = {"n": int(items.sum()), "models": {}}
-            for method in ("native", "ratio", "l1", "log_l1", "tweedie"):
-                estimates = frp_prediction(models, method, source, x[items], source_frp[items])
+            for method in ("native", "ratio"):
+                estimates = frp_prediction(models, method, source, source_frp[items])
                 report[period]["models"][method] = {
                     "mae_mw": float(np.abs(estimates - truth).mean()),
                     "mae_log_mw": float(np.abs(np.log1p(estimates) - np.log1p(truth)).mean()),
@@ -248,7 +227,7 @@ def main():
                   "stress_2026": year == 2026}
     print("daily directional examples", len(year), "training", int(train.sum()), flush=True)
     bundle, comparison = train_agreement(rows, x, train, cal, selection, test_masks)
-    model, selected_frp, frp_report = train_frp(rows, x, train, selection, test_masks)
+    model, selected_frp, frp_report = train_frp(rows, train, selection, test_masks)
     bundle.update({"frp_models": model, "selected_frp": selected_frp})
     joblib.dump(bundle, args.output / "world_daily_model.joblib", compress=3)
     report = {

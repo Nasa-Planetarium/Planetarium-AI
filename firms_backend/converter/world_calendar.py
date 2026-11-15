@@ -5,7 +5,6 @@ from pathlib import Path
 
 import duckdb
 import joblib
-from lightgbm import LGBMRegressor
 import numpy as np
 from sklearn.ensemble import HistGradientBoostingRegressor
 from sklearn.linear_model import Ridge
@@ -69,20 +68,8 @@ def predict(bundle, rows):
             result[subset] = rows["cell_days"][subset]
         elif selection == "constant_ratio":
             result[subset] = rows["cell_days"][subset] * factor
-        elif selection == "weighted_logratio":
-            result[subset] = rows["cell_days"][subset] * np.exp(
-                bundle["models"][selection].predict(features[subset])
-            )
-        elif selection == "tweedie_ratio_blend":
-            counts = rows["cell_days"][subset]
-            design = features[subset]
-            tweedie = bundle["models"]["shared_tweedie"].predict(design)
-            ratio = counts * np.exp(bundle["models"]["weighted_logratio"].predict(design))
-            weight = bundle["blend_weights"][platform]
-            result[subset] = weight * tweedie + (1 - weight) * ratio
         else:
-            model = bundle["individual"].get(platform) if selection == "individual_tweedie" else bundle["models"][selection]
-            result[subset] = np.maximum(0, model.predict(features[subset]))
+            result[subset] = np.maximum(0, bundle["models"][selection].predict(features[subset]))
     return result
 
 
@@ -133,15 +120,10 @@ def fit(db, directory, block_km):
     count = paired["cell_days"].astype(float)
     factors = {int(i): float(y[is_training & (p == i)].sum() / count[is_training & (p == i)].sum())
                for i in np.unique(p)}
-    trained = {}
     estimators = {
         "shared_hist_poisson": HistGradientBoostingRegressor(
             loss="poisson", max_iter=200, max_leaf_nodes=31, l2_regularization=2,
             early_stopping=False, random_state=42),
-        "shared_tweedie": LGBMRegressor(
-            objective="tweedie", tweedie_variance_power=1.4, n_estimators=400,
-            learning_rate=.055, num_leaves=127, min_child_samples=100,
-            reg_lambda=4, verbosity=-1, n_jobs=8, random_state=42),
         "shared_absolute_error": HistGradientBoostingRegressor(
             loss="absolute_error", max_iter=175, max_leaf_nodes=31,
             l2_regularization=2, early_stopping=False, random_state=42),
@@ -152,69 +134,22 @@ def fit(db, directory, block_km):
                                 np.log1p(y[is_training]) - np.log1p(count[is_training]))
     predictions["rich_ridge_baseline"] = count * np.exp(ridge.predict(np.nan_to_num(x, nan=-1)))
     for name, model in estimators.items():
-        if isinstance(model, LGBMRegressor):
-            model.fit(x[is_training], y[is_training], categorical_feature=[0])
-        else:
-            model.fit(x[is_training], y[is_training])
-        trained[name] = model
-        predictor = model.booster_ if isinstance(model, LGBMRegressor) else model
-        predictions[name] = np.maximum(0, predictor.predict(x))
+        model.fit(x[is_training], y[is_training])
+        predictions[name] = np.maximum(0, model.predict(x))
         print("finished", name, flush=True)
 
-    individual = {}
-    individual_prediction = np.empty(len(y), dtype=float)
-    for platform in factors:
-        subset = p == platform
-        mask = is_training & subset
-        model = LGBMRegressor(
-            objective="tweedie", tweedie_variance_power=1.4, n_estimators=240,
-            learning_rate=.055, num_leaves=31, min_child_samples=90,
-            reg_lambda=3, verbosity=-1, n_jobs=8, random_state=42,
-        ).fit(x[mask], y[mask])
-        individual[platform] = model.booster_
-        individual_prediction[subset] = np.maximum(0, individual[platform].predict(x[subset]))
-    predictions["individual_tweedie"] = individual_prediction
-    ratio_model = LGBMRegressor(
-        objective="regression_l1", num_leaves=47, n_estimators=350, learning_rate=.06,
-        min_child_samples=80, reg_lambda=3, verbosity=-1, n_jobs=8, random_state=42,
-    ).fit(
-        x[is_training], np.log((y[is_training] + 1) / (count[is_training] + 1)),
-        sample_weight=np.sqrt(count[is_training]), categorical_feature=[0],
-    )
-    trained["weighted_logratio"] = ratio_model
-    predictions["weighted_logratio"] = count * np.exp(ratio_model.booster_.predict(x))
     eligible_methods = [k for k in predictions if k != "rich_ridge_baseline"]
     selected = {platform: min(eligible_methods, key=lambda k: select_metric(
         y, predictions[k], is_selection & (p == platform))) for platform in factors}
-    blend_weights = {}
-    blend = predictions["shared_tweedie"].copy()
-    for platform in (0, 1):
-        subset = p == platform
-        validation = is_selection & subset
-        a = predictions["shared_tweedie"]
-        b = predictions["weighted_logratio"]
-        best_weight = min((.2, .4, .6, .8), key=lambda weight: select_metric(
-            y, weight * a + (1 - weight) * b, validation))
-        fused = best_weight * a + (1 - best_weight) * b
-        blend[subset] = fused[subset]
-        incumbent = predictions[selected[platform]]
-        # A blend must improve selection MAE by at least 1% to justify the extra model.
-        if select_metric(y, fused, validation) < .99 * select_metric(y, incumbent, validation):
-            selected[platform] = "tweedie_ratio_blend"
-            blend_weights[platform] = best_weight
-    predictions["tweedie_ratio_blend"] = blend
     output = np.empty(len(y), dtype=float)
     for platform, selected_name in selected.items():
         output[p == platform] = predictions[selected_name][p == platform]
     predictions["selected_by_platform"] = output
-    models = {k: model.booster_ if isinstance(model, LGBMRegressor) else model
-              for k, model in trained.items()}
     bundle = {
         "version": 2, "platforms": PLATFORMS, "reference": REFERENCE, "grid_km": 1,
         "block_km": block_km,
         "features": MODEL_FEATURES, "factors": factors, "selected": selected,
-        "blend_weights": blend_weights,
-        "models": models, "individual": individual,
+        "models": estimators,
     }
     report = {
         "reference": f"NOAA-20 recorded monthly 1 km grid-cell-days in a {block_km} km block",
@@ -224,7 +159,6 @@ def fit(db, directory, block_km):
         "spatial_holdout": "fixed 10% of global blocks excluded from fitting and selection",
         "zero_target": "no matching qualifying NOAA-20 record in that block-month; coverage unknown",
         "selected_methods": {PLATFORMS[k]: v for k, v in selected.items()},
-        "tweedie_blend_weights": {PLATFORMS[k]: v for k, v in blend_weights.items()},
         "comparison": {},
     }
     for label, mask in {"train": is_training, "selection_2024": is_selection, "test_2025": is_testing,
