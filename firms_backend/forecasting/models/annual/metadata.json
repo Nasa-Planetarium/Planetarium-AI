@@ -1,0 +1,14 @@
+{
+  "kind": "annual",
+  "trained_through_utc": "2024-12-31",
+  "method": "lightgbm_calibrated",
+  "calibration_features": [
+    "raw_detection_logit",
+    "forecast_lead"
+  ],
+  "coefficients": [
+    1.0521792160087773,
+    0.00475258250027011
+  ],
+  "intercept": -0.07333308384729104
+}

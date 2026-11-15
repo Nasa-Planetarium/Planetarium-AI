@@ -1,0 +1,6 @@
+/dataset/
+/predictions/
+/timesfm-checkpoint/
+/.release-assets/
+/build/
+/*.egg-info/

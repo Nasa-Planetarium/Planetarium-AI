@@ -1,0 +1,118 @@
+{
+  "repository": "Nasa-Planetarium/Planetarium-AI",
+  "release_tag": "firms-1km-backend-2026-11-14",
+  "assets": [
+    {
+      "name": "firms-1km-archive-01.tar",
+      "group": "archive",
+      "bytes": 1877934080,
+      "sha256": "1360df0194c42aea94a2e4fa44ae7a5926bea66be1794081fb12bd924d617cdf",
+      "files": 164
+    },
+    {
+      "name": "firms-1km-archive-02.tar",
+      "group": "archive",
+      "bytes": 1859491840,
+      "sha256": "f988775ac5c8f97b65e17ecdab7b04bbf1fa03afc9015f377a0986fd1a76ca80",
+      "files": 57
+    },
+    {
+      "name": "firms-1km-archive-03.tar",
+      "group": "archive",
+      "bytes": 1873653760,
+      "sha256": "2a454af2a818cf54ebf2454e1cd208534ef6bc2cb9656c3577ba1ece2401cbba",
+      "files": 44
+    },
+    {
+      "name": "firms-1km-archive-04.tar",
+      "group": "archive",
+      "bytes": 1843978240,
+      "sha256": "4b23b8acdf5863e14ab6944c48a1a167bd956bf3ebd03913198f36fc29f4c640",
+      "files": 34
+    },
+    {
+      "name": "firms-1km-archive-05.tar",
+      "group": "archive",
+      "bytes": 1876254720,
+      "sha256": "283b494e3c88b344cdc51c011cbc89186a1ac38df8da38fb2bf0455097b6d663",
+      "files": 139
+    },
+    {
+      "name": "firms-1km-archive-06.tar",
+      "group": "archive",
+      "bytes": 1872936960,
+      "sha256": "f3d6f92dbafb0b37ee1866b36b126b77981a5e5678c42c9fc92317ab50fae216",
+      "files": 84
+    },
+    {
+      "name": "firms-1km-archive-07.tar",
+      "group": "archive",
+      "bytes": 1828413440,
+      "sha256": "d890dc3fccfd534dd0bbf7cb7bfc8ef8a3a585ba98f7f579ca09f7613bb25112",
+      "files": 76
+    },
+    {
+      "name": "firms-1km-archive-08.tar",
+      "group": "archive",
+      "bytes": 1845985280,
+      "sha256": "5b8b7912b2e82057e0169862c2859dc7fe689bdc1b1dd40391b1eee2d2c30a68",
+      "files": 52
+    },
+    {
+      "name": "firms-1km-archive-09.tar",
+      "group": "archive",
+      "bytes": 1838632960,
+      "sha256": "21344d997c15895814545c8700899ab428ed3fd9286df20480deb1010b10cdeb",
+      "files": 49
+    },
+    {
+      "name": "firms-1km-archive-10.tar",
+      "group": "archive",
+      "bytes": 1817374720,
+      "sha256": "12a90c5f5f9620cc02ec698cae3eb3003af986e6dcd6db5f9053f5bc7e8bdded",
+      "files": 50
+    },
+    {
+      "name": "firms-1km-archive-11.tar",
+      "group": "archive",
+      "bytes": 1877790720,
+      "sha256": "8451bd3d39dd11bb0236cc7573dac3eb947595fda8ae27d43c014377a7d49435",
+      "files": 37
+    },
+    {
+      "name": "firms-1km-archive-12.tar",
+      "group": "archive",
+      "bytes": 1865410560,
+      "sha256": "4db8ab868578e318ee7c53d0e34c325cc37f05378f5b32bd602364ab86d2fdba",
+      "files": 40
+    },
+    {
+      "name": "firms-1km-archive-13.tar",
+      "group": "archive",
+      "bytes": 1809090560,
+      "sha256": "de1e4209ab6acc0d46f056abdd766f9d0c5a6af29afbbe40ef2c822a0059e1f2",
+      "files": 43
+    },
+    {
+      "name": "firms-1km-archive-14.tar",
+      "group": "archive",
+      "bytes": 145469440,
+      "sha256": "a4518678785b8d010835e14aed27fe1389665553c8bf9c18a373aa5bf8178483",
+      "files": 2
+    },
+    {
+      "name": "firms-1km-daily-01.tar",
+      "group": "daily",
+      "bytes": 135424000,
+      "sha256": "ba2515b600e4447fd9d37373366cc25bbe566885db2715b7cedaacdbc195f9b5",
+      "files": 8
+    },
+    {
+      "name": "firms-1km-annual-01.tar",
+      "group": "annual",
+      "bytes": 1625210880,
+      "sha256": "be43151f3d2a30460363eff2204162dc815e6c940eebc94fd5b96521f0608354",
+      "files": 13
+    }
+  ]
+}

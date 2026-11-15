@@ -1,0 +1,2 @@
+-r requirements.txt
+timesfm[torch] @ git+https://github.com/google-research/timesfm.git@918df02c9d366b2145bc5876135fa2131d3ed2a6
