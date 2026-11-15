@@ -14,6 +14,7 @@
 | `GET /events` | `fire_events.parquet` | 화재 사건 (한국·아르헨티나) |
 | `GET /regime` | `aoi_month_fire_regime.parquet` | AOI × 월 불 유형 배지 |
 | `POST /harmonize` | 사용자 업로드 (서버 자료 불변) | FIRMS 파일 → 통합 결과 CSV + summary.json |
+| `GET /occurrence` | `aoi_occurrence_nextmonth_latest.parquet` | 다음 달 시군구별 열원 1건 이상 확률 (한국) |
 | `GET /recurrence` | `recurrence_nextmonth_latest.parquet` (+ `recurrent_burn_sites.parquet`) | 다음 달 전망 (아르헨티나 확률, 한국 반복 횟수) |
 | `GET /fwi` | `fwi_aoi_day.parquet` (+ `fwi_clim_aoi_month.parquet`) | 지역 산불 기상 위험도 배지 (한국·아르헨티나) |
 | `GET /export.csv` | 위 결과를 CSV로 | |
@@ -225,6 +226,30 @@
 
 - 한국 값에는 산업 열원으로 보이는 감지가 섞여 있다(알려진 한계, `backend-handoff.md`). 아르헨티나는 1% 남짓.
 - 아르헨티나 칸 단위 다음 달 확률은 `/recurrence`, 한국은 반복 횟수(`/recurrence`)를 쓴다.
+
+### `/occurrence?aoi` — 다음 달 열원 발생 확률, 한국 시군구 (2026-11-15)
+
+- 읽는 파일: `data/processed/aoi_occurrence_nextmonth_latest.parquet` (한국 시군구 252개; 설명 `models/aoi_occurrence_meta.json`).
+  아르헨티나는 시군구급(departamento) AOI가 없어 대상이 아니다 → 아르헨티나는 칸 단위 `/recurrence` 확률을 쓴다.
+- 컬럼: `aoi_id`, `target_month`(현재 `2026-12`), **`p_any`**(다음 달 그 시군구 안에서 VIIRS 기준 감지가 1건 이상일 확률, 고정 열원 제외),
+  `p_none` = 1 − `p_any`, **`baseline_p`**(예년 같은 달 발생 비율, 2012 ~ 작년), `model`, `as_of_date`(마지막 반영일),
+  참고 `rate_5y`, `n_years`, `lag1_projected`(직전 달이 진행 중이라 월말 추정값을 썼으면 true).
+- 표시 (권장)
+  - 큰 숫자: "다음 달 열원 1건 이상 가능성 **N%**" (`p_any`).
+  - 예년 대비: `baseline_p`와 비교 — `p_any − baseline_p ≥ 0.10` "예년보다 높음", `≤ −0.10` "예년보다 낮음", 그 사이 "예년 수준".
+    작은 글씨로 "예년 같은 달 발생 비율 M%".
+  - 필수 문구: "과거 감지 기록과 최근 활동으로 본 확률입니다. 날씨 예보가 아니며, 공장 등 산업 열원으로 보이는 감지가 일부 섞여 있을 수 있습니다."
+- 모델: XGBoost(이진) + Platt 보정. 확장 창 검증(2016~2025, 30,240 시군구·월, 양성 13%): PR-AUC 0.422 / Brier 0.0927,
+  기준선 "예년 같은 달 발생 비율" 0.404 / 0.0964, "작년 같은 달 발생 여부" 0.223 / 0.163 → 채택 (`reports/occurrence_metrics*.csv`,
+  `reports/figures/occurrence_calibration.png`). 기준선을 이기지 못하는 갱신에서는 `model = baseline_same_month_rate`, `p_any = baseline_p`로 나간다.
+- 참고: 시군구·달력 월 조합의 45%는 2012~ 동안 감지가 한 번도 없었다(양성 비율 < 5%). 95%를 넘는 조합은 0.07%.
+  울산 남구·포항 남구·울주·당진·광양처럼 산업 지역이 상위에 오르는데, 고정 열원 목록(2개 연도 이상 type 1·2)에 없는 산업 열원이 남아 있을 수 있다.
+
+```json
+// GET /occurrence?aoi=SGG_50110
+{"aoi_id": "SGG_50110", "target_month": "2026-12", "p_any": 0.34, "p_none": 0.66, "baseline_p": 0.57,
+ "model": "aoi_occurrence_xgb+platt", "as_of_date": "2026-11-14", "vs_normal": "예년보다 낮음"}
+```
 
 ### `/recurrence?aoi|bbox` — 확정 (2026-11-15)
 
