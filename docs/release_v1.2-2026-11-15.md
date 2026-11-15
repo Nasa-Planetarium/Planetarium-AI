@@ -54,7 +54,10 @@ for Korea and Argentina. Files: `data/processed/release_v1.2-2026-11-15/` (GitHu
 ### 3. Next-month occurrence outlook (added to the release on 2026-11-15)
 - Probability of at least one detection next month for Korean municipalities and a global 0.5° grid — see the section below.
 
-### 4. Other
+### 4. FRP (S-NPP equivalent) (added to the release on 2026-11-15)
+- Fire radiative power converted to the S-NPP level for every satellite, as a separate daily table — see the section below.
+
+### 5. Other
 - `satellite_day_status` and `satellite_month_status` are now part of the release.
 - Verification after all changes: points + residual = cell value, AOI sums = `aoi_month`, daily table monthly sums = `aoi_month` — 0 mismatches for
   every year 2000–2026 (`reports/hotspots_verify_*.csv`).
@@ -111,6 +114,36 @@ Department-level (departamento) areas are future work.
   Gwangyang). Not flagged (as intended): Amazon, Congo basin and northern Australian savanna check cells.
 - Details: `reports/occurrence_*.csv`, `reports/grid_occurrence_*.csv`, `reports/occurrence_calibration.png`, `reports/grid_occurrence_calibration.png`.
 
+## FRP (S-NPP equivalent)
+
+FRP from different satellites is not directly comparable (pixel size, overpass time). `frp_snpp_equiv` puts it on the S-NPP level, in the same
+spirit as `value` (S-NPP-equivalent detections). Existing files are unchanged; the result is a separate table.
+
+**Method.** For every 0.1° cell and local date where S-NPP and another satellite both detected fire, take
+r = Σ FRP(satellite) / Σ FRP(S-NPP). The ratio is the median of r over those cell-days, separately for day and night.
+Data: FIRMS standard processing (SP), `type = 0`, static-source cells excluded, local dates from 2012-02.
+Comparison years: Aqua 2012–2025, Terra 2012–2019, NOAA-20 2018–2025, NOAA-21 2024–2025.
+
+**Conversion: `frp_snpp_equiv = frp ÷ ratio(satellite, day/night)`** (S-NPP: ratio 1). Use the same formula for single points.
+
+| Satellite | Day ratio | Night ratio | Yearly range (day) | Overlapping cell-days |
+|---|---|---|---|---|
+| Aqua (MODIS) | 1.141 | 0.825 | 1.12–1.19 | 14.75 M |
+| Terra (MODIS), 2012–2019 | 0.963 | 2.406 | 0.91–1.00 | 3.65 M |
+| NOAA-20 (VIIRS) | 0.999 | 1.018 | 0.99–1.01 | 23.98 M |
+| NOAA-21 (VIIRS) | 1.167 | 1.222 | 1.17 | 6.48 M |
+
+File `harmonized_cell_day_frp.parquet` (0.1° cell × local date, reference points, static sources excluded): `frp_sum` (native),
+`frp_snpp_equiv_sum`, `frp_snpp_equiv_max`, `n_points`. Its `n_points` total equals the `n_points` total of `harmonized_cell_day` (321,562,117).
+Ratios by year: `reports/frp_snpp_ratios.csv`. Point-level values are not distributed; compute them with the formula above.
+
+**Limitations**
+- **Terra night ratio (2.41) is low-confidence:** Terra's night overpass is about 3 hours earlier than S-NPP's, so the ratio mixes the
+  sensor difference with the evening-to-night decline of fire intensity.
+- **Terra uses 2012–2019 only:** its orbit drifted from about 2020 (earlier overpass); the day ratio fell from 0.98 to 0.75 by 2025.
+- **2000–2011 MODIS points use the ratios measured after 2012** (there is no S-NPP before 2012): an assumption.
+- Ratios are global medians; they do not vary by region or fire type.
+
 ## Files
 
 | File | Rows | Size | Description |
@@ -128,6 +161,7 @@ Department-level (departamento) areas are future work.
 | `fwi_meta.json` | — | 10.4 KB | **New.** FWI approximations, classes, validation |
 | `grid_occurrence_nextmonth_latest.parquet` | 52,855 | 0.3 MB | **New.** Next month (2026-12) probability of ≥ 1 detection per global 0.5° cell (`p_any`, `p_none`, `baseline_p`, `persistent_source`) |
 | `harmonized_cell_day.parquet` | 212,790,231 | 973.5 MB | 0.1° cell × local date. v1.2: static-source points removed (`static_removed*`, `static_n_points`) |
+| `harmonized_cell_day_frp.parquet` | 97,791,096 | 1,102.1 MB | **New.** 0.1° cell × local date FRP: native and S-NPP equivalent (`frp_sum`, `frp_snpp_equiv_sum`, `frp_snpp_equiv_max`, `n_points`) |
 | `harmonized_cell_month.parquet` | 51,565,721 | 575.4 MB | 0.1° cell × month. **v1.2: industrial (static-source) points removed**; removed amounts in `static_removed`, `static_removed_lo`, `static_removed_hi` |
 | `harmonized_hotspots_2026.tar` | 45,180,873 | 636.8 MB | Hotspot points for 2026 (`harmonized_hotspots/{reference,other}/year=2026/`) — the only year whose point files changed since v1.1 |
 | `harmonized_hotspots_static_flags.tar` | 5,853,179 | 81.2 MB | **New.** `harmonized_hotspots_static_flags/year=YYYY.parquet`: point key → `is_static_source` (2000–2026) |
@@ -151,7 +185,7 @@ Department-level (departamento) areas are future work.
 | `satellite_month_status.parquet` | 934 | 10.2 KB | **New in release.** Satellite × month status |
 | `spread_nowcast_latest.parquet` | 10,189 | 0.1 MB | **New.** Next-day spread likelihood, 0.025° candidate cells, Korea box + Argentina (model v1.2-ops) |
 
-Reports (CSV, PNG): `grid_occurrence_calibration.png`, `grid_occurrence_metrics.csv`, `grid_occurrence_persistence_by_country.csv`, `grid_occurrence_persistence_check.csv`, `hotspots_verify_aoi_month.csv`, `hotspots_verify_cell_month.csv`, `occurrence_base_rate_extremes.csv`, `occurrence_calibration.png`, `occurrence_industrial_flags.csv`, `occurrence_metrics.csv`, `occurrence_metrics_by_year.csv`, `spread_ops_importance.csv`, `spread_ops_metrics.csv`, `static_exclusion_before_after_kr_examples.csv`, `static_exclusion_before_after_totals.csv`, `static_exclusion_months.csv`, `static_exclusion_verdict_changes_KR_national.csv`, `static_exclusion_verdict_changes_kr.csv`, `static_source_impact_aoi.csv`, `static_source_impact_kr_sites.csv`, `static_source_impact_monthly_points.csv`, `static_source_impact_points.csv`.
+Reports (CSV, PNG): `frp_snpp_ratios.csv`, `grid_occurrence_calibration.png`, `grid_occurrence_metrics.csv`, `grid_occurrence_persistence_by_country.csv`, `grid_occurrence_persistence_check.csv`, `hotspots_verify_aoi_month.csv`, `hotspots_verify_cell_month.csv`, `occurrence_base_rate_extremes.csv`, `occurrence_calibration.png`, `occurrence_industrial_flags.csv`, `occurrence_metrics.csv`, `occurrence_metrics_by_year.csv`, `spread_ops_importance.csv`, `spread_ops_metrics.csv`, `static_exclusion_before_after_kr_examples.csv`, `static_exclusion_before_after_totals.csv`, `static_exclusion_months.csv`, `static_exclusion_verdict_changes_KR_national.csv`, `static_exclusion_verdict_changes_kr.csv`, `static_source_impact_aoi.csv`, `static_source_impact_kr_sites.csv`, `static_source_impact_monthly_points.csv`, `static_source_impact_points.csv`.
 `static_source_impact_*` were measured before the fix (v1.1 data); `static_exclusion_*` are before/after the fix.
 
 **Hotspot points.** The point files of 2000–2025 are identical to the v1.1 tars (checked year by year: expected tar size from the current files equals
@@ -174,6 +208,7 @@ static-source points: **remove them with an anti-join on `harmonized_hotspots_st
 - **FWI is about 4 days behind:** NASA POWER daily data currently end on 2026-11-11. Show the reference date with the badge. FWI uses daily
   statistics instead of noon observations (see `fwi_meta.json`).
 - Spatial generalization of M2V (from v1.1): reliable for regions in the training data; do not apply it to a new continent as is.
+- FRP S-NPP equivalents: Terra night ratio is low-confidence and 2000–2011 uses post-2012 ratios (see "FRP (S-NPP equivalent)").
 
 ## SHA-256
 
@@ -191,6 +226,7 @@ fdbf77528419a7d9e603acabd2c5ba2a720271ca78352c3eb5e565a30211f97c  fwi_clim_aoi_m
 98b2373c46fb92a9d3244ed6fc89406691647087ec702751614f14e28472edcd  fwi_meta.json
 de1e57583232a7f0da1f60acd8a33bfd571b62c5c52084fcdb63fa4a7405d8ab  grid_occurrence_nextmonth_latest.parquet
 413c5dc59bf3e4150f05a9815f708b7e1162ab010d2e4d9aad21645a92711af3  harmonized_cell_day.parquet
+4726e000f2425b4e64ef6024e620b092ab24df30643036d9c3c595f226dc28e1  harmonized_cell_day_frp.parquet
 ad55f3dce2b486f2ec5352fe29abcac82f942b4b7e1800f8357e8c8b0cf0645a  harmonized_cell_month.parquet
 d7773caf5f297bcc634cd8009a85ba5955c9977b141c52b6393d38368d091573  harmonized_hotspots_2026.tar
 ed8386d18d627893642bbe208d8d057b337311c1fdb2cbdc4a63d5d2c772255f  harmonized_hotspots_static_flags.tar
@@ -210,6 +246,7 @@ c0ae73671ace873ce79424c8dd33ca99c638e4e68a0e36fdb3e4f189dfc29b20  models/spread_
 2f2b965a674e0a7d95cc9c828aa34d851cf50813640550154889cb600ca93fbd  models/spread_nowcast_xgb.json
 c654290c9d393399d033c403d4c28fa7f317878b9075a16443d5c935ee6c6009  recurrence_nextmonth_latest.parquet
 f58c7643164d4d8d176e30751eebfac02e329ff15f566d7992a4250a262b0719  recurrent_burn_sites.parquet
+c5a21d19a189789e1bb15d51d14a9e09b34020d927448fac0691cb5776d6f517  reports/frp_snpp_ratios.csv
 0ab4da12eae3639ba52f8bd5eb2f56801c26e088c747a18b8098782ccdeee79b  reports/grid_occurrence_calibration.png
 1f6b0347b9d785c13f237bf02bb3c243f90a4fdaed78c3398650c6612826a611  reports/grid_occurrence_metrics.csv
 68fb0288baa4192f08da0e59c9f08e41583c8fcb02ae9bc1d4a81e9420965e33  reports/grid_occurrence_persistence_by_country.csv

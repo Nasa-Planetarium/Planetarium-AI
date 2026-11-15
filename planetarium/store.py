@@ -49,10 +49,21 @@ def _cell_center(prefix: str = "") -> list[pl.Expr]:
             ((pl.col("cell_id") % 3600 + 0.5) * 0.1 - 180).alias(f"{prefix}lon")]
 
 
+def frp_ratios(root: Path | None = None) -> pl.DataFrame:
+    """FRP S-NPP 환산 비율표 (satellite 코드 × daynight → ratio). Release 설치본(root/reports/)이 있으면 그것, 없으면 저장소 reports/.
+    frp_snpp_equiv = frp ÷ ratio (S-NPP는 1)."""
+    from planetarium.config import REPORTS_DIR
+    path = next(p for p in (Path(root or ROOT) / "reports" / "frp_snpp_ratios.csv", REPORTS_DIR / "frp_snpp_ratios.csv") if p.exists())
+    t = pl.read_csv(path).filter(pl.col("year") == "all").select("satellite", "daynight", "ratio")
+    return pl.concat([t, pl.DataFrame({"satellite": ["N", "N"], "daynight": ["D", "N"], "ratio": [1.0, 1.0]})])
+
+
 def points(start: str | date, end: str | date | None = None, bbox: BBox | None = None, layer: str = "reference",
-           exclude_static: bool = True, columns: list[str] | None = None, limit: int | None = None, root: Path | None = None) -> pl.DataFrame:
+           exclude_static: bool = True, frp_equiv: bool = False, columns: list[str] | None = None, limit: int | None = None,
+           root: Path | None = None) -> pl.DataFrame:
     """통합 핫스팟 점 (현지 날짜 start~end). layer: reference(합계용 기준 점) | other(그 밖의 VIIRS) | all.
-    exclude_static: 고정 열원 점(harmonized_hotspots_static_flags)을 뺀다 → 기준 점 가중치 합 = 칸 값."""
+    exclude_static: 고정 열원 점(harmonized_hotspots_static_flags)을 뺀다 → 기준 점 가중치 합 = 칸 값.
+    frp_equiv: frp_snpp_equiv = frp ÷ 비율(위성·낮밤) 열을 붙인다 (reports/frp_snpp_ratios.csv)."""
     root = Path(root or ROOT)
     d0 = _d(start)
     d1 = _d(end) if end is not None else d0
@@ -67,6 +78,9 @@ def points(start: str | date, end: str | date | None = None, bbox: BBox | None =
         flags = [f for f in flags if f.exists()]
         if flags:
             lf = lf.join(pl.scan_parquet(flags).select(PT_KEY), on=PT_KEY, how="anti")
+    if frp_equiv:
+        lf = (lf.join(frp_ratios(root).lazy(), on=["satellite", "daynight"], how="left")
+              .with_columns(frp_snpp_equiv=(pl.col("frp") / pl.col("ratio")).cast(pl.Float32)).drop("ratio"))
     if columns:
         lf = lf.select(columns)
     if limit:
