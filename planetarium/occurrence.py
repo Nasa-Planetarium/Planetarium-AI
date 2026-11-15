@@ -46,6 +46,7 @@ META_PATH = MODELS_DIR / "aoi_occurrence_meta.json"
 FIRST = (2012, 2)
 TARGET = (2026, 12)
 TEST_YEARS = list(range(2016, 2026))
+HORIZON = 1   # 예측 시점: 대상 달보다 HORIZON개월 앞 달 말 (1 = 다음 달). 직전 달 특징(lag·FWI)만 이만큼 앞당긴다
 FEATURES = ["rate_all", "rate_5y", "n_years", "med_value", "lag1_value", "lag2_value", "lag3_value", "lastyear_value",
             "sido_rate", "fwi_prev", "fwi_prev_rel", "month_sin", "month_cos"]
 PARAMS = {"objective": "binary:logistic", "eval_metric": "logloss", "tree_method": "hist", "device": "cuda",
@@ -114,8 +115,8 @@ def panel() -> pl.DataFrame:
         if len(same):
             for s, idx in sido_idx.items():
                 srate[idx] = rate_all[idx].mean()
-        prevF = F[k - 1]
-        hist = [F[ti[t - 1 - 12 * j]] for j in range(1, 40) if (t - 1 - 12 * j) in ti]
+        prevF = F[k - HORIZON]
+        hist = [F[ti[t - HORIZON - 12 * j]] for j in range(1, 40) if (t - HORIZON - 12 * j) in ti]
         frel = np.full(na, np.nan)
         if len(hist) >= 3:
             H = np.vstack(hist)
@@ -126,11 +127,11 @@ def panel() -> pl.DataFrame:
         rows.append(pl.DataFrame({
             "aoi_id": ids, "year": np.full(na, y, np.int16), "month": np.full(na, m, np.int8), "label": Y[k],
             "n_det": N[k], "rate_all": rate_all, "rate_5y": rate_5y, "n_years": np.full(na, len(same), np.float64),
-            "med_value": med, "lag1_value": V[k - 1], "lag2_value": V[k - 2], "lag3_value": V[k - 3],
+            "med_value": med, "lag1_value": V[k - HORIZON], "lag2_value": V[k - HORIZON - 1], "lag3_value": V[k - HORIZON - 2],
             "lastyear_value": V[k - 12], "lastyear_any": Y[k - 12] if valid[k - 12] else np.full(na, np.nan),
             "sido_rate": srate, "fwi_prev": prevF, "fwi_prev_rel": frel,
             "month_sin": np.full(na, np.sin(2 * np.pi * m / 12)), "month_cos": np.full(na, np.cos(2 * np.pi * m / 12)),
-            "lag1_projected": np.full(na, status.get(t - 1) == "partial"),
+            "lag1_projected": np.full(na, status.get(t - HORIZON) == "partial"),
         }))
     p = pl.concat(rows).fill_nan(None)
     WORK.mkdir(parents=True, exist_ok=True)

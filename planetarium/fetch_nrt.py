@@ -14,6 +14,9 @@ MAP_KEY
                            value / value_projected / as_of_date 전후를 reports/fetch_nrt_append_<받은 날짜>.csv 로 남긴다.
   --with-spread            --append 뒤에 data/processed/spread_nowcast_latest.parquet를 다시 만든다
                            (NOAA-20 status=ok인 마지막 날 기준 내일 확률; 받는 중인 날은 기준일로 쓰지 않음).
+  --with-planner           --append 뒤에 FireOutlook Planner 일 단위(1~7일) 예측을 다시 만든다
+                           (기준일 = cell_day 최신 날짜 − 1일; 일 배열 → 표본 → 학습·예측 → 서비스 파일 publish, 약 9분·최대 약 17 GB).
+                           월 단위(1~12개월)는 달마다 planner_monthly final --origin YYYY-MM --as-of YYYY-MM-DD 로 따로 갱신.
 
 FIRMS area API: https://firms.modaps.eosdis.nasa.gov/api/area/csv/{MAP_KEY}/{SOURCE}/{AREA}/{DAY_RANGE}[/{DATE}]
   SOURCE: VIIRS_NOAA20_NRT, VIIRS_NOAA21_NRT, MODIS_NRT (VIIRS_SNPP_NRT는 S-NPP 종료로 기본 제외)
@@ -24,6 +27,7 @@ FIRMS area API: https://firms.modaps.eosdis.nasa.gov/api/area/csv/{MAP_KEY}/{SOU
   uv run python -m planetarium.fetch_nrt --fetch --days 2 [--area world] [--sources VIIRS_NOAA20_NRT MODIS_NRT]
   uv run python -m planetarium.fetch_nrt --fetch --days 2 --append
   uv run python -m planetarium.fetch_nrt --fetch --days 2 --append --with-spread
+  uv run python -m planetarium.fetch_nrt --fetch --days 2 --append --with-spread --with-planner
 """
 
 from __future__ import annotations
@@ -290,9 +294,13 @@ def main(argv: list[str] | None = None) -> None:
     ap.add_argument("--append", action="store_true", help="--fetch와 함께: 기존 점과 합쳐 data/processed 작업 파일 갱신 (release_* 불변)")
     ap.add_argument("--with-spread", action="store_true",
                     help="--append 뒤에 확산 가능성(spread_nowcast_latest.parquet)을 최신 관측일 기준으로 다시 만든다")
+    ap.add_argument("--with-planner", action="store_true",
+                    help="--append 뒤에 FireOutlook Planner 일 단위(1~7일) 예측을 최신 완결일 기준으로 다시 만든다")
     args = ap.parse_args(argv)
     if args.with_spread and not (args.fetch and args.append):
         ap.error("--with-spread는 --fetch --append와 함께 써야 합니다")
+    if args.with_planner and not (args.fetch and args.append):
+        ap.error("--with-planner는 --fetch --append와 함께 써야 합니다")
     start_run_log("fetch_nrt")
     if args.status or not args.fetch:
         st = mapkey_status()
@@ -306,6 +314,13 @@ def main(argv: list[str] | None = None) -> None:
             spread_ops.latest()
             start_run_log("fetch_nrt")
             print(f"[확산 가능성] 끝 ({time.perf_counter() - t0:,.0f}초)")
+        if args.with_planner:
+            from planetarium import planner_publish
+            t0 = time.perf_counter()
+            print("\n===== FireOutlook Planner 일 단위 다시 만들기 (planner_daily_grid) =====", flush=True)
+            planner_publish.refresh("auto")
+            start_run_log("fetch_nrt")
+            print(f"[Planner] 끝 ({time.perf_counter() - t0:,.0f}초)")
     elif args.fetch:
         fetch_and_convert(args.sources, args.area, args.days, args.format)
 

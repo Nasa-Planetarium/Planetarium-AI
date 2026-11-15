@@ -50,6 +50,7 @@ TARGET = 2026 * 12 + 11        # 2026-12
 T0 = FIRST - 12
 TEST_YEARS = list(range(2020, 2026))
 PERS_OCC, PERS_COUNT_CV, PERS_TOP3 = 0.75, 1.0, 0.12
+HORIZON = 1   # 예측 시점: 대상 달보다 HORIZON개월 앞 달 말 (1 = 다음 달). 직전 달 특징(lag)만 이만큼 앞당긴다
 FEATURES = ["rate_all", "rate_5y", "n_years", "med_value", "lag1_value", "lag2_value", "lag3_value", "lastyear_value",
             "country_rate", "nb_rate", "month_sin", "month_cos"]
 PARAMS = {"objective": "binary:logistic", "eval_metric": "logloss", "tree_method": "hist", "device": "cuda",
@@ -133,11 +134,11 @@ def panel() -> None:
         parts.append(pl.DataFrame({
             "g": cells["g"].to_numpy(), "year": np.full(nc, t // 12, np.int16), "month": np.full(nc, m, np.int8), "label": Y[k],
             "rate_all": rate_all, "rate_5y": rate_5y, "n_years": np.full(nc, len(same), np.float32), "med_value": med,
-            "lag1_value": V[k - 1], "lag2_value": V[k - 2], "lag3_value": V[k - 3], "lastyear_value": V[k - 12],
+            "lag1_value": V[k - HORIZON], "lag2_value": V[k - HORIZON - 1], "lag3_value": V[k - HORIZON - 2], "lastyear_value": V[k - 12],
             "lastyear_any": Y[k - 12] if valid[k - 12] else np.full(nc, np.nan, np.float32),
             "country_rate": crate, "nb_rate": nb,
             "month_sin": np.full(nc, np.sin(2 * np.pi * m / 12), np.float32), "month_cos": np.full(nc, np.cos(2 * np.pi * m / 12), np.float32),
-            "lag1_projected": np.full(nc, status.get(t - 1) == "partial"),
+            "lag1_projected": np.full(nc, status.get(t - HORIZON) == "partial"),
         }))
     p = pl.concat(parts, how="vertical_relaxed").fill_nan(None)
     lab = p.filter(pl.col("label").is_not_null())

@@ -19,6 +19,12 @@ dependencies = [
     "xgboost>=3.0",
 ]
 
+[project.optional-dependencies]
+# FireOutlook Planner 지역 월 건수 후보 AutoETS·AutoTheta 다시 계산할 때만 (서비스는 미리 계산한 파일을 읽음). Apache-2.0
+forecast-stats = [
+    "statsforecast>=2.0",
+]
+
 [dependency-groups]
 dev = [
     "ipykernel>=6.29",
