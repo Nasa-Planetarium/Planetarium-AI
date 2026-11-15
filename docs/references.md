@@ -67,6 +67,16 @@ All datasets below are publicly available. Please keep this list in sync with wh
 
 Polars, PyArrow, XGBoost, scikit-learn, Shapely, pyproj, uv. (Cite versions from `pyproject.toml` / `uv.lock` when submitting.)
 
+## 7. Team contributions
+
+- **Jonghun Shin ([@ozingmw](https://github.com/ozingmw))** — `handoff/firms-1km-backend` branch: the conversion and installation design was used as a
+  reference (팀원 Jonghun Shin(ozingmw)의 firms-1km-backend 작업에서 변환·설치 설계를 참고).
+  Adopted ideas, re-implemented under this repository's rules (S-NPP-based `value`, static-source exclusion, sum checks):
+  FIRMS CSV/API input checks (satellite code mapping, required columns, header-only responses kept as observed coverage) →
+  `planetarium/dataset.py`, `planetarium/converter.py`; release installation with SHA-256 verification → `planetarium/release_assets.py`;
+  cross-satellite FRP conversion → `planetarium/frp_equiv.py` (re-derived against S-NPP); bbox query helpers → `planetarium/store.py`.
+  The branch itself is kept separate and is not merged.
+
 ---
 
 ### Notes for the team

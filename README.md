@@ -244,3 +244,12 @@ uv run python -m planetarium.modeling.m2         # n20_bridge
 ```
 
 컬럼 설명과 처리 방식은 `firms-merge-guide.html` 문서를 참고하세요.
+
+## 크레딧 (Acknowledgements)
+
+- **Jonghun Shin ([@ozingmw](https://github.com/ozingmw))**: `handoff/firms-1km-backend` 브랜치 작업에서 다음 설계를 참고해 이 저장소에 통합했습니다.
+  - FIRMS CSV·API 응답 입력 처리(위성 코드 매핑, 필수 컬럼 검사, 탐지 0건인 날의 관측 범위 기록)
+  - Release 분할 파일 설치와 sha256 검증
+  - 위성별 FRP 환산 아이디어(이 저장소에서는 S-NPP 기준으로 다시 산출)
+  - 지역(bbox) 조회 도우미
+- 공식 통합 데이터셋(`value`, S-NPP 기준)은 이 저장소의 `m2v_xgb` 환산과 v1.2 Release를 기준으로 합니다. 팀원 브랜치는 참고용으로 별도 유지합니다.

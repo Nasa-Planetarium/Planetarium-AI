@@ -48,7 +48,7 @@ import sys
 import time
 import zipfile
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import date, datetime, timedelta
 from pathlib import Path
 from typing import Iterator
 
@@ -147,8 +147,13 @@ def sat_display(col: str = "satellite") -> pl.Expr:
 # ── 공통 스키마 변환 ───────────────────────────────────────────────────────
 
 def standardize(df: pl.DataFrame, instrument: str) -> pl.DataFrame:
-    """문자열로 읽은 원본 DataFrame -> 통합 스키마(VIIRS 기준). 아카이브·다운로드·7일 형식 모두 처리."""
-    df = df.rename({k: v for k, v in RENAME.items() if k in df.columns})
+    """문자열로 읽은 원본 DataFrame -> 통합 스키마(VIIRS 기준). 아카이브·다운로드·7일 형식 모두 처리.
+    입력 검사(팀원 firms-1km-backend converter 설계 참고): 컬럼 이름은 앞뒤 공백·대소문자를 무시하고 별칭을 받으며,
+    필수 컬럼이 없거나, 위성 표기를 모르거나, 관측 시각·좌표가 형식에 맞지 않는 행이 있으면 오류로 멈춘다(조용히 버리지 않음)."""
+    df = df.rename({c: c.strip().lower() for c in df.columns if c != c.strip().lower()})
+    df = df.rename({k: v for k, v in RENAME.items() if k in df.columns and v not in df.columns})
+    if "bright_ti5" not in df.columns and "brightness_2" in df.columns:
+        df = df.rename({"brightness_2": "bright_ti5"})
     need = {"latitude", "longitude", "acq_date", "acq_time", "satellite", "confidence", "bright_ti4", "frp"}
     if need - set(df.columns):
         raise ValueError(f"MODIS/VIIRS 핫스팟 형식이 아닙니다 (없는 컬럼: {sorted(need - set(df.columns))})")
@@ -198,6 +203,14 @@ def standardize(df: pl.DataFrame, instrument: str) -> pl.DataFrame:
     if bad_sat:
         raw = df.filter(s("satellite").replace_strict(SATELLITE_CODE, default=None).is_null())["satellite"].unique().to_list()
         raise ValueError(f"모르는 위성 표기 {raw} ({bad_sat:,}행)")
+    bad_t = out["acq_datetime_utc"].is_null()
+    if bad_t.any():
+        ex = df.filter(bad_t).select("acq_date", "acq_time").head(3).rows()
+        raise ValueError(f"관측 날짜·시각 형식 오류 {int(bad_t.sum()):,}행 (예: {ex}) — acq_date YYYY-MM-DD, acq_time HHMM")
+    bad_xy = ~(out["latitude"].is_between(-90, 90) & out["longitude"].is_between(-180, 180)).fill_null(False)
+    if bad_xy.any():
+        ex = df.filter(bad_xy).select("latitude", "longitude").head(3).rows()
+        raise ValueError(f"좌표 형식·범위 오류 {int(bad_xy.sum()):,}행 (예: {ex})")
     return out
 
 
@@ -459,13 +472,44 @@ def merge_api(path: Path, source: str, received: str, force: bool) -> Path | Non
         return None
     t0 = time.perf_counter()
     parts = list(iter_standardized(path, None, instrument))
+    log_api_response(path, source, received, sum(p.height for p in parts))
     if not parts:
-        print(f"[건너뜀] 감지 행이 없음: {path.name}")
+        # 헤더만 있는 응답 = 그 지역·기간에 감지가 없었음 (자료 없음과 다름) → api_responses.parquet에 기록하고 변환 파일은 만들지 않음
+        print(f"[감지 0건] {path.name}: 헤더만 있는 응답 — {API_RESPONSES_PATH.name}에 관측 범위로 기록")
         return None
     df = pl.concat(parts)
     write_parquet_atomic(df, out_path)
     print(describe(df, out_path, t0) + f"  <- api/{received}/{path.name}")
     return out_path
+
+
+API_RESPONSES_PATH = FIRMS_COVERAGE_PATH.parent / "api_responses.parquet"
+API_REST = re.compile(r"^(?P<area>.+?)_(?P<days>\d+)d(?:_t(?P<hhmm>\d{4}))?$")
+
+
+def log_api_response(path: Path, source: str, received: str, rows: int) -> None:
+    """area API 응답 한 건 = 요청한 지역·기간을 관측한 기록. 감지 0건(헤더만)이어도 남긴다 (설계 참고: 팀원 converter의 coverage 기록)."""
+    m = API_REST.match(API_NAME.match(path.name)["rest"]) if API_NAME.match(path.name) else None
+    days = int(m["days"]) if m else None
+    rec = date.fromisoformat(received)
+    # 받은 날짜 폴더는 이 컴퓨터의 현지 날짜(fetch_nrt: date.today()), 파일 이름의 tHHMM은 UTC.
+    # FIRMS DAY_RANGE는 UTC 날짜 기준이므로, 현지가 UTC보다 앞서고 받은 시각(UTC)이 현지 자정을 넘긴 뒤면 UTC 날짜는 하루 전.
+    if m and m["hhmm"]:
+        off_h = (datetime.now().astimezone().utcoffset().total_seconds() or 0) / 3600
+        if off_h > 0 and int(m["hhmm"][:2]) + off_h >= 24:
+            rec = rec - timedelta(days=1)
+    row = pl.DataFrame([{
+        "file": path.name, "source": source, "instrument": API_PRODUCTS[source][0], "received_date": rec,
+        "received_hhmm_utc": m["hhmm"] if m else None, "area": m["area"] if m else None, "days": days,
+        # FIRMS area API의 DAY_RANGE: 받은 날(UTC)을 포함해 거꾸로 days일
+        "request_start_utc": rec - timedelta(days=days - 1) if days else None, "request_end_utc": rec,
+        "rows": rows, "header_only": rows == 0,
+    }])
+    if API_RESPONSES_PATH.exists():
+        old = pl.read_parquet(API_RESPONSES_PATH).filter(pl.col("file") != path.name)
+        row = pl.concat([old, row], how="diagonal_relaxed")
+    API_RESPONSES_PATH.parent.mkdir(parents=True, exist_ok=True)
+    row.sort("received_date", "file").write_parquet(API_RESPONSES_PATH)
 
 
 # ── 파일 순위·범위 ────────────────────────────────────────────────────────

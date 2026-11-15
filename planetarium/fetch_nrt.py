@@ -220,6 +220,12 @@ def append(sources: list[str], area: str, days: int) -> None:
     rng = pl.concat([pl.read_csv(f, columns=["acq_date"], try_parse_dates=True) for f in files]).select(
         lo=pl.col("acq_date").min(), hi=pl.col("acq_date").max()).row(0)
     first, last = rng
+    if first is None:
+        # 모든 응답이 헤더만 = 요청 지역·기간에 감지 0건. 관측 기록만 남기고 갱신 단계는 건너뛴다.
+        for f in files:
+            dataset.log_api_response(f, dataset.API_NAME.match(f.name)["source"], f.parent.name, 0)
+        print(f"[감지 0건] 받은 {len(files)}개 응답이 모두 헤더만 있음 → {dataset.API_RESPONSES_PATH.name}에 기록, 갱신 없음")
+        return
     print(f"[범위] 받은 감지 날짜(UTC) {first} ~ {last}")
     months = sorted({(d.year, d.month) for d in (first + timedelta(days=i) for i in range((last - first).days + 1))})
     before_pts = _points_by_date(first, last)

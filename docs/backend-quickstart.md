@@ -24,6 +24,7 @@
 | 다음 달 전망 | `recurrence_nextmonth_latest.parquet`, `recurrent_burn_sites.parquet` | 아르헨티나 확률, 한국 반복 횟수 | ✅ (v1.2) |
 | 다음 달 열원 발생 확률 | `aoi_occurrence_nextmonth_latest.parquet` (한국 시군구), `grid_occurrence_nextmonth_latest.parquet` (전 세계 0.5°) | 한국 252개 시군구, 전 세계 52,855개 격자 | ✅ (v1.2) |
 | 고정 열원(공장) 점 표시 | `harmonized_hotspots_static_flags/` | 2000~2026 | ✅ (v1.2, 점 지도에서 빼기) |
+| FRP S-NPP 환산 (참고) | `harmonized_hotspots_frp/year=YYYY.parquet`(점 키 → `frp_snpp_equiv`), `harmonized_cell_day_frp.parquet` | 2000~2026 | 데이터 담당 PC에만 (Release 미포함, 7 GB). 비율 `reports/frp_snpp_ratios.csv` |
 | 실시간 갱신 | `uv run python -m planetarium.fetch_nrt ...` | 최근 1~5일 | ✅ |
 
 ---
@@ -36,6 +37,17 @@
 |---|---|
 | [`data-v1.2-2026-11-15`](https://github.com/Nasa-Planetarium/Planetarium-AI/releases/tag/data-v1.2-2026-11-15) | 칸·지역 표 전부(고정 열원 제외본), 위성 상태, 확산·사건·불 유형·FWI·다음 달 전망·다음 달 열원 발생 확률(시군구·0.5° 격자), `harmonized_hotspots_2026.tar`, `harmonized_hotspots_static_flags.tar`, 모델·meta, `release_manifest.csv`(sha256) (약 2.8 GB, 55개 파일) |
 | [`data-v1.1-hotspots-2026-11-14`](https://github.com/Nasa-Planetarium/Planetarium-AI/releases/tag/data-v1.1-hotspots-2026-11-14) | 점 파일 2000~2025년 (`harmonized_hotspots_<연도>.tar`, v1.2와 같음). **2026년은 v1.2의 tar를 쓰세요** |
+
+**가장 쉬운 방법 (명령 한 줄)**: 받기 + sha256 검증 + tar 풀기까지 한 번에. 이미 받은 파일은 건너뛰고, 다시 실행하면 이어 받아요.
+
+```powershell
+uv run python -m planetarium.release_assets install --dest data/processed --hotspot-years 2025
+```
+
+- `--local <폴더>`: 미리 받아 둔 파일을 받지 않고 복사·검증 / `--only "*.parquet"`: 일부만 / `--hotspot-years 2024 2025`: 그 해 점 파일(v1.1 hotspots Release, GitHub sha256으로 검증)
+- 받은 뒤 검사만: `uv run python -m planetarium.release_assets verify --dest data/processed`
+
+직접 받는 방법 (`gh`):
 
 ```powershell
 # 표·레이어 전부 (models/, reports/의 파일도 같은 폴더에 받아짐)
@@ -128,6 +140,20 @@ spread = (pl.read_parquet(f"{P}/spread_nowcast_latest.parquet")
                             .otherwise(pl.lit("low")).alias("level")))
 ```
 
+**조회 도우미 `planetarium/store.py`** (위 규칙을 그대로 담은 함수; 고정 열원 점은 기본으로 빠짐):
+
+```python
+from planetarium import store
+pts = store.points("2025-03-22", "2025-03-27", bbox=(128.4, 36.0, 129.6, 36.8))   # 점 (기준 점, 고정 열원 제외)
+grid = store.cells("2025-03", bbox=(124.5, 33.0, 132.0, 38.7))                     # 0.1° 칸 × 월 (+ lat, lon)
+daily = store.cell_days("2025-03-20", "2025-03-31", bbox=(128.4, 36.0, 129.6, 36.8))  # 0.1° 칸 × 일
+cal = store.aoi("SGG_47730", start="2025-01", end="2025-12")                       # 지역 × 월 + 예년 비교
+one = store.aoi("KR", "2025-03")                                                   # 한 달
+sgg = store.aoi_list(level="sgg", q="의성")                                        # 지역 찾기
+```
+
+- 확인: `store.points("2025-03-01", "2025-03-31")`에서 한국 기준 점 가중치 합(2,731) = `store.aoi("KR", "2025-03")`의 `value` (2,731).
+- bbox는 (서, 남, 동, 북). 날짜 변경선을 넘는 상자(서 > 동)도 된다.
 - 큰 파일(`harmonized_cell_day` 974 MB, `harmonized_hotspots` 7 GB)은 **`scan_parquet` + 필터**로 필요한 부분만 읽으세요. 서버 시작 시 전체를 메모리에 올리지 마세요.
 - 작은 파일(`aoi_month`, `aoi_month_compare`, `aoi_list`, `fire_events`, `fwi_aoi_day`, `spread_nowcast_latest`)은 시작 시 읽어 두면 빨라요.
 

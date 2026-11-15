@@ -89,9 +89,8 @@ def read_to_parquet(path: Path, tmp: Path) -> dict:
                 k += df.height
             members.append({"member": member or p.name, "rows": k, "instrument_hint": hint})
             n += k
-    if n == 0:
-        raise ValueError(f"감지 행이 없습니다: {path}")
-    return {"rows_in": n, "members": members}
+    # 헤더만 있는 입력(감지 0건)은 오류가 아니라 "그 범위에 감지 없음"으로 처리한다 (팀원 converter의 coverage 설계 참고).
+    return {"rows_in": n, "members": members, "header_only": n == 0}
 
 
 def _write(df: pl.DataFrame, path: Path, fmt: str, writer_state: dict) -> None:
@@ -174,10 +173,19 @@ def harmonize_file(path: str | Path, output_dir: str | Path | None = None, fmt: 
             for w in writers.values():
                 if hasattr(w, "close"):
                     w.close()
+    # 감지가 하나도 없으면 같은 스키마의 빈 파일을 남긴다 (API가 헤더만 돌려준 경우와 같은 의미)
+    empty = {"harmonized_hotspots": {c: pl.String for c in [*OUT_COLS, "is_static_source"]},
+             "summary_cell_day": {"cell_id": pl.Int64, "date_local": pl.Date, "value": pl.Float64, "value_lo": pl.Float64,
+                                  "value_hi": pl.Float64, "n_points": pl.Int32, "pending": pl.Int32, "value_source": pl.String},
+             "summary_aoi_month": {"aoi_id": pl.String, "year": pl.Int16, "month": pl.Int8, "value": pl.Float64, "n_points": pl.UInt32}}
+    for k, sch in empty.items():
+        if not files[k].exists():
+            _write(pl.DataFrame(schema=sch), files[k], fmt, {})
 
     summary = {
         "input": str(path), "output_dir": str(out), "format": fmt, "method_version": METHOD_VERSION,
         "rows_in": info["rows_in"], "rows_unique": n_unique, "members": info["members"],
+        "header_only": info["header_only"],
         "months": [f"{y}-{m:02d}" for y, m in months],
         "rows_out": stats["rows_out"], "reference_rows": stats["reference"], "pending_new_month_rows": stats["pending"],
         "rows_by_satellite": stats["by_satellite"],
