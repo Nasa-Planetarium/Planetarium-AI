@@ -4,8 +4,8 @@
 |---|---|
 | `dataset/` | 2000-11-01~2026-11-14 UTC 전 세계 통합 데이터. 개별 관측 660,831,145건, 1km 격자·일 357,814,169행, 격자 경계와 월·시간 요약. |
 | `converter/` | FIRMS MODIS 또는 VIIRS CSV를 동일한 스키마로 바꾸는 코드와 학습 모델. |
-| `forecasting/` | 1km 일별 7일 및 월별 12개월 예측 코드. `forecasting/models/`에 LightGBM 검출, FRP, 확률 보정 모델이 들어 있습니다. |
-| `predictions/` | TimesFM 3.0을 결합한 연구 실행 결과. `daily/`는 2026-11-15~21일, `annual/`은 2026-12~2027-11월 예측입니다. |
+| `forecasting/` | TimesFM 3.0으로 1km 격자의 일별 7일 및 월별 12개월 예측을 생성하는 코드입니다. |
+| `predictions/` | 기존 전 세계 TimesFM 3.0+LightGBM 결합 실험 결과입니다. `daily/`는 2026-11-15~21일, `annual/`은 2026-12~2027-11월 예측입니다. |
 
 이 패키지의 기본 키는 관측·일별 예측의 `date_utc, grid_id`, 월별 예측의 `target_month, grid_id`입니다. `grid_id`는 1km 등면적 격자의 `grid_x:grid_y`입니다. 조회 API의 좌표는 WGS84 경도·위도입니다.
 
@@ -42,29 +42,43 @@ coverage = store.metadata()
 
 함수는 HTTP 응답으로 넘길 수 있는 딕셔너리 목록을 반환합니다. 해당 날짜의 Parquet 파티션만 열고 범위와 확률 필터를 DB에서 적용합니다. 날짜별 데이터 파일이 없거나 전체 보존 기간에 없는 날짜는 `FileNotFoundError`, 유효하지 않은 입력은 `ValueError`입니다. 예측 파일에 없는 격자는 미예측입니다. `p_detected`는 해당 UTC 날짜의 기록 확률, `p_detected_any`는 해당 UTC 월에 한 번 이상 기록될 확률입니다. FRP는 검출이 기록될 때의 NOAA-20 기준 조건부 중앙값(MW)입니다.
 
-## 변환과 예측 다시 실행
+## 변환 및 TimesFM 3.0 예측
 
 ```sh
 python -m firms_backend.converter.harmonize --input input.csv --output converted/input
-python -m firms_backend.forecasting.predict daily --cache work/daily --output next/daily
-python -m firms_backend.forecasting.predict annual --cache work/monthly --output next/annual
-```
-
-`predict`는 포함된 LightGBM 보정 모델로 실행됩니다. Hugging Face, GPU 또는 PyTorch 의존성이 없습니다. 예측에는 배포본처럼 다년간의 1km 통합 시계열이 필요합니다. 확장한 관측 아카이브의 경로를 `--data`로 지정할 수 있습니다. 같은 아카이브에서 이미 만든 작업 캐시는 `--reuse-cache`로 읽습니다. 월별 입력은 기준 달 첫 14일이 확보되어야 하며, 그 다음 달부터 12개월을 예측합니다. 재생성 결과를 조회할 때는 생성 폴더를 서비스의 `predictions/daily` 또는 `predictions/annual`에 배치합니다. `forecasting.train_models`로 동일 모델을 학습할 수 있습니다.
-
-`predictions/`의 기존 예측은 실험에서 사용한 LightGBM+TimesFM 3.0 결합 방식입니다. 연구 실행을 재현하려면 별도 가상환경을 사용합니다. 공식 체크포인트와 연구 출력은 비상업적·비운영 용도입니다. [TimesFM 3.0 라이선스](https://huggingface.co/google/timesfm-3.0-pytorch/blob/main/LICENSE)
-
-```sh
 python -m pip install -r firms_backend/requirements-timesfm.txt
 hf download google/timesfm-3.0-pytorch \
   --revision 43046b85ec22d584a13f8098c2ed39c889e129c2 \
   --local-dir firms_backend/timesfm-checkpoint
-python -m firms_backend.forecasting.grid_1km --data firms_backend/dataset \
-  --cache work/daily --output research/daily --checkpoint-3 firms_backend/timesfm-checkpoint
-python -m firms_backend.forecasting.monthly_cells --source firms_backend/dataset --cache work/monthly
-python -m firms_backend.forecasting.year_1km --cache work/monthly \
-  --output research/annual --checkpoint-3 firms_backend/timesfm-checkpoint
+python -m firms_backend.forecasting.predict daily --cache work/daily \
+  --bbox 124 33 132 39 --output next/predictions/daily
+python -m firms_backend.forecasting.predict annual --cache work/monthly \
+  --bbox 124 33 132 39 --output next/predictions/annual
 ```
+
+`predict`는 기본으로 공식 TimesFM 3.0 체크포인트를 사용합니다. 다른 위치에 체크포인트를 설치했다면 `--checkpoint-3` 또는 `FIRMS_BACKEND_TIMESFM_CHECKPOINT`로 경로를 지정합니다. 기존 LightGBM 비교 모델은 `--method lightgbm_calibrated`로 직접 선택할 수 있습니다. 공식 체크포인트와 연구 출력은 비상업적·비운영 용도입니다. [TimesFM 3.0 라이선스](https://huggingface.co/google/timesfm-3.0-pytorch/blob/main/LICENSE)
+
+TimesFM은 격자의 검출 여부와 로그 FRP를 두 시계열로 받아 직접 예측합니다. 입력은 일별 64일 또는 완결된 월별 36개월입니다. 검출 확률은 0~1로 제한한 분위수의 적분으로 추정하며 별도 확률 보정을 적용하지 않습니다. 유효 FRP 이력이 없는 격자의 FRP는 `null`입니다. 월별 실행은 기준 달 첫 14일의 자료까지 확보한 뒤 다음 달부터 12개월을 출력합니다.
+
+`--bbox`를 생략하면 전 세계 후보 격자를 계산합니다. 범위를 지정하면 그 경계 안에 중심이 있는 원래 1km 격자를 예측합니다. `--data`로 갱신한 통합 아카이브를 선택하고, 같은 아카이브의 기존 작업 캐시는 `--reuse-cache`로 읽습니다. 위 예제의 결과를 백엔드에서 읽으려면 `FirmsStore(asset_root="next")`로 열면 됩니다.
+
+```python
+from firms_backend.forecasting.predict import predict_from_cache
+
+predict_from_cache("annual", "work/monthly", "next/predictions/annual",
+                   bbox=(124, 33, 132, 39))
+```
+
+### 과거 데이터 검증
+
+각 기준일에 전 세계 후보 격자에서 5,000개를 무작위로 뽑고, 기준일 이후의 관측과 대조했습니다. 비교 기준은 각 격자의 입력 기간 중 검출 빈도입니다.
+
+| 예측 | 검증 행 | Brier (낮을수록 좋음), TimesFM / 검출 빈도 | 평균 정밀도 (높을수록 좋음), TimesFM / 검출 빈도 |
+|---|---:|---:|---:|
+| 일별 7일 | 105,000 | 0.02121 / 0.01489 | 0.05695 / 0.08775 |
+| 월별 12개월 | 120,000 | 0.08204 / 0.07253 | 0.14323 / 0.14051 |
+
+일별 검증 기준일은 2026-09-14, 2026-10-14, 2026-11-07 UTC이고 월별 기준월은 2024-09, 2025-09입니다. 검출과 FRP 실측 및 예측이 함께 있는 행에서 FRP 평균 절대 오차는 일별 5.80 MW, 월별 11.26 MW였습니다.
 
 ## GitHub 데이터 자산 구성
 
