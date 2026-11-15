@@ -1,0 +1,43 @@
+{
+  "training_year": 2025,
+  "holdout_year": 2026,
+  "bias_limit": 0.1,
+  "issue_days": {
+    "12": {
+      "lightgbm_gain": 1.0990951107880482,
+      "fixed_planner_weight": 0.4922468373888326,
+      "adaptive_planner_weight": {
+        "0.5deg": {
+          "planner_at_most_lightgbm": 1.4987145579542325e-17,
+          "planner_above_lightgbm": 0.3782746134420075
+        },
+        "2deg": {
+          "planner_at_most_lightgbm": 0.2210873074953546,
+          "planner_above_lightgbm": 0.40182375516537766
+        },
+        "rectangles": {
+          "planner_at_most_lightgbm": 6.705069995791201e-18,
+          "planner_above_lightgbm": 0.30085966974134426
+        }
+      }
+    },
+    "31": {
+      "lightgbm_gain": 1.0527916072059904,
+      "fixed_planner_weight": 0.19978548290786385,
+      "adaptive_planner_weight": {
+        "0.5deg": {
+          "planner_at_most_lightgbm": 1.2944891000105674e-17,
+          "planner_above_lightgbm": 0.21851043846934343
+        },
+        "2deg": {
+          "planner_at_most_lightgbm": 0.2801002704459971,
+          "planner_above_lightgbm": 0.2210883523387387
+        },
+        "rectangles": {
+          "planner_at_most_lightgbm": 0.28596363420509985,
+          "planner_above_lightgbm": 0.16550124404237865
+        }
+      }
+    }
+  }
+}

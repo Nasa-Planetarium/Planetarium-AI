@@ -135,7 +135,17 @@ def score_models(predictions, actual, months, scales, issue_day):
                 }
 
 
-def compare(panel, months, monthly, issue_day, args, daily_models):
+def predict_months(
+    panel,
+    months,
+    monthly,
+    issue_day,
+    *,
+    threads,
+    workers,
+    daily_models,
+    models=MONTHLY_MODELS,
+):
     good = np.flatnonzero(panel.coverage == 3)
     observed_days = panel.dates[good]
     fit = np.flatnonzero((months >= FIT_START) & (months < EVAL_START))
@@ -173,25 +183,17 @@ def compare(panel, months, monthly, issue_day, args, daily_models):
         keep_zero = ZERO_KEEP.get(model, 1.0)
         keep = (y > 0) | (random_rank < keep_zero)
         w = weight[keep] ** 2 if "_l1" in model else weight[keep]
-        fitted = fit_model(model, train_x[keep], y[keep], w, args.threads)
+        fitted = fit_model(model, train_x[keep], y[keep], w, threads)
         prediction = fitted.predict(forecast_x, forecast_scale).reshape(len(test), -1)
         return model, prediction
 
-    with ThreadPoolExecutor(max_workers=args.workers) as executor:
-        predictions = dict(executor.map(fit_predict, MONTHLY_MODELS))
+    with ThreadPoolExecutor(max_workers=workers) as executor:
+        predictions = dict(executor.map(fit_predict, models))
     predictions["seasonal_median"] = np.stack(seasonal)
     predictions.update(
         {f"reuse_{name}": np.stack(values) for name, values in daily.items()}
     )
-    return list(
-        score_models(
-            predictions,
-            monthly[test],
-            months[test],
-            panel.regions["scale"].to_numpy(),
-            issue_day,
-        )
-    )
+    return test, predictions
 
 
 def main() -> None:
@@ -228,7 +230,24 @@ def main() -> None:
             daily_models[name] = checkpoint["regressor"]
     rows = []
     for issue_day in dict.fromkeys(args.issue_day):
-        rows.extend(compare(panel, months, monthly, issue_day, args, daily_models))
+        test, predictions = predict_months(
+            panel,
+            months,
+            monthly,
+            issue_day,
+            threads=args.threads,
+            workers=args.workers,
+            daily_models=daily_models,
+        )
+        rows.extend(
+            score_models(
+                predictions,
+                monthly[test],
+                months[test],
+                panel.regions["scale"].to_numpy(),
+                issue_day,
+            )
+        )
     table = pl.DataFrame(rows).sort("as_of_day", "year", "scale", "model")
     args.out.parent.mkdir(parents=True, exist_ok=True)
     table.write_csv(args.out)
