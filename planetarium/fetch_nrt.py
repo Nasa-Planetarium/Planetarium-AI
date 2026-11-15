@@ -294,10 +294,10 @@ def main(argv: list[str] | None = None) -> None:
     if args.fetch and args.append:
         append(args.sources, args.area, args.days)
         if args.with_spread:
-            from planetarium import spread_nowcast_model
+            from planetarium import spread_ops   # v1.2-ops 모델 (운영과 같은 기상 지연 조건으로 검증, 기상 미사용)
             t0 = time.perf_counter()
             print("\n===== 확산 가능성 다시 만들기 (spread_nowcast_latest) =====", flush=True)
-            spread_nowcast_model.latest()
+            spread_ops.latest()
             start_run_log("fetch_nrt")
             print(f"[확산 가능성] 끝 ({time.perf_counter() - t0:,.0f}초)")
     elif args.fetch:

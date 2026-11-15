@@ -34,8 +34,14 @@ for Korea and Argentina. Files: `data/processed/release_v1.2-2026-11-15/` (GitHu
 - Fire events in Korea: 18,586 → 12,397. Korea Forest Service match rate for fires ≥ 100 ha unchanged (23/25, 92%); < 1 ha 138 → 112 detected.
 
 ### 2. New layers (Korea box and Argentina)
-- **Spread nowcast** (`spread_nowcast_latest`): probability that a 0.025° cell near today's fire has a detection tomorrow (XGBoost; leave-year-out
-  PR-AUC Korea box 0.138, Argentina 0.201). Base date = last NOAA-20 `ok` day (2026-11-13 → target 2026-11-14); weather from NASA POWER with a 2-day lag.
+- **Spread nowcast** (`spread_nowcast_latest`): probability that a 0.025° cell near today's fire has a detection tomorrow (XGBoost).
+  Base date = last NOAA-20 `ok` day (2026-11-13 → target 2026-11-14).
+  **Model v1.2-ops (replaced on 2026-11-15): validated under the same weather delay as operations.** NASA POWER arrives about 4 days late, so
+  weather from the base date − 4 days was compared with no weather at all; no weather was better for both countries and is now the default
+  (fire features only: detections and FRP today and yesterday, burning streak, fire-event duration, direction). Leave-year-out 2012–2025 on the
+  static-source-free sample, PR-AUC / Brier: Korea box 0.147 / 0.00546, Korea only 0.210 / 0.00316, Argentina 0.190 / 0.01231
+  (base date − 4 days weather: 0.139 / 0.198 / 0.189). The earlier model was validated with same-day weather (0.158 / 0.212 / 0.197 on the same
+  sample), which operations cannot have, so its figures were somewhat optimistic. Details: `reports/spread_ops_metrics.csv`.
 - **Fire events and burned area** (`fire_events`): reference points linked within 750 m (VIIRS) / 2 km (MODIS) and one day; MCD64A1 burned area
   (lower bound; Uiseong 2025-03 ≈ 64% of the official area).
 - **Fire-type badge** (`aoi_month_fire_regime`).
@@ -137,15 +143,15 @@ Department-level (departamento) areas are future work.
 | `models/m2v_xgb.json` | — | 77.1 MB | MODIS→VIIRS model (Aqua+Terra), unchanged |
 | `models/m2v_xgb_terra.json` | — | 96.6 MB | MODIS→VIIRS model (Terra only, 2000-11 – 2002-06), unchanged |
 | `models/recurrence_nextmonth_meta.json` | — | 7.0 KB | **New.** Recurrence layer method and validation (Argentina model) |
-| `models/spread_nowcast_meta.json` | — | 9.3 KB | **New.** Spread nowcast features, validation, caveats |
-| `models/spread_nowcast_xgb.json` | — | 10.0 MB | **New.** Spread nowcast model |
+| `models/spread_nowcast_meta.json` | — | 6.5 KB | **New.** Spread nowcast features, validation (operations weather delay), caveats |
+| `models/spread_nowcast_xgb.json` | — | 8.2 MB | **New.** Spread nowcast model v1.2-ops (no weather) |
 | `recurrence_nextmonth_latest.parquet` | 28,808 | 0.3 MB | **New.** Next month (2026-12): Argentina probability (`layer = probability`), Korea recurrence count (`layer = recurrence_count`); static-source cells removed |
 | `recurrent_burn_sites.parquet` | 6,410 | 68.4 KB | **New.** Cell × calendar month active in ≥ 70% of valid years 2001–2025; static-source cells removed |
 | `satellite_day_status.parquet` | 28,316 | 0.8 MB | **New in release.** Satellite × UTC day data status (`ok`, `low`, `missing`, `partial`) |
 | `satellite_month_status.parquet` | 934 | 10.2 KB | **New in release.** Satellite × month status |
-| `spread_nowcast_latest.parquet` | 10,189 | 0.2 MB | **New.** Next-day spread likelihood, 0.025° candidate cells, Korea box + Argentina |
+| `spread_nowcast_latest.parquet` | 10,189 | 0.1 MB | **New.** Next-day spread likelihood, 0.025° candidate cells, Korea box + Argentina (model v1.2-ops) |
 
-Reports (CSV, PNG): `grid_occurrence_calibration.png`, `grid_occurrence_metrics.csv`, `grid_occurrence_persistence_by_country.csv`, `grid_occurrence_persistence_check.csv`, `hotspots_verify_aoi_month.csv`, `hotspots_verify_cell_month.csv`, `occurrence_base_rate_extremes.csv`, `occurrence_calibration.png`, `occurrence_industrial_flags.csv`, `occurrence_metrics.csv`, `occurrence_metrics_by_year.csv`, `static_exclusion_before_after_kr_examples.csv`, `static_exclusion_before_after_totals.csv`, `static_exclusion_months.csv`, `static_exclusion_verdict_changes_KR_national.csv`, `static_exclusion_verdict_changes_kr.csv`, `static_source_impact_aoi.csv`, `static_source_impact_kr_sites.csv`, `static_source_impact_monthly_points.csv`, `static_source_impact_points.csv`.
+Reports (CSV, PNG): `grid_occurrence_calibration.png`, `grid_occurrence_metrics.csv`, `grid_occurrence_persistence_by_country.csv`, `grid_occurrence_persistence_check.csv`, `hotspots_verify_aoi_month.csv`, `hotspots_verify_cell_month.csv`, `occurrence_base_rate_extremes.csv`, `occurrence_calibration.png`, `occurrence_industrial_flags.csv`, `occurrence_metrics.csv`, `occurrence_metrics_by_year.csv`, `spread_ops_importance.csv`, `spread_ops_metrics.csv`, `static_exclusion_before_after_kr_examples.csv`, `static_exclusion_before_after_totals.csv`, `static_exclusion_months.csv`, `static_exclusion_verdict_changes_KR_national.csv`, `static_exclusion_verdict_changes_kr.csv`, `static_source_impact_aoi.csv`, `static_source_impact_kr_sites.csv`, `static_source_impact_monthly_points.csv`, `static_source_impact_points.csv`.
 `static_source_impact_*` were measured before the fix (v1.1 data); `static_exclusion_*` are before/after the fix.
 
 **Hotspot points.** The point files of 2000–2025 are identical to the v1.1 tars (checked year by year: expected tar size from the current files equals
@@ -159,10 +165,12 @@ static-source points: **remove them with an anti-join on `harmonized_hotspots_st
 - **Industrial sources before 2012-02 are only partly removed.** In the MODIS period, the part of a cell estimate that cannot be assigned to points
   (`modis_unseen` residual and background predictions) cannot be split by point, so some static contribution can remain (Korea: 7% removed before
   2012-02 vs 23% after). Some 2001–2011 Korean months moved to `above` partly because the baseline (dominated by later years) dropped.
-- **Models were trained on data that still included industrial sources** (M2V MODIS→VIIRS, spread nowcast, recurrence model). They were not retrained.
+- **Models were trained on data that still included industrial sources** (M2V MODIS→VIIRS, recurrence model). They were not retrained.
+  The spread nowcast was retrained on the static-source-free sample (v1.2-ops).
 - The static-source list only contains cells where SP `type` 1 or 2 appeared in at least two years; new plants or gas flares are not caught.
 - **Spread nowcast radius:** it only scores cells within about 7.5 km (3 cells of 0.025°) of today's detections; new ignitions and spread beyond
-  that are not covered (share of tomorrow's detections inside the candidate cells: Korea 22%, Argentina 42%). Not a physical fire-spread simulation.
+  that are not covered (share of tomorrow's detections inside the candidate cells: Korea 25%, Argentina 42%). Not a physical fire-spread simulation.
+  It uses no weather (weather 4 days old did not help); a 5-cell radius raised the coverage to 31% / 53% but was not adopted.
 - **FWI is about 4 days behind:** NASA POWER daily data currently end on 2026-11-11. Show the reference date with the badge. FWI uses daily
   statistics instead of noon observations (see `fwi_meta.json`).
 - Spatial generalization of M2V (from v1.1): reliable for regions in the training data; do not apply it to a new continent as is.
@@ -198,8 +206,8 @@ ff5affb08951b47e786b9626c5e56816a9854a9b523f546fba66008309acd519  models/m2v_q10
 51f211b9a161b74ab84343f09e6d6e68eac460c391cdedd3f2f71b6c35d873ee  models/m2v_xgb.json
 bf682b1f5a159096764fd0dcc3e9e71ced9a3fe52592f5fbd416025b03dc53b2  models/m2v_xgb_terra.json
 9aed586aefb280f9a893e0a7e2a43f0b6c7995aeb043bbe4bbdd93c78fafd4a5  models/recurrence_nextmonth_meta.json
-8a2607f241ef6c38bbd590819e2c195de4a238337ffae92d3e6b638b024ebcbc  models/spread_nowcast_meta.json
-42f47fd15c04b3274fca112c08e367497686cbf214817f06df2aea541c63428f  models/spread_nowcast_xgb.json
+c0ae73671ace873ce79424c8dd33ca99c638e4e68a0e36fdb3e4f189dfc29b20  models/spread_nowcast_meta.json
+2f2b965a674e0a7d95cc9c828aa34d851cf50813640550154889cb600ca93fbd  models/spread_nowcast_xgb.json
 c654290c9d393399d033c403d4c28fa7f317878b9075a16443d5c935ee6c6009  recurrence_nextmonth_latest.parquet
 f58c7643164d4d8d176e30751eebfac02e329ff15f566d7992a4250a262b0719  recurrent_burn_sites.parquet
 0ab4da12eae3639ba52f8bd5eb2f56801c26e088c747a18b8098782ccdeee79b  reports/grid_occurrence_calibration.png
@@ -213,6 +221,8 @@ cdbb678aab2841aa89bc7342902aa587ab23ee6a15c5ce0a0685f0d33e631bb1  reports/occurr
 28972287918782f82959e84e248e4ac77a96716bab01e4d41e4176cc223b4eaa  reports/occurrence_industrial_flags.csv
 0deb7f8c02abf0aef644feb11f212bc0b378f02397018ba163fdb24953d6dd92  reports/occurrence_metrics.csv
 61eda9c4e8ea8fd3428575a5f4afbafe82b5fca983d27f2ea6d35f10714be74c  reports/occurrence_metrics_by_year.csv
+68f33cec8d6ce472f683c0dbf27342812d6679daf11ee8a16714b43305513df2  reports/spread_ops_importance.csv
+4041874e0a32509d40f7f188df2aaf0e3ca1d2c4169e59b22adb7670d4b3168b  reports/spread_ops_metrics.csv
 ec7a757e62061731509e25b955babc9255d2d28420e364efa2854c4aae496b10  reports/static_exclusion_before_after_kr_examples.csv
 7b50c31d34a72839065971d8b31729b8a850c8849b120d52e2ad7ca6d7637990  reports/static_exclusion_before_after_totals.csv
 5524a3522a10f808bc00e20a7a677428d172e9c689b5e250d052445b0c7e3d1f  reports/static_exclusion_months.csv
@@ -224,5 +234,5 @@ bc1d212aac452a197141a7ddc21303ed9c8f8d95f72d7ae6a1ddc9cc9a2cd744  reports/static
 9915fa1e0de4501dc1616b4285de30acf61e1eceb7870370bf361e36f6b344ce  reports/static_source_impact_points.csv
 e86ca4c3cffc93e3fa0904b95b758b35c0ef4020a955e0461eadd647010b6d5e  satellite_day_status.parquet
 9ce8d68bcbb0127a8a3fd76c2cc6738f590e39ca2b841e338fb126eb34809e36  satellite_month_status.parquet
-714d44d32d23e15e60a4676bd9359244d401eacc811c66a926f55900a6c79121  spread_nowcast_latest.parquet
+d4e4657b1b6a30917c6a6aeb1a5c98810f74b5ec2994fa3d7f76a9cc8d8ee84a  spread_nowcast_latest.parquet
 ```
