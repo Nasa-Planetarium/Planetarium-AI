@@ -4,7 +4,10 @@ Harmonized MODIS–VIIRS fire activity, 2000-11 to 2026-11 (VIIRS S-NPP–equiva
 for Korea and Argentina. Files: `data/processed/release_v1.2-2026-11-15/` (GitHub Release `data-v1.2-2026-11-15`; not in git because of size).
 
 - Data as of: last NRT append 2026-11-15 10:26 KST (detections up to 2026-11-14 22:07 UTC). 2026-11 is in progress (`status = partial`).
-- Model and `method_version` (`v1-m2v-2026-11-14`) are **unchanged** — no model was retrained for v1.2.
+- The MODIS→VIIRS conversion model **FireBridge (MODIS-to-VIIRS Harmonizer)** (internal id: `m2v_xgb`) and `method_version`
+  (`v1-m2v-2026-11-14`) are **unchanged** — FireBridge was not retrained for v1.2 (only the spread nowcast was, see below).
+  Display names ↔ internal ids: FireBridge = `m2v_xgb`, FireBridge-Terra = `m2v_xgb_terra`, FireBridge Uncertainty Band = `m2v_q10_q90`,
+  N20 Bridge = `n20_bridge`. File names, code identifiers and data values (`value_source`, `method_version`) keep the internal ids.
 - File list with sizes and SHA-256: `release_manifest.csv` (also below).
 
 ## Changes from v1.1
@@ -172,10 +175,10 @@ Ratios by year: `reports/frp_snpp_ratios.csv`. Point-level values are not distri
 | `models/grid_occurrence_calibration.json` | — | 16.7 KB | **New.** Its calibration (isotonic; Platt parameters kept for reference) |
 | `models/grid_occurrence_meta.json` | — | 5.8 KB | **New.** Features, persistent-source rule, validation, adoption decision |
 | `models/grid_occurrence_xgb.json` | — | 1.3 MB | **New.** Global 0.5° occurrence model (XGBoost) |
-| `models/m2v_meta.json` | — | 18.4 KB | Model names, metrics, decisions; v1.2 adds `static_exclusion` |
-| `models/m2v_q10_q90.json` | — | 60.4 MB | Cell interval model (q10, q90), unchanged |
-| `models/m2v_xgb.json` | — | 77.1 MB | MODIS→VIIRS model (Aqua+Terra), unchanged |
-| `models/m2v_xgb_terra.json` | — | 96.6 MB | MODIS→VIIRS model (Terra only, 2000-11 – 2002-06), unchanged |
+| `models/m2v_meta.json` | — | 18.4 KB | FireBridge model names, metrics, decisions; v1.2 adds `static_exclusion`, `display_name` |
+| `models/m2v_q10_q90.json` | — | 60.4 MB | FireBridge Uncertainty Band (cell interval q10–q90), unchanged |
+| `models/m2v_xgb.json` | — | 77.1 MB | FireBridge (MODIS→VIIRS, Aqua+Terra), unchanged |
+| `models/m2v_xgb_terra.json` | — | 96.6 MB | FireBridge-Terra (MODIS→VIIRS, Terra only, 2000-11 – 2002-06), unchanged |
 | `models/recurrence_nextmonth_meta.json` | — | 7.0 KB | **New.** Recurrence layer method and validation (Argentina model) |
 | `models/spread_nowcast_meta.json` | — | 6.5 KB | **New.** Spread nowcast features, validation (operations weather delay), caveats |
 | `models/spread_nowcast_xgb.json` | — | 8.2 MB | **New.** Spread nowcast model v1.2-ops (no weather) |
@@ -199,7 +202,7 @@ static-source points: **remove them with an anti-join on `harmonized_hotspots_st
 - **Industrial sources before 2012-02 are only partly removed.** In the MODIS period, the part of a cell estimate that cannot be assigned to points
   (`modis_unseen` residual and background predictions) cannot be split by point, so some static contribution can remain (Korea: 7% removed before
   2012-02 vs 23% after). Some 2001–2011 Korean months moved to `above` partly because the baseline (dominated by later years) dropped.
-- **Models were trained on data that still included industrial sources** (M2V MODIS→VIIRS, recurrence model). They were not retrained.
+- **Models were trained on data that still included industrial sources** (FireBridge, recurrence model). They were not retrained.
   The spread nowcast was retrained on the static-source-free sample (v1.2-ops).
 - The static-source list only contains cells where SP `type` 1 or 2 appeared in at least two years; new plants or gas flares are not caught.
 - **Spread nowcast radius:** it only scores cells within about 7.5 km (3 cells of 0.025°) of today's detections; new ignitions and spread beyond
@@ -207,7 +210,7 @@ static-source points: **remove them with an anti-join on `harmonized_hotspots_st
   It uses no weather (weather 4 days old did not help); a 5-cell radius raised the coverage to 31% / 53% but was not adopted.
 - **FWI is about 4 days behind:** NASA POWER daily data currently end on 2026-11-11. Show the reference date with the badge. FWI uses daily
   statistics instead of noon observations (see `fwi_meta.json`).
-- Spatial generalization of M2V (from v1.1): reliable for regions in the training data; do not apply it to a new continent as is.
+- Spatial generalization of FireBridge (from v1.1): reliable for regions in the training data; do not apply it to a new continent as is.
 - FRP S-NPP equivalents: Terra night ratio is low-confidence and 2000–2011 uses post-2012 ratios (see "FRP (S-NPP equivalent)").
 
 ## SHA-256

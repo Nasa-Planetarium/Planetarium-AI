@@ -1,4 +1,4 @@
-# API 계약 (데이터 담당 확정본, 작성 중) — 데이터 `v1.1-m2v-2026-11-14` (모델 `v1-m2v-2026-11-14`)
+# API 계약 (데이터 담당 확정본, 작성 중) — 데이터 `v1.1-m2v-2026-11-14` (변환 모델 FireBridge (MODIS-to-VIIRS Harmonizer, internal id: `m2v_xgb`), method_version `v1-m2v-2026-11-14`)
 
 > 감지 단위 통합(harmonized hotspots) 2·3단계 기준. 6단계에서 응답 예시·오류 형식까지 채워 확정한다.
 > 개요·화면 설명은 `docs/backend-handoff.md`.
@@ -24,10 +24,10 @@
 - `harmonized_cell_day`에서 영역 안 칸(`aoi`는 칸 × AOI 면적 가중치)과 `date_local` 범위로 `value`, `value_lo`, `value_hi`를 더한다.
 - **residual 규칙** (residual = 점으로 나눌 수 없는 값, `harmonized_residual_cell_month.residual_type`으로 구분)
   - **residual(`missing_day_fill` 음수 포함)은 합계 계산에만 쓰고, 별도 값·막대·레이어로 화면에 표시하지 말 것.**
-  - `modis_unseen` (2000-11 ~ 2012-01): MODIS가 감지하지 못한 칸의 m2v 추정분 + 배경 예측
+  - `modis_unseen` (2000-11 ~ 2012-01): MODIS가 감지하지 못한 칸의 FireBridge 추정분 + 배경 예측
   - `missing_day_fill` (2012-02 ~, 완결된 달): 위성 자료가 빠진 날을 달 전체로 환산한 몫 = 칸 value − Σ 기준 점 가중치.
     빠진 날에 감지가 있었던 칸은 **음수**일 수 있다(81,563행). 점 가중치는 센서 변환만(S-NPP 1.0, NOAA-20 ×n20_bridge,
-    NOAA-21 ×n21_bridge, MODIS ×m2v 배율)이라 이 몫이 점에 들어가지 않는다.
+    NOAA-21 ×n21_bridge, MODIS ×FireBridge 배율)이라 이 몫이 점에 들어가지 않는다.
   - 저장 위치: `harmonized_cell_day.residual_month` — 칸·월마다 그 달 **1일 행에만** 칸·월 합계가 들어 있고(나머지 날은 null), 일수로 배분하지 않았다. **저장 위치가 1일일 뿐 1일의 값이 아니다.**
   - **`freq=day` 응답**: 일별 `value`에는 residual을 **넣지 않는다**. 대신 달마다 `month_residual`(그 달 전체 residual 합)과
     `note`("MODIS 기간 점으로 표시되지 않는 추정분, 월 단위") 필드를 따로 준다. 프론트엔드는 이것을 1일 막대·점에 몰아서 그리지 않는다
@@ -73,7 +73,7 @@
 | 기간 | 점·칸 단위 | AOI 단위 (`aoi_month`) |
 |---|---|---|
 | 2000-11 ~ 2002-06 (Terra 단독) | **null** — 이 기간 구간은 AOI 단위로만 제공 | 있음 |
-| 2002-07 ~ 2012-01 | 있음 (M2V Uncertainty Band) | 있음 (AOI 보정) |
+| 2002-07 ~ 2012-01 | 있음 (FireBridge Uncertainty Band) | 있음 (AOI 보정) |
 | 2012-02 ~ | value와 같음 | value와 같음 |
 
 - 점·칸 구간을 더한 값은 합계의 정확한 구간이 아니다(오차 상쇄 무시로 넓음). 지역 구간은 `aoi_month.value_lo/hi`를 쓴다.
@@ -208,7 +208,7 @@
 - 규칙
   - 같은 키(위성·위도·경도·관측 시각) 중복은 하나만. 고정 열원 제외: SP는 `type 0`만, NRT는 고정 열원 0.01° 칸 제외 (→ `rows_out < rows_unique`).
   - v1.2: SP `type 0`이라도 고정 열원 0.01° 칸 안의 점은 `is_static_source = true`로 표시하고 요약(`summary_*`)에서 뺀다 (`summary.json`의 `static_source_rows`).
-  - 점 가중치: 서버에 같은 점이 있으면 그 가중치를 그대로, 없으면 그 달 규칙(VIIRS 기준 위성 = 1, NOAA-20 연결 비율, MODIS = m2v 예측)으로.
+  - 점 가중치: 서버에 같은 점이 있으면 그 가중치를 그대로, 없으면 그 달 규칙(VIIRS 기준 위성 = 1, NOAA-20 연결 비율, MODIS = FireBridge 예측)으로.
   - 서버 통합표에 없는 달의 기준 점은 `weight_source = pending_new_month`, `harmonized_weight = null` (새 달 MODIS 예측은 아직 없음).
   - 2012년 이후 MODIS 점은 `is_reference = false`, `weight_source = m2v_predicted`로 함께 나온다. 서버의 `harmonized_hotspots`에는
     VIIRS 시대 MODIS 점이 들어 있지 않으므로 비교할 때는 빼고 본다.

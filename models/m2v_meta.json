@@ -437,5 +437,6 @@
       }
     },
     "limitation": "m2v_xgb (MODIS->VIIRS) was trained on data that still included industrial heat sources (both MODIS and S-NPP sides). The MODIS-period residual (modis_unseen) and background are model predictions and cannot be split by point, so some static contribution may remain before 2012-02 (Korea removal 7% vs 23% after 2012-02)."
-  }
+  },
+  "display_name": "FireBridge (MODIS-to-VIIRS Harmonizer)"
 }

@@ -8,7 +8,7 @@ All datasets below are publicly available. Please keep this list in sync with wh
 ## 1. Active fire hotspots — NASA FIRMS (core data)
 
 - **Products**: MODIS Collection 6.1 (Terra, Aqua; 1 km), VIIRS 375 m Collection 2 (Suomi NPP, NOAA-20, NOAA-21); standard (SP/archive) and near-real-time (NRT) files
-- **Used for**: hotspot integration, MODIS→VIIRS harmonization model, burning-activity calendar
+- **Used for**: hotspot integration, MODIS→VIIRS harmonization model FireBridge (MODIS-to-VIIRS Harmonizer; internal id: `m2v_xgb`), burning-activity calendar
 - **Location in repo**: `data/raw/firms/`
 - **Acknowledgement** (recommended by FIRMS):
   > We acknowledge the use of data from NASA's Fire Information for Resource Management System (FIRMS) (https://firms.modaps.eosdis.nasa.gov), part of NASA's Earth Science Data and Information System (ESDIS).
