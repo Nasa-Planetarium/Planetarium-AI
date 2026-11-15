@@ -28,3 +28,6 @@ __pycache__/
 .legacy_code_*/
 *legacy*
 release_tmp/
+
+# TimesFM 비교 실험을 한 번에 돌리는 실행 스크립트
+timesfm_run_all.ps1
