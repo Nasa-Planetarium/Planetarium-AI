@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 import json
 from concurrent.futures import ThreadPoolExecutor
+from itertools import pairwise
 from pathlib import Path
 
 import numpy as np
@@ -64,16 +65,12 @@ def _combined(parts):
 
 
 def _training_rows(
-    panel, series: Series, years, samples: int
+    panel, series: Series, periods: list[tuple[int, int, int]]
 ) -> tuple[np.ndarray, np.ndarray]:
     groups_x, groups_y = [], []
     rng = np.random.default_rng(SEED)
     bins = calendar_bin(panel.dates)
-    for year in years:
-        start, stop = np.searchsorted(
-            panel.dates,
-            [np.datetime64(f"{year}-01-01"), np.datetime64(f"{year + 1}-01-01")],
-        )
+    for start, stop, samples in periods:
         stats = history_stats(series, panel.dates, panel.coverage, int(start))
         t = rng.integers(start, stop, size=samples)
         g = rng.integers(len(series.size), size=samples)
@@ -88,7 +85,29 @@ def _training_rows(
     return np.concatenate(groups_x), np.concatenate(groups_y)
 
 
-def fit(panel, path: Path, threads: int, device: str) -> None:
+def _periods(dates, first, stop, samples_per_year) -> list[tuple[int, int, int]]:
+    boundaries = (
+        np.flatnonzero(
+            dates[first + 1 : stop].astype("datetime64[Y]")
+            != dates[first : stop - 1].astype("datetime64[Y]")
+        )
+        + first
+        + 1
+    )
+    return [
+        (int(lo), int(hi), max(1, round(samples_per_year * (hi - lo) / 365.25)))
+        for lo, hi in zip([first, *boundaries], [*boundaries, stop], strict=True)
+    ]
+
+
+def fit(
+    panel,
+    path: Path,
+    threads: int,
+    device: str,
+    *,
+    window: tuple[int, int, int] | None = None,
+) -> None:
     from xgboost import XGBClassifier
 
     path.mkdir(parents=True, exist_ok=True)
@@ -99,8 +118,29 @@ def fit(panel, path: Path, threads: int, device: str) -> None:
         block_series(panel, span, sample_count=1100, rng=rng) for span in (2, 4, 8, 12)
     ]
     series = _combined([grids.select(subset), *areas])
-    xx, yy = _training_rows(panel, series, TRAIN, 92_000)
-    cx, cy = _training_rows(panel, series, [CAL], 180_000)
+    if window is None:
+        starts = panel.dates.searchsorted(
+            np.array(
+                [f"{year}-01-01" for year in (*TRAIN, CAL, CAL + 1)],
+                dtype="datetime64[D]",
+            )
+        ).tolist()
+        fit_periods = [(lo, hi, 92_000) for lo, hi in pairwise(starts[:-1])]
+        cal_periods = [(starts[-2], starts[-1], 180_000)]
+    else:
+        first, cal_first, stop = window
+        if not (2 <= first < cal_first < stop <= len(panel.dates)):
+            raise ValueError(
+                "Training and calibration both need earlier daily observations."
+            )
+        fit_periods = _periods(panel.dates, first, cal_first, 92_000)
+        cal_periods = [(cal_first, stop, 180_000)]
+    xx, yy = _training_rows(panel, series, fit_periods)
+    cx, cy = _training_rows(panel, series, cal_periods)
+    if len(np.unique(yy)) != 2 or len(np.unique(cy)) != 2:
+        raise ValueError(
+            "Training and calibration each need observed detections and non-detections."
+        )
     print(f"Fitting {len(yy):,} one-step pairs, calibration {len(cy):,}", flush=True)
 
     def train_logistic():
@@ -147,8 +187,10 @@ def fit(panel, path: Path, threads: int, device: str) -> None:
                         **config,
                         "cal_slope": float(cal.coef_[0, 0]),
                         "cal_bias": float(cal.intercept_[0]),
-                        "cal_until": f"{CAL}-12-31",
-                        "train_until": f"{max(TRAIN)}-12-31",
+                        "train_from": str(panel.dates[fit_periods[0][0]]),
+                        "train_until": str(panel.dates[fit_periods[-1][1] - 1]),
+                        "cal_from": str(panel.dates[cal_periods[0][0]]),
+                        "cal_until": str(panel.dates[cal_periods[-1][1] - 1]),
                         "fit_rows": len(yy),
                         "cal_rows": len(cy),
                         "device": device if name == "xgboost" else "cpu",
@@ -167,8 +209,10 @@ def _measure(fragments) -> dict:
         "rows": len(truth),
         "positive_rate": float(truth.mean()),
         "brier": brier_score_loss(truth, p),
-        "log_loss": log_loss(truth, p.clip(1e-7, 1 - 1e-7)),
-        "pr_auc": average_precision_score(truth, p),
+        "log_loss": log_loss(truth, p.clip(1e-7, 1 - 1e-7), labels=[0, 1]),
+        "pr_auc": average_precision_score(truth, p)
+        if truth.min() < truth.max()
+        else None,
     }
 
 

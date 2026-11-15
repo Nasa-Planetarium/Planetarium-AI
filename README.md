@@ -250,6 +250,8 @@ uv run python -m planetarium.modeling.m2         # n20_bridge
 `store.occurrence_forecast`에 위치나 여러 범위와 시작일·종료일을 넘기면 지역별 날짜마다 `p_any`를 반환합니다.
 받은 일별 관측의 간격으로 기준일 다음 날부터 연속 예측합니다. [지역·기간 조회 예시](reports/forecast_benchmark.md) · [월말 관측 갱신 방식의 전 세계 검증](reports/forecast_monthly_backtest.md)
 
+월을 가로지르는 임의 날짜 구간도 평가할 수 있습니다. [시작일·종료일 지정 학습과 평가](reports/forecast_benchmark.md#임의-날짜-구간의-학습과-평가)
+
 ## 크레딧 (Acknowledgements)
 
 - **Jonghun Shin ([@ozingmw](https://github.com/ozingmw))**: `handoff/firms-1km-backend` 브랜치 작업에서 다음 설계를 참고해 이 저장소에 통합했습니다.

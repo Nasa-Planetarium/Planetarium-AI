@@ -22,10 +22,9 @@ from planetarium.modeling.daily_occurrence import (
     grid_series,
     initial_state,
     model_predictor,
-    roll,
+    observed_events,
+    recursive_probabilities,
     smooth_transitions,
-    transition_table,
-    usable,
 )
 from planetarium.modeling.daily_occurrence_data import WORK, load_panel
 from planetarium.modeling.forecast_benchmark import (
@@ -92,12 +91,6 @@ def spatial_series(panel):
     return (("cell", grid_series(panel)), ("box", block_series(panel, 4)))
 
 
-def targets(panel, series, start, stop) -> np.ndarray:
-    actual = series.events[start:stop].astype(np.int8)
-    actual[~usable(panel.coverage[start:stop], series.sides)] = -1
-    return actual
-
-
 def pack_history(panel, series, origin, last_known):
     days = np.arange(origin - CONTEXT + 1, origin + 1)
     history = np.empty((len(series.sides), CONTEXT), dtype=np.uint8)
@@ -141,7 +134,7 @@ def prepare_foundation(panel, evaluation: list[Fold], path: Path) -> None:
         )
         for position, fold in enumerate(calibration):
             first = fold.origin + 1
-            actual = targets(panel, series, first, min(first + horizon, cutoff))
+            actual = observed_events(panel, series, first, min(first + horizon, cutoff))
             truth[position, : len(actual)] = actual
         arrays[f"{grain}_truth"] = truth.transpose(1, 0, 2)
     keys, inverse = np.unique(
@@ -188,12 +181,10 @@ def measure_month(panel, fold, grain, model, actual, probability) -> dict:
 def _score_transition(
     model, *, panel, fold, grain, series, stats, state, bins, labels, predictors
 ):
-    table = {
-        b: transition_table(model, stats, series, int(b), predictors.get(model))
-        for b in np.unique(bins)
-    }
     offset = fold.start - fold.origin - 1
-    probability = roll(state, bins, table.__getitem__)[offset:]
+    probability = recursive_probabilities(
+        series, stats, state, bins, model, predictors.get(model)
+    )[offset:]
     return measure_month(panel, fold, grain, model, labels, probability)
 
 
@@ -237,7 +228,7 @@ def run_local(panel, folds, folder, fitted, threads, device) -> None:
                     series, stats, panel.dates, panel.coverage, fold.origin
                 )
                 bins = calendar_bin(panel.dates[end_history : fold.stop])
-                labels = targets(panel, series, fold.start, fold.stop)
+                labels = observed_events(panel, series, fold.start, fold.stop)
                 score = partial(
                     _score_transition,
                     panel=panel,
@@ -296,7 +287,7 @@ def run_foundation(panel, folds, folder, model, args) -> None:
                 probabilities[lead] = p
             for fold, index in zip(folds, indices, strict=True):
                 offset = fold.start - fold.origin - 1
-                actual = targets(panel, series, fold.start, fold.stop)
+                actual = observed_events(panel, series, fold.start, fold.stop)
                 prediction = probabilities[offset : fold.horizon, index]
                 rows.append(
                     measure_month(panel, fold, grain, model, actual, prediction)

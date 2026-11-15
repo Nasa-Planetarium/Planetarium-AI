@@ -57,6 +57,14 @@ def usable(coverage: np.ndarray, sides: np.ndarray) -> np.ndarray:
     return (coverage[:, None] & sides) == sides
 
 
+def observed_events(
+    panel: DailyPanel, series: Series, start: int, stop: int
+) -> np.ndarray:
+    actual = series.events[start:stop].astype(np.int8)
+    actual[~usable(panel.coverage[start:stop], series.sides)] = -1
+    return actual
+
+
 def grid_series(panel: DailyPanel) -> Series:
     return Series(
         panel.events,
@@ -282,6 +290,63 @@ def _date(value: str | date) -> np.datetime64:
     return np.datetime64(parsed, "D")
 
 
+def region_masks(
+    regions: list[dict], cells: pl.DataFrame
+) -> tuple[list[str], list[np.ndarray]]:
+    if (
+        not isinstance(regions, list)
+        or not regions
+        or any(not isinstance(region, dict) for region in regions)
+    ):
+        raise ValueError("Provide a nonempty list of region objects.")
+    ids = [r.get("id") for r in regions]
+    if any(not isinstance(key, str) or not key.strip() for key in ids) or len(
+        set(ids)
+    ) != len(ids):
+        raise ValueError("Region IDs must be nonempty unique strings.")
+    masks = [_region_mask(r, cells) for r in regions]
+    for key, include in zip(ids, masks, strict=True):
+        if not include.any():
+            raise ValueError(f"Region {key!r} has no intersecting land cells.")
+    return ids, masks
+
+
+def region_sides(panel: DailyPanel, masks: list[np.ndarray]) -> np.ndarray:
+    by_cell = panel.sides
+    return np.asarray([np.bitwise_or.reduce(by_cell[m]) for m in masks], dtype=np.uint8)
+
+
+def region_series(
+    panel: DailyPanel, masks: list[np.ndarray], sides: np.ndarray, stop: int
+) -> Series:
+    return Series(
+        np.column_stack([panel.events[:stop, m].any(axis=1) for m in masks]).astype(
+            np.uint8
+        ),
+        sides,
+        np.asarray([panel.cells["lat"].to_numpy()[m].mean() for m in masks]),
+        np.asarray([m.sum() for m in masks]),
+    )
+
+
+def observed_origin(panel: DailyPanel, anchor: np.datetime64, sides: np.ndarray) -> int:
+    needed = np.bitwise_or.reduce(sides)
+    good = np.flatnonzero(
+        (panel.dates <= anchor) & ((panel.coverage & needed) == needed)
+    )
+    if not len(good) or good[-1] < 2:
+        raise ValueError("No usable observation history at or before the as-of date.")
+    return int(good[-1])
+
+
+def recursive_probabilities(series, stats, state, bins, model, predictor=None):
+    table = {
+        b: transition_table(model, stats, series, int(b), predictor)
+        for b in np.unique(bins)
+    }
+    return roll(state, bins, table.__getitem__)
+
+
 def forecast(
     regions: list[dict],
     start: str | date,
@@ -299,46 +364,15 @@ def forecast(
     anchor = _date(as_of) if as_of is not None else start_date - ONE_DAY
     if anchor >= start_date:
         raise ValueError("The as-of date must precede the output period.")
-    if (
-        not isinstance(regions, list)
-        or not regions
-        or any(not isinstance(region, dict) for region in regions)
-    ):
-        raise ValueError("Provide a nonempty list of region objects.")
-    ids = [r.get("id") for r in regions]
-    if any(not isinstance(key, str) or not key.strip() for key in ids) or len(
-        set(ids)
-    ) != len(ids):
-        raise ValueError("Region IDs must be nonempty unique strings.")
-
     base = Path(work or WORK)
     panel = load_panel(root, base)
-    mask = [_region_mask(r, panel.cells) for r in regions]
-    for key, include in zip(ids, mask, strict=True):
-        if not include.any():
-            raise ValueError(f"Region {key!r} has no intersecting land cells.")
-    sides_by_cell = panel.sides
-    sides = np.asarray(
-        [np.bitwise_or.reduce(sides_by_cell[m]) for m in mask], dtype=np.uint8
-    )
-    needed = np.bitwise_or.reduce(sides)
-    good = np.flatnonzero(
-        (panel.dates <= anchor) & ((panel.coverage & needed) == needed)
-    )
-    if not len(good) or good[-1] < 2:
-        raise ValueError("No usable observation history at or before the as-of date.")
-    origin = int(good[-1])
+    ids, masks = region_masks(regions, panel.cells)
+    sides = region_sides(panel, masks)
+    origin = observed_origin(panel, anchor, sides)
     origin_date = panel.dates[origin]
     # A union is modeled from the area's actual any-detection history. A
     # detection in overlapping boxes is represented by the same grid cell.
-    series = Series(
-        np.column_stack(
-            [panel.events[: origin + 1, m].any(axis=1) for m in mask]
-        ).astype(np.uint8),
-        sides,
-        np.asarray([panel.cells["lat"].to_numpy()[m].mean() for m in mask]),
-        np.asarray([m.sum() for m in mask]),
-    )
+    series = region_series(panel, masks, sides, origin + 1)
     year_start = origin_date.astype("datetime64[Y]").astype("datetime64[D]")
     before_year = int(np.searchsorted(panel.dates, year_start))
     stats = history_stats(
@@ -370,11 +404,10 @@ def forecast(
         raise ValueError(f"Unknown model {model!r}.")
 
     future = np.arange(origin_date + ONE_DAY, end_date + ONE_DAY, dtype="datetime64[D]")
-    table = {}
-    for b in np.unique(calendar_bin(future)):
-        table[b] = transition_table(model, stats, series, int(b), pred)
     state = initial_state(series, stats, panel.dates, panel.coverage, origin)
-    path = roll(state, calendar_bin(future), table.__getitem__)
+    path = recursive_probabilities(
+        series, stats, state, calendar_bin(future), model, pred
+    )
     keep = future >= start_date
     dates = future[keep]
     probs = path[keep]

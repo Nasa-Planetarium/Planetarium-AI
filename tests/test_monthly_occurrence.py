@@ -9,12 +9,12 @@ from planetarium.modeling.daily_occurrence import (
     Series,
     add_transition_counts,
     history_stats,
+    observed_events,
     smooth_transitions,
 )
 from planetarium.modeling.monthly_occurrence_benchmark import (
     folds_for_months,
     pack_history,
-    targets,
 )
 
 
@@ -52,7 +52,7 @@ class MonthlyOccurrenceTest(unittest.TestCase):
         np.testing.assert_array_equal(unpacked[:, -3:], [[1, 1, 0], [0, 1, 1]])
         events[65] = 1
         np.testing.assert_array_equal(pack_history(panel, series, 64, known), baseline)
-        np.testing.assert_array_equal(targets(panel, series, 65, 66), [[1, -1]])
+        np.testing.assert_array_equal(observed_events(panel, series, 65, 66), [[1, -1]])
 
     def test_incremental_transitions_match_full_history_at_each_month(self):
         dates = np.arange("2025-01-01", "2025-04-01", dtype="datetime64[D]")
