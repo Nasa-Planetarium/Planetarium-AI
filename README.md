@@ -245,6 +245,11 @@ uv run python -m planetarium.modeling.m2         # n20_bridge
 
 컬럼 설명과 처리 방식은 `firms-merge-guide.html` 문서를 참고하세요.
 
+## 다음 달 열원 탐지 확률 실험
+
+전 세계 0.5° 육지 격자마다 기준월 다음 달에 기준 열원이 한 건 이상 탐지될 확률을 검증합니다.
+이진 학습과 확률 보정의 기준, 모델 비교, 전망 파일 경로는 [실험 기록](reports/forecast_benchmark.md)에 있습니다.
+
 ## 크레딧 (Acknowledgements)
 
 - **Jonghun Shin ([@ozingmw](https://github.com/ozingmw))**: `handoff/firms-1km-backend` 브랜치 작업에서 다음 설계를 참고해 이 저장소에 통합했습니다.

@@ -19,6 +19,8 @@
 | `GET /fwi` | `fwi_aoi_day.parquet` (+ `fwi_clim_aoi_month.parquet`) | 지역 산불 기상 위험도 배지 (한국·아르헨티나) |
 | `GET /export.csv` | 위 결과를 CSV로 | |
 
+월 단위 `p_any`의 사건은 지역 내 다음 달 기준 감지 1건 이상입니다. 전 세계 0.5° 육지 격자를 대상으로 한 확장 검증은 [열원 탐지 확률 실험](../reports/forecast_benchmark.md)에 정리했습니다.
+
 ### `/summary?aoi|bbox|polygon&start&end&freq=day|month`
 
 - `harmonized_cell_day`에서 영역 안 칸(`aoi`는 칸 × AOI 면적 가중치)과 `date_local` 범위로 `value`, `value_lo`, `value_hi`를 더한다.

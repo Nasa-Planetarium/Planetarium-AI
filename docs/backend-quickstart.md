@@ -104,6 +104,8 @@ data/processed/
 
 **지역 ID 예시**: `WORLD`, `KR`(한국), `SIDO_11`(서울), `SGG_47730`(의성군), `ADM0_ARG`(아르헨티나). 전체 목록은 `aoi_list.aoi_id`.
 
+전 세계 육지 격자 확률의 확장 비교 방식과 `p_any`·`p_none` 실험 출력은 [다음 달 열원 탐지 확률 실험](../reports/forecast_benchmark.md)에 있습니다.
+
 ---
 
 ## 4. 읽는 법 (Polars 예시)
