@@ -19,6 +19,10 @@
 | `GET /fwi` | `fwi_aoi_day.parquet` (+ `fwi_clim_aoi_month.parquet`) | 지역 산불 기상 위험도 배지 (한국·아르헨티나) |
 | `GET /export.csv` | 위 결과를 CSV로 | |
 
+### 과학자 탭의 다음 달 탐지량 예측 연동안
+
+예측 분석 탭은 지역과 대상 월마다 월 전체의 예측 `value` 하나를 받습니다. 응답에는 `region_id`, `target_month`, `as_of_date`를 함께 전달합니다. 권장 모델은 관측 0을 유지한 월간 LightGBM L1입니다. [월간 응답 예시와 모델 검증](monthly_activity_forecast.md)
+
 ### 위치별 30일 탐지량 예측
 
 Python에서 `planetarium.store.value_forecast(regions, as_of=None, model=None, model_dir=None)`을 호출합니다. 각 지역은 고유한 문자열 `id`와 `point=[경도, 위도]`, `bbox=[서, 남, 동, 북]`, `bboxes=[[서, 남, 동, 북], ...]` 중 하나를 받습니다. 좌표는 해당 0.1° 칸을 고르고 범위는 중심점이 포함된 칸의 일별 `value`를 합산합니다. `bboxes`의 중복 칸은 한 번만 합산합니다. 서쪽 경도가 동쪽 경도보다 크면 날짜변경선을 가로지르는 범위입니다.

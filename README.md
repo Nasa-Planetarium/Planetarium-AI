@@ -245,7 +245,9 @@ uv run python -m planetarium.modeling.m2         # n20_bridge
 
 컬럼 설명과 처리 방식은 `firms-merge-guide.html` 문서를 참고하세요.
 
-## 위치별 30일 탐지량 예측
+## 지역별 연소 활동 예측
+
+과학자 탭에 사용할 달력 월 합계 예측의 권장 모델은 LightGBM L1입니다. [월간 모델 검증과 백엔드 연동안](docs/monthly_activity_forecast.md)
 
 `store.value_forecast`에 좌표나 사각 범위를 넘기면 관측 기준일 다음 날부터 30일간의 현지 날짜별 `value`를 반환합니다. `value`의 단위는 릴리스와 같은 S-NPP 기준 환산 탐지량입니다. [모델 비교와 실행 방법](reports/forecast_benchmark.md)
 

@@ -1,4 +1,4 @@
-"""Features available at forecast creation for direct leads 1–30."""
+"""Features available at forecast creation for direct daily leads."""
 
 from __future__ import annotations
 
@@ -51,9 +51,11 @@ def safe_mean(values: np.ndarray) -> np.ndarray:
     return np.nansum(values, axis=0) / np.maximum(known.sum(axis=0), 1)
 
 
-def seasonal_mean(history: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
-    width = HORIZON + 30
-    totals = np.zeros((HORIZON, history.shape[1]), dtype=np.float32)
+def seasonal_mean(
+    history: np.ndarray, horizon: int = HORIZON
+) -> tuple[np.ndarray, np.ndarray]:
+    width = horizon + 30
+    totals = np.zeros((horizon, history.shape[1]), dtype=np.float32)
     numbers = np.zeros_like(totals)
     last_year = None
     for year in range(1, 4):
@@ -79,7 +81,9 @@ def seasonal_mean(history: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
     return mean, mean if last_year is None else last_year
 
 
-def make_batch(panel: ValuePanel, origin: int) -> ForecastBatch:
+def make_batch(
+    panel: ValuePanel, origin: int, *, horizon: int = HORIZON
+) -> ForecastBatch:
     if origin < CONTEXT - 1:
         raise ValueError(
             f"At least {CONTEXT} calendar days are required before forecasting."
@@ -87,11 +91,12 @@ def make_batch(panel: ValuePanel, origin: int) -> ForecastBatch:
     history = np.asarray(
         panel.values[max(0, origin + 1 - SEASON_LOOKBACK) : origin + 1]
     )
-    seasonal, last_year = seasonal_mean(history)
+    seasonal, last_year = seasonal_mean(history, horizon)
     annual = safe_mean(history[-365:])
     scale = (1 + np.maximum(annual, 0)).astype(np.float32)
     recent = safe_mean(history[-30:]).astype(np.float32)
-    by_day = panel.dates[origin] + np.arange(1, HORIZON + 1).astype("timedelta64[D]")
+    leads = np.arange(1, horizon + 1)
+    by_day = panel.dates[origin] + leads.astype("timedelta64[D]")
     year = by_day.astype("datetime64[Y]").astype("datetime64[D]")
     phase = (by_day - year).astype(int) * (2 * np.pi / 365.25)
     phase_lon = np.deg2rad(panel.regions["lon"].to_numpy())
@@ -101,7 +106,7 @@ def make_batch(panel: ValuePanel, origin: int) -> ForecastBatch:
     log = lambda value: np.log1p(np.maximum(value, 0))
     scaled_log = lambda value: log(value / scale)
     variables = [
-        np.arange(1, HORIZON + 1)[:, None],
+        leads[:, None],
         np.sin(phase)[:, None],
         np.cos(phase)[:, None],
         panel.regions["lat"].to_numpy() / 90,
@@ -122,9 +127,9 @@ def make_batch(panel: ValuePanel, origin: int) -> ForecastBatch:
         scaled_log(last_year),
         scaled_log(safe_mean(history[-60:-30])),
     ]
-    x = np.empty((len(scale), HORIZON, len(FEATURES)), dtype=np.float32)
+    x = np.empty((len(scale), horizon, len(FEATURES)), dtype=np.float32)
     for j, values in enumerate(variables):
-        x[..., j] = np.broadcast_to(values, (HORIZON, len(scale))).T
+        x[..., j] = np.broadcast_to(values, (horizon, len(scale))).T
     context = np.asarray(history[-CONTEXT:].T, dtype=np.float32)
     context = np.where(
         np.isfinite(context), context, safe_mean(context.T)[:, None]

@@ -177,6 +177,35 @@ def mask_unobserved(
         values[np.ix_((coverage & i) != i, sides == i)] = np.nan
 
 
+def grid_value_totals(
+    observations: pl.LazyFrame,
+    boxes: pl.DataFrame,
+    layout: tuple[int, int, int, int, int | None],
+    period: str,
+) -> pl.DataFrame:
+    width, height, ox, oy, _ = layout
+    ncols = (WIDTH - ox) // width
+    keys = boxes.select(
+        "ix",
+        key=(
+            ((pl.col("south") - oy) // height) * ncols + (pl.col("west") - ox) // width
+        ).cast(pl.Int32),
+    )
+    col = pl.col("cell_id") % WIDTH - ox
+    row = pl.col("cell_id") // WIDTH - oy
+    return (
+        observations.filter(
+            col.is_between(0, ncols * width - 1),
+            row.is_between(0, ((HEIGHT - oy) // height) * height - 1),
+        )
+        .with_columns(key=row // height * ncols + col // width)
+        .join(keys.lazy(), on="key", how="inner")
+        .group_by(period, "ix")
+        .agg(pl.col("value").cast(pl.Float64).sum())
+        .collect(engine="streaming")
+    )
+
+
 def _build(root: Path, dest: Path) -> None:
     dates, coverage = normal_days(root)
     regions = choose_boxes(root)
@@ -188,28 +217,10 @@ def _build(root: Path, dest: Path) -> None:
         shape=(len(dates), regions.height),
     )
     offset = 0
-    for scale, (width, height, ox, oy, _) in zip(SCALES, LAYOUTS, strict=True):
+    for scale, layout in zip(SCALES, LAYOUTS, strict=True):
         boxes = regions.filter(pl.col("scale") == scale)
-        ncols = (WIDTH - ox) // width
-        keys = boxes.with_row_index("ix").select(
-            "ix",
-            key=(
-                ((pl.col("south") - oy) // height) * ncols
-                + (pl.col("west") - ox) // width
-            ).cast(pl.Int32),
-        )
-        col = pl.col("cell_id") % WIDTH - ox
-        row = pl.col("cell_id") // WIDTH - oy
-        sums = (
-            observations.filter(
-                col.is_between(0, ncols * width - 1),
-                row.is_between(0, ((HEIGHT - oy) // height) * height - 1),
-            )
-            .with_columns(key=row // height * ncols + col // width)
-            .join(keys.lazy(), on="key", how="inner")
-            .group_by("date_local", "ix")
-            .agg(pl.col("value").cast(pl.Float64).sum())
-            .collect(engine="streaming")
+        sums = grid_value_totals(
+            observations, boxes.with_row_index("ix"), layout, "date_local"
         )
         values = fill_matrix(sums, dates, boxes["sides"].to_numpy())
         mask_unobserved(values, coverage, boxes["sides"].to_numpy())

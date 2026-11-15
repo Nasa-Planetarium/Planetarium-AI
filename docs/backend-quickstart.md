@@ -104,6 +104,8 @@ data/processed/
 
 **지역 ID 예시**: `WORLD`, `KR`(한국), `SIDO_11`(서울), `SGG_47730`(의성군), `ADM0_ARG`(아르헨티나). 전체 목록은 `aoi_list.aoi_id`.
 
+과학자 탭의 다음 달 전체 예측은 지역·대상 월마다 월 합계 `value` 한 건을 전달하는 형식입니다. 권장 월간 모델과 응답 예시는 [월간 연소 활동 예측](monthly_activity_forecast.md)에 있습니다.
+
 사용자 지정 위치의 30일 예측은 `store.value_forecast`를 호출합니다. 좌표, 사각 범위, 사각 범위의 합집합을 받아 날짜별 S-NPP 기준 환산 탐지량 `value`를 반환합니다. [모델 학습과 다중 지역 예시](../reports/forecast_benchmark.md)
 
 ---
