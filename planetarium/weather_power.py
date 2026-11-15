@@ -53,16 +53,22 @@ def points() -> pl.DataFrame:
             .unique().collect().sort("region", "glat", "glon"))
 
 
-def cache_path(region: str, lat: float, lon: float) -> Path:
-    return CACHE_DIR / region / f"{lat:.3f}_{lon:.3f}.json"
+def cache_path(region: str, lat: float, lon: float, cache_dir: Path = CACHE_DIR) -> Path:
+    return cache_dir / region / f"{lat:.3f}_{lon:.3f}.json"
 
 
-def fetch_one(region: str, lat: float, lon: float, tries: int = 6) -> tuple[str, float]:
-    path = cache_path(region, lat, lon)
+def recent_dir(fetch_date: str) -> Path:
+    """2026년 이어 받기 캐시: 받은 날짜별 폴더 (다시 받으면 새 폴더, 이전 것은 그대로)."""
+    return EXTERNAL_DATA_DIR / "weather" / "power_2026" / fetch_date
+
+
+def fetch_one(region: str, lat: float, lon: float, tries: int = 6, cache_dir: Path = CACHE_DIR,
+              start: str = START, end: str = END) -> tuple[str, float]:
+    path = cache_path(region, lat, lon, cache_dir)
     if path.exists():
         return "cached", 0.0
     url = (f"{API}?parameters={','.join(PARAMS)}&community=AG&longitude={lon}&latitude={lat}"
-           f"&start={START}&end={END}&format=JSON&time-standard=LST")
+           f"&start={start}&end={end}&format=JSON&time-standard=LST")
     t0, wait = time.perf_counter(), 5.0
     for k in range(tries):
         try:
@@ -85,16 +91,16 @@ def fetch_one(region: str, lat: float, lon: float, tries: int = 6) -> tuple[str,
     return "fail", time.perf_counter() - t0
 
 
-def fetch() -> None:
+def fetch(cache_dir: Path = CACHE_DIR, start: str = START, end: str = END) -> None:
     pts = points()
-    todo = [r for r in pts.iter_rows() if not cache_path(*r).exists()]
+    todo = [r for r in pts.iter_rows() if not cache_path(*r, cache_dir).exists()]
     print(f"[지점] 전체 {pts.height:,} (한국 {pts.filter(pl.col('region') == 'KR').height}, 아르헨티나 "
-          f"{pts.filter(pl.col('region') == 'ARG').height}) / 남은 {len(todo):,} — 요청 1회 = 한 지점 {START}~{END} 변수 {len(PARAMS)}개")
+          f"{pts.filter(pl.col('region') == 'ARG').height}) / 남은 {len(todo):,} — 요청 1회 = 한 지점 {start}~{end} 변수 {len(PARAMS)}개")
     t0 = time.perf_counter()
     n_ok = n_fail = 0
     secs = []
     with ThreadPoolExecutor(WORKERS) as ex:
-        futs = {ex.submit(fetch_one, *r): r for r in todo}
+        futs = {ex.submit(fetch_one, *r, cache_dir=cache_dir, start=start, end=end): r for r in todo}
         bar = tqdm(as_completed(futs), total=len(futs), desc="NASA POWER", unit="point", dynamic_ncols=True)
         for f in bar:
             status, sec = f.result()
@@ -115,9 +121,9 @@ def rh_min_expr() -> pl.Expr:
     return (100 * es(pl.col("T2MDEW")) / es(pl.col("T2M_MAX"))).clip(0, 100)
 
 
-def combine() -> pl.DataFrame:
+def combine(cache_dir: Path = CACHE_DIR, out_path: Path = DAILY_PATH) -> pl.DataFrame:
     rows = []
-    files = sorted(CACHE_DIR.glob("*/*.json"))
+    files = sorted(cache_dir.glob("*/*.json"))
     for f in tqdm(files, desc="합본", unit="point", dynamic_ncols=True):
         region = f.parent.name
         lat, lon = (float(x) for x in f.stem.split("_"))
@@ -128,9 +134,9 @@ def combine() -> pl.DataFrame:
     df = pl.concat(rows).with_columns(pl.col("date").str.strptime(pl.Date, "%Y%m%d"),
                                       *[pl.when(pl.col(k) <= -998).then(None).otherwise(pl.col(k)).cast(pl.Float32).alias(k) for k in PARAMS])
     df = df.with_columns(RH2M_MIN_EST=rh_min_expr().cast(pl.Float32)).sort("region", "glat", "glon", "date")
-    df.write_parquet(DAILY_PATH, compression="zstd")
+    df.write_parquet(out_path, compression="zstd")
     nulls = {k: int(df[k].null_count()) for k in PARAMS}
-    print(f"[완료] {DAILY_PATH.name}: {df.height:,}행, 지점 {len(files):,}, 결측 {nulls}")
+    print(f"[완료] {out_path.name}: {df.height:,}행, 지점 {len(files):,}, 결측 {nulls}")
     return df
 
 

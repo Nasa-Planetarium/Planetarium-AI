@@ -196,6 +196,50 @@ def compute(w: pl.DataFrame | None = None, start: tuple | None = None) -> pl.Dat
         "region", "glat", "glon", "date")
 
 
+def apply_clim(df: pl.DataFrame, clim: pl.DataFrame, keys: list[str], col: str) -> pl.DataFrame:
+    """기후 기간 밖 날짜: 경계값(q25·q75·q90)으로 fwi_rel_class만 정하고 fwi_pct는 비운다."""
+    g = keys + ["month"]
+    out = df.with_columns(month=pl.col("date").dt.month().cast(pl.Int8)).join(clim.select(*g, "q25", "q75", "q90"), on=g, how="left")
+    return out.with_columns(
+        fwi_pct=pl.lit(None, dtype=pl.Float32),
+        fwi_rel_class=pl.when(pl.col(col).is_null() | pl.col("q25").is_null()).then(pl.lit(None, dtype=pl.String))
+        .when(pl.col(col) < pl.col("q25")).then(pl.lit("below_normal"))
+        .when(pl.col(col) < pl.col("q75")).then(pl.lit("normal"))
+        .when(pl.col(col) < pl.col("q90")).then(pl.lit("above_normal"))
+        .otherwise(pl.lit("well_above_normal"))).drop("month", "q25", "q75", "q90")
+
+
+def extend(fetch_date: str, skip_fetch: bool = False) -> tuple[pl.DataFrame, pl.DataFrame]:
+    """2026-01-01 ~ fetch_date를 NASA POWER에서 받아 2025-12-31 상태(FFMC·DMC·DC)에서 이어 계산.
+    기존 파일의 2026년 이후 행은 바꿔 끼운다 (2012~2025 행·경계값은 그대로)."""
+    from planetarium.weather_power import combine, fetch, recent_dir
+    cache = recent_dir(fetch_date)
+    w_path = cache / "power_daily_2026.parquet"
+    if not skip_fetch:
+        fetch(cache, "20260101", fetch_date)
+    w = combine(cache, w_path)
+    old = pl.read_parquet(FWI_PATH)
+    hist = old.filter(pl.col("date").dt.year() < 2026)
+    state = (hist.filter(pl.col("date") == pl.date(2025, 12, 31)).select("region", "glat", "glon", "FFMC", "DMC", "DC"))
+    pts = w.select("region", "glat", "glon").unique().sort("region", "glat", "glon")
+    st = pts.join(state, on=["region", "glat", "glon"], how="left")
+    miss = st.filter(pl.col("FFMC").is_null()).height
+    if miss:
+        print(f"[주의] 2025-12-31 상태가 없는 지점 {miss}개 → 시작값 85/6/15")
+    st = st.with_columns(pl.col("FFMC").fill_null(85.0), pl.col("DMC").fill_null(6.0), pl.col("DC").fill_null(15.0))
+    start = tuple(st[c].to_numpy().astype(np.float64) for c in ("FFMC", "DMC", "DC"))
+    new = compute(w, start=start).filter(pl.col("date") >= pl.date(2026, 1, 1))
+    # 끝부분 결측(POWER 근실시간 지연)은 행을 두지 않음
+    new = new.filter(pl.col("FWI").is_not_null() & pl.col("FWI").is_not_nan())
+    new = apply_clim(new, pl.read_parquet(CLIM_CELL_PATH), ["region", "glat", "glon"], "FWI")
+    cell = pl.concat([hist, new.select(hist.columns)]).sort("region", "glat", "glon", "date")
+    a_old = pl.read_parquet(FWI_AOI_PATH)
+    a_hist = a_old.filter(pl.col("date").dt.year() < 2026)
+    a_new = apply_clim(aoi_day(new), pl.read_parquet(CLIM_AOI_PATH), ["aoi_id"], "fwi_mean")
+    aoi = pl.concat([a_hist, a_new.select(a_hist.columns)]).sort("aoi_id", "date")
+    return cell, aoi
+
+
 def aoi_day(fwi: pl.DataFrame) -> pl.DataFrame:
     """AOI × 날짜: 0.1° 칸 × AOI 면적 가중치를 0.5° 칸으로 묶어 가중 평균 (작은 시군구도 값이 생김)."""
     from planetarium.harmonize import aoi_membership
@@ -278,11 +322,28 @@ def summarize(f: pl.DataFrame, cls: str, score: str, names: list[str]) -> pl.Dat
 
 def main(argv: list[str] | None = None) -> None:
     ap = argparse.ArgumentParser(description="캐나다 FWI 시스템 일별 (NASA POWER)")
-    ap.add_argument("step", choices=["compute", "aoi", "validate", "all"])
+    ap.add_argument("step", choices=["compute", "aoi", "validate", "all", "extend"])
+    ap.add_argument("--fetch-date", default=None, help="extend: POWER 끝 날짜 YYYYMMDD (기본 오늘)")
+    ap.add_argument("--skip-fetch", action="store_true", help="extend: 이미 받은 캐시만 합침")
     args = ap.parse_args(argv)
     start_run_log("fwi")
     t0 = time.perf_counter()
     steps = ["compute", "aoi", "validate"] if args.step == "all" else [args.step]
+    if args.step == "extend":
+        from datetime import date
+        fd = args.fetch_date or date.today().strftime("%Y%m%d")
+        cell, aoi = extend(fd, args.skip_fetch)
+        cell.write_parquet(FWI_PATH, compression="zstd")
+        aoi.write_parquet(FWI_AOI_PATH, compression="zstd")
+        n26 = cell.filter(pl.col("date").dt.year() >= 2026)
+        print(f"[완료] {FWI_PATH.name}: {cell.height:,}행 (2026년 {n26.height:,}행, 마지막 날 {n26['date'].max()}), "
+              f"{FWI_AOI_PATH.name}: {aoi.height:,}행")
+        last = aoi.filter(pl.col("date").dt.year() >= 2026).group_by("aoi_id").agg(pl.col("date").max()).join(aoi, on=["aoi_id", "date"])
+        with pl.Config(tbl_rows=-1, tbl_cols=-1, tbl_width_chars=200, tbl_hide_column_data_types=True, float_precision=2):
+            print(last.filter(pl.col("aoi_id").is_in(["KR", "SGG_47730", "ADM0_ARG"]))
+                  .select("aoi_id", "name", "date", "fwi_mean", "fwi_max", "fwi_class", "fwi_rel_class"))
+        print(f"[완료] extend {time.perf_counter() - t0:,.0f}초, 최대 메모리 {peak_memory_gb() or 0:.2f} GB")
+        return
     if "compute" in steps:
         f, clim = add_relative(compute(), ["region", "glat", "glon"], "FWI")
         f.write_parquet(FWI_PATH, compression="zstd")
