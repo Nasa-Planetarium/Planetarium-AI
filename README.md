@@ -2,7 +2,7 @@
 
 Team Planetarium · NASA Space Apps 2026 Seoul
 
-MODIS와 VIIRS를 통합한 전 세계 과거 관측과, FIRMS API 응답을 같은 1km 격자로 변환하는 Python 패키지입니다. 백엔드는 원하는 지역과 UTC 날짜 또는 월을 지정해 TimesFM 3.0 예측을 실행할 수 있습니다.
+MODIS와 VIIRS를 통합한 전 세계 과거 관측과, FIRMS API 응답을 같은 1km 격자로 변환하는 Python 패키지입니다. 백엔드는 원하는 지역과 UTC 기간을 지정해 TimesFM 3.0 예측을 실행할 수 있습니다.
 
 ```text
 Planetarium-AI/
@@ -13,7 +13,7 @@ Planetarium-AI/
 ├── firms_backend/
 │   ├── api.py                  과거 관측 조회 및 FIRMS CSV 응답 변환
 │   ├── converter/              공통 스키마 변환과 센서 보정 모델
-│   ├── forecasting/            지역·시점별 TimesFM 추론
+│   ├── forecasting/            지역·기간별 TimesFM 추론
 │   ├── release_assets.py       통합 데이터 다운로드 및 SHA-256 검증
 │   └── release-manifest.json   아카이브 분할 파일 목록
 ├── pyproject.toml
@@ -68,7 +68,7 @@ metadata = convert_api_csv(
 
 결과는 통합본과 같은 1km 스키마의 Parquet와 요청 범위를 기록한 메타데이터입니다. 검출점 없이 헤더만 반환된 날도 요청 기간에 포함됩니다. 여러 제품이나 기간을 받으면 각각 별도 출력 폴더에 변환한 뒤 예측 시 `updates`에 전달합니다. CSV 파일을 직접 변환할 때는 `convert_firms("input.csv", "converted")`를 사용합니다.
 
-## 3. 지역·시점별 TimesFM 3.0 예측
+## 3. 지역·기간별 TimesFM 3.0 예측
 
 ```sh
 python -m pip install -e '.[forecast]'
@@ -85,11 +85,11 @@ from firms_backend.forecasting.predict import FirmsForecaster
 # 백엔드 워커에서 인스턴스를 재사용합니다.
 forecast = FirmsForecaster("data/processed", checkpoint="models/timesfm-3.0")
 
-day = forecast.forecast_daily(
-    "2026-11-17", bbox=area, as_of="2026-11-14", limit=1000,
+two_weeks = forecast.forecast_daily(
+    "2026-11-15", end_date="2026-11-28", bbox=area, as_of="2026-11-14", limit=1000,
 )
-month = forecast.forecast_monthly(
-    "2027-02", bbox=area, as_of="2026-11-14", limit=1000,
+quarter = forecast.forecast_monthly(
+    "2026-12", end_month="2027-02", bbox=area, as_of="2026-11-14", limit=1000,
 )
 
 # 새 관측을 기준으로 같은 지역을 예측할 때
@@ -99,12 +99,13 @@ updated = forecast.forecast_daily(
 )
 ```
 
-- **일별**은 기준일을 포함한 과거 64일의 관측을 사용해 기준일 다음 1~7일 중 요청한 하루를 계산합니다.
-- **월별**은 완결된 36개월의 관측으로 기준 월 이후 1~12개월 중 요청한 한 달을 계산합니다. 기준 달의 14일까지 관측 범위가 필요하며, 첫 14일은 후보 격자를 고르는 데 사용합니다.
+- 시작과 종료 시점을 모두 포함합니다. `end_date` 또는 `end_month`를 생략하면 시작 시점 하나만 반환합니다. 결과는 선택한 단위의 날짜 또는 월 순서로 정렬되며 `limit`은 각 시점에 적용됩니다.
+- **일별**은 기준일을 포함한 과거 64일, **월별**은 완결된 36개월의 관측을 사용합니다. 시작일은 기준일 이후, 시작 월은 기준 월 이후여야 합니다. 월별 예측에는 기준 월의 첫 14일까지 관측 범위가 필요하며 해당 기간은 후보 격자를 고르는 데 사용합니다.
+- 모델은 기준시점부터 요청한 종료 시점까지 예측하고, `rows`에는 요청 구간의 결과를 반환합니다. 긴 기간을 요청할 수 있으며, 장기 예측의 정확도는 별도로 검증해야 합니다.
 - `as_of`의 기본값은 요청 지역을 덮는 데이터의 마지막 UTC 날짜입니다. 필요한 기간에 빈 날짜가 있으면 그 날짜를 오류로 반환합니다. 실제 검출이 0건인 날짜는 요청 범위로 기록된 경우 정상 처리합니다.
 - 응답의 `rows`는 `grid_id`, `longitude`, `latitude`, 검출 확률, NOAA-20 기준 조건부 FRP 중앙값(MW)을 담습니다. 확률은 일별 `p_detected`, 월별 `p_detected_any`입니다. FRP 이력이 없으면 FRP가 `null`이고, 후보 격자가 없으면 `rows`가 빈 목록입니다. 예측된 FRP의 상한은 해당 격자의 과거 관측 최댓값입니다. 응답에는 기준일, 모델 버전과 후보 격자 수도 함께 들어갑니다.
 
 ```sh
-python -m firms_backend.forecasting.predict --date 2026-11-17 \
+python -m firms_backend.forecasting.predict --date 2026-11-15 --end-date 2026-11-28 \
   --as-of 2026-11-14 --bbox 124 33 132 39 --limit 20
 ```

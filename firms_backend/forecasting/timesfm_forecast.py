@@ -36,10 +36,11 @@ class TimesFM:
         _, rows, inverse = np.unique(keys, return_index=True, return_inverse=True)
         decoded = np.empty((len(rows), horizon, len(self.levels) - 2), dtype=np.float32)
         padded_horizon = ((horizon + self.horizon_patch - 1) // self.horizon_patch) * self.horizon_patch
+        batch_size = max(1, self.batch_size * self.horizon_patch // padded_horizon)
         with torch.inference_mode(), torch.autocast(self.device, dtype=torch.bfloat16,
                                                    enabled=self.mixed_precision):
-            for start in range(0, len(rows), self.batch_size):
-                batch = slice(start, start + self.batch_size)
+            for start in range(0, len(rows), batch_size):
+                batch = slice(start, start + batch_size)
                 values = torch.from_numpy(contexts[rows[batch], None, :]).to(self.device)
                 result = self.model.decode(values, horizon=padded_horizon)
                 decoded[batch] = result[:, 0, :horizon].float().cpu().numpy()
