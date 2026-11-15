@@ -58,3 +58,55 @@ uv run python -m planetarium.modeling.forecast_benchmark forecast \
 | XGBoost 전이 모델 | 0.03190 | 0.03329 | 0.03425 | 0.03533 | 0.69890 | 0.07243 | 0.08113 |
 
 <!-- daily-occurrence-results:end -->
+
+## Hugging Face 사전학습 모델 비교
+
+Hugging Face의 네 체크포인트를 같은 일별 발생 문제에서 비교했습니다.
+
+- TimesFM 3.0 [모델 카드](https://huggingface.co/google/timesfm-3.0-pytorch)
+- Chronos-2 [모델 카드](https://huggingface.co/amazon/chronos-2)
+- Chronos-Bolt Base [모델 카드](https://huggingface.co/amazon/chronos-bolt-base)
+- TiRex-2 [모델 카드](https://huggingface.co/NX-AI/TiRex-2)
+
+각 모델에는 기준일까지의 64일 이진 감지 이력을 입력했습니다. 이력의 관측 공백은 해당 시점보다 앞선 마지막 정상 관측 상태로 채웠습니다. 기준일에서 14개 스텝의 예측을 한 번에 만들고 기존 실험과 같은 1·2·3·7·14스텝을 채점했습니다. 테스트 구간의 미래 관측은 채점에만 사용했습니다.
+
+사전학습 가중치를 고정하고, 2023년 우리 데이터로 **격자·범위 및 리드별 탐지 확률 보정기**를 적합했습니다. 보정기는 0.1·0.5·0.9 분위수와 최근 1·2·7·64일 탐지율을 입력받는 로지스틱 회귀입니다. 분위수 없이 같은 탐지율만 입력한 보정기도 기준선으로 계산했습니다.
+
+전 세계 0.5° 격자 69,215개와 2° 범위 5,347개를 대상으로 2023년 26개 기준일에서 보정기를 학습하고, 2024–2025년 52개 기준일과 2026년 1–7월 15개 기준일에서 평가했습니다. 기준일과 정답 날짜가 모두 완전 관측인 경우만 채점했습니다. 동일한 64일 관측 패턴 1,363,899개를 각각 한 번 추론한 후 6,486,894개 지역·기준일 원본 행에 매핑했습니다. 이 방식은 동일 입력의 반복 계산만 줄입니다.
+
+2024–2025년 홀드아웃의 1스텝 격자 평가 행 중 65.66%는 최근 64일이 모두 미탐지 상태였습니다. 각 체크포인트에서 이런 행은 같은 입력으로 같은 확률을 받습니다. 계절과 누적 지역 이력을 사용하는 기존 전이 모델과 입력 정보의 범위가 다릅니다.
+
+### 2024–2025 전 세계 홀드아웃
+
+| 모델 | 격자 1스텝 Brier | 7스텝 | 14스텝 | 격자 1스텝 PR-AUC | 범위 1스텝 Brier | 7스텝 | 14스텝 |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| XGBoost 전이 모델 | 0.03190 | 0.03425 | 0.03533 | 0.69890 | 0.07243 | 0.08113 | 0.08063 |
+| 2차 계절 Markov | 0.03220 | 0.03422 | 0.03532 | 0.69422 | 0.07285 | 0.08090 | 0.08058 |
+| 최근 탐지율 보정 | 0.03413 | 0.03807 | 0.04114 | 0.67253 | 0.07655 | 0.08789 | 0.09278 |
+| TimesFM 3.0 | 0.03339 | 0.03688 | 0.03974 | 0.67362 | 0.07496 | 0.08541 | 0.09006 |
+| Chronos-2 | 0.03378 | 0.03734 | 0.04028 | 0.66978 | 0.07557 | 0.08632 | 0.09107 |
+| Chronos-Bolt Base | 0.03362 | 0.03728 | 0.04022 | 0.67031 | 0.07536 | 0.08627 | 0.09094 |
+| TiRex-2 | 0.03376 | 0.03702 | 0.03992 | 0.67127 | 0.07546 | 0.08562 | 0.09041 |
+
+1스텝은 격자 3,295,553행과 범위 254,533행을 같은 정답으로 채점했습니다. TimesFM 3.0은 사전학습 모델 가운데 두 공간 단위의 평가 리드 모두에서 Brier가 가장 낮았습니다. 전체 모델을 비교하면 XGBoost가 두 공간 단위 모두 1스텝에서 앞섰고, 2차 계절 Markov가 7·14스텝에서 근소하게 앞섰습니다. 2026년 추가 검증 및 전체 리드의 Brier, log loss, PR-AUC도 CSV에 기록했습니다. [전체 지표](forecast_foundation_occurrence_metrics.csv)
+
+### 재현
+
+CUDA 12.8용 PyTorch를 설치한 별도 실험 환경에서 실행했습니다. 체크포인트 리비전은 실행 코드에 고정되어 있습니다. TimesFM 3.0의 CUDA 추론에는 BF16 혼합 정밀도를 적용했습니다.
+
+```bash
+forecast_env="${XDG_CACHE_HOME:-$HOME/.cache}/planetarium-forecast-hf"
+UV_PROJECT_ENVIRONMENT="$forecast_env" uv sync --locked --no-dev --python 3.12
+forecast_python="$forecast_env/bin/python"
+uv pip install --python "$forecast_python" torch==2.10.0 --index-url https://download.pytorch.org/whl/cu128
+uv pip install --python "$forecast_python" timesfm==3.0.2 chronos-forecasting==2.3.2 tirex-2==0.5.0 transformers==5.23.0
+
+"$forecast_python" -m planetarium.modeling.foundation_occurrence_benchmark prepare
+"$forecast_python" -m planetarium.modeling.foundation_occurrence_benchmark history --device cpu
+"$forecast_python" -m planetarium.modeling.foundation_occurrence_benchmark timesfm3 --batch-size 1536
+"$forecast_python" -m planetarium.modeling.foundation_occurrence_benchmark chronos2 --batch-size 384
+"$forecast_python" -m planetarium.modeling.foundation_occurrence_benchmark chronos_bolt --batch-size 512
+"$forecast_python" -m planetarium.modeling.foundation_occurrence_benchmark tirex2 --batch-size 512
+```
+
+보정기 계수와 모델별 지표는 `data/interim/daily_occurrence/<fingerprint>/foundation-64-v1/`에 생성됩니다. 이 실험의 보정기는 지역·기간 조회의 예측 후보를 평가하는 용도로 사용했습니다.

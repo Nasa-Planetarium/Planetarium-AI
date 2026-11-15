@@ -172,6 +172,13 @@ def _measure(fragments) -> dict:
     }
 
 
+def evaluation_origins(dates: np.ndarray, period: str, year: int) -> range:
+    end = f"{year}-07-31" if period == "recent" else f"{year}-12-31"
+    lo = int(np.searchsorted(dates, np.datetime64(f"{year}-01-01")))
+    hi = int(np.searchsorted(dates, np.datetime64(end), side="right"))
+    return range(lo, hi - max(LEADS), 14)
+
+
 def evaluate(panel, path: Path) -> pl.DataFrame:
     predictors = {
         name: model_predictor(name, path)[0] for name in ("logistic", "xgboost")
@@ -183,14 +190,13 @@ def evaluate(panel, path: Path) -> pl.DataFrame:
         for period, years in PERIODS.items():
             store = {(model, lead): [] for model in MODELS for lead in LEADS}
             for year in range(years[0], years[1] + 1):
-                end = f"{year}-07-31" if period == "recent" else f"{year}-12-31"
-                lo = int(np.searchsorted(panel.dates, np.datetime64(f"{year}-01-01")))
-                hi = int(np.searchsorted(panel.dates, np.datetime64(end), side="right"))
-                if hi - lo <= max(LEADS):
+                origins = evaluation_origins(panel.dates, period, year)
+                if not origins:
                     continue
-                stats = history_stats(series, panel.dates, panel.coverage, lo)
+                stats = history_stats(
+                    series, panel.dates, panel.coverage, origins.start
+                )
                 tables = {model: {} for model in MODELS}
-                origins = range(lo, hi - max(LEADS), 14)
                 for origin in origins:
                     state = initial_state(
                         series, stats, panel.dates, panel.coverage, origin
