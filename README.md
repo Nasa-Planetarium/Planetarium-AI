@@ -46,8 +46,8 @@ Planetarium-AI/
 
 처리 결과는 용량 때문에 저장소가 아니라 Release에 올려 두었습니다 (최신 **v1.2, 2026-11-15 데이터 확정**).
 [data-v1.2-2026-11-15](https://github.com/Nasa-Planetarium/Planetarium-AI/releases/tag/data-v1.2-2026-11-15)에는
-칸·지역 표(고정 열원 점 제외본), 위성 상태, 확산 가능성·화재 사건·불 유형·FWI·다음 달 전망,
-다음 달 열원 발생 확률(`aoi_occurrence_nextmonth_latest` 한국 시군구, `grid_occurrence_nextmonth_latest` 전 세계 0.5° 격자), 2026년 점(`harmonized_hotspots_2026.tar`),
+칸·지역 표(고정 열원 점 제외본), 위성 상태, 확산 가능성(FireOutlook Spread, internal id: `spread_nowcast`)·화재 사건·불 유형·FWI·다음 달 전망(FireOutlook Recurrence, internal id: `recurrence_nextmonth`),
+다음 달 열원 발생 확률(FireOutlook Monthly – District `aoi_occurrence_nextmonth_latest` 한국 시군구, FireOutlook Monthly – Grid `grid_occurrence_nextmonth_latest` 전 세계 0.5° 격자), 2026년 점(`harmonized_hotspots_2026.tar`),
 고정 열원 점 표시(`harmonized_hotspots_static_flags.tar`), 모델·meta, `release_manifest.csv`(행 수·크기·sha256)가 있습니다.
 2000~2025년 점은 v1.1과 같으므로 [data-v1.1-hotspots-2026-11-14](https://github.com/Nasa-Planetarium/Planetarium-AI/releases/tag/data-v1.1-hotspots-2026-11-14)의
 `harmonized_hotspots_<연도>.tar`를 그대로 씁니다.
@@ -159,7 +159,7 @@ FIRMS area API로 전 세계 최근 N일(1~5)을 받아 기존 점과 합치고 
 ```powershell
 uv run python -m planetarium.fetch_nrt --status                  # 키 상태 (MAP_KEY는 .env의 FIRMS_MAP_KEY, 출력하지 않음)
 uv run python -m planetarium.fetch_nrt --fetch --days 2 --append # 전 세계 최근 2일, 호출 3회 (NOAA-20·NOAA-21·MODIS)
-uv run python -m planetarium.fetch_nrt --fetch --days 2 --append --with-spread  # + 확산 가능성(spread_nowcast_latest) 다시 만들기
+uv run python -m planetarium.fetch_nrt --fetch --days 2 --append --with-spread  # + FireOutlook Spread(spread_nowcast_latest) 다시 만들기
 ```
 
 순서: 받기(`data/raw/firms/api/<받은 날짜>/`) → API 파일 변환(순위 3)·범위표 → 칸×일 → 위성 상태·칸×월 → 그 연도 `harmonized_cell_month` 교체
@@ -230,6 +230,40 @@ MODIS → VIIRS 변환 모델의 공식 표시 이름은 **FireBridge (MODIS-to-
 | **FireBridge-Terra** | `m2v_xgb_terra` |
 | **FireBridge Uncertainty Band** | `m2v_q10_q90` |
 | **N20 Bridge** | `n20_bridge` |
+
+**FireBridge harmonizes the past; FireOutlook estimates tomorrow and next month.** 예측 모델의 공식 표시 이름은 FireOutlook 계열입니다 (파일 이름·코드 식별자·데이터 값·컬럼 값(`model` 포함)은 그대로).
+
+| 표시 이름 | 내부 이름 (파일·코드) |
+|---|---|
+| **FireOutlook Spread** | spread nowcast — `spread_nowcast_*` (코드 `planetarium/spread_ops.py`) |
+| **FireOutlook Monthly – District** | `aoi_occurrence_*` (코드 `planetarium/occurrence.py`) |
+| **FireOutlook Monthly – Grid** | `grid_occurrence_*` (코드 `planetarium/grid_occurrence.py`) |
+| **FireOutlook Recurrence** | `recurrence_nextmonth_*` (코드 `planetarium/recurrence.py`) |
+| **FireOutlook Planner** | `planner_*` (코드 `planetarium/forecast.py`, `planner_monthly.py`, `planner_daily.py` 등) — 원하는 지역 + 기간(1~7일, 1~12개월) 전망 |
+
+### FireOutlook Planner — `forecast()` / `POST /forecast` (2026-11-15)
+
+원하는 지역(aoi_id 5,051개, bbox, GeoJSON 폴리곤)과 기간(기준일 다음 날부터 12개월 뒤 달까지)의 "위성 탐지 ≥ 1건 확률"과 예상 탐지 수(q10~q90)를
+미리 계산한 0.5° 격자 예측에서 1초 안에 답한다. 7일 이내는 일 단위 모델, 그 뒤는 월 단위 모델 × 일별 기후 가중치(건수용·확률용 따로).
+한국 시군구 다음 달과 0.5° 격자 다음 달은 `/occurrence`와 같은 값을 낸다. 라우팅·검증·표시 규칙은 `docs/api_contract.md`의 `POST /forecast`.
+
+```powershell
+uv run python -m planetarium.forecast --region SIDO_51 --start 2026-11-15 --end 2026-11-21        # 강원, 내일~7일
+uv run python -m planetarium.forecast --region ADM1_ARG-1299 --start 2026-12-01 --end 2026-12-31  # 코르도바, 다음 달
+uv run python -m planetarium.forecast --region 126.5,37.0,127.5,38.0 --start 2027-03-01 --end 2027-03-15   # bbox (서,남,동,북)
+uv run python -m tests.test_forecast_consistency    # /occurrence 와 같은 값인지, 1초 안인지
+```
+
+```python
+from planetarium.forecast import forecast
+r = forecast("SIDO_51", "2026-11-15", "2026-11-21")
+r["p_any"], r["expected_count"], r["expected_count_q10"], r["expected_count_q90"], r["skill"], r["notice"]
+# (0.34, 1.29, 0.0, 2.87, 'low', '위성 탐지 기반 확률이며 산불 발생을 보장하지 않습니다. ...')
+```
+
+서비스 파일 (Release `data-v1.2-2026-11-15`): `planner_monthly_grid.parquet`, `planner_daily_grid.parquet`, `planner_sgg_monthly.parquet`,
+`planner_day_weights.npz`, `planner_aoi_weights.npz`, `planner_region_calibration.json`, `planner_region_skill.json`, `planner_count_choice.json`,
+`planner_region_counts_sf.parquet`, `planner_sgg_choice.json`, `planner_meta.json`. 일 단위 갱신은 `fetch_nrt --fetch --append --with-planner`.
 
 | 이름 | 별칭 | 설명 | 파일 (models/) |
 |---|---|---|---|

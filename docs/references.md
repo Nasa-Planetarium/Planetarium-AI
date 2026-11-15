@@ -65,7 +65,14 @@ All datasets below are publicly available. Please keep this list in sync with wh
 
 ## 6. Software (main libraries)
 
-Polars, PyArrow, XGBoost, scikit-learn, Shapely, pyproj, uv. (Cite versions from `pyproject.toml` / `uv.lock` when submitting.)
+Polars, PyArrow, XGBoost, LightGBM, scikit-learn, Shapely, pyproj, uv. (Cite versions from `pyproject.toml` / `uv.lock` when submitting.)
+
+- **statsforecast** (Nixtla, Apache-2.0) — AutoETS and AutoTheta for regional monthly detection counts in FireOutlook Planner
+  (continents, world, Korea, Argentina). Optional dependency (`uv sync --extra forecast-stats`); the service reads precomputed forecasts.
+  Garza, F., Mergenthaler Canseco, M., Challú, C., Olivares, K. G. StatsForecast: Lightning fast forecasting with statistical and econometric models.
+  PyCon Salt Lake City, 2022. https://github.com/Nixtla/statsforecast
+- **TimesFM 3.0** (Google Research; TimesFM Non-Commercial License v1.0) — used **only in comparison experiments**
+  (`reports/timesfm_compare_*.csv`); not part of any service model or release file.
 
 ## 7. Team contributions
 
@@ -76,6 +83,10 @@ Polars, PyArrow, XGBoost, scikit-learn, Shapely, pyproj, uv. (Cite versions from
   `planetarium/dataset.py`, `planetarium/converter.py`; release installation with SHA-256 verification → `planetarium/release_assets.py`;
   cross-satellite FRP conversion → `planetarium/frp_equiv.py` (re-derived against S-NPP); bbox query helpers → `planetarium/store.py`.
   The branch itself is kept separate and is not merged.
+- **Jonghun Shin ([@ozingmw](https://github.com/ozingmw))** — `codex/world-forecast-benchmark` branch: the worldwide monthly forecast benchmark
+  (AutoETS / AutoTheta strongest for WORLD totals, 2020–2023 selection, 2024–2025 holdout) was used as a reference for FireOutlook Planner's
+  regional count candidates and validation split (팀원 Jonghun Shin(ozingmw)의 world-forecast-benchmark 작업에서 지역 건수 후보·검증 분할을 참고).
+  Re-implemented as `scripts/planner_statsforecast.py` + `planetarium/planner_regioncount.py`; the branch is not merged and its model files were not used.
 
 ---
 

@@ -153,5 +153,6 @@
       "brier_baseline_last_year_same_month": 0.2356853038072586,
       "beats": true
     }
-  ]
+  ],
+  "display_name": "FireOutlook Monthly – Grid"
 }

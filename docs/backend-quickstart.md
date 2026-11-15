@@ -17,12 +17,12 @@
 | 격자 지도 | `harmonized_cell_month.parquet` | 전 세계 0.1° 칸 | ✅ |
 | 통합 핫스팟 점 지도 | `harmonized_hotspots/` | 전 세계 감지 점 | ✅ |
 | 지역 목록·경계 | `aoi_list.parquet`, `aoi_boundaries.geojson` | 5,051개 | ✅ |
-| 내일 확산 가능성 | `spread_nowcast_latest.parquet` | 한국·아르헨티나 | ✅ (v1.2에 포함) |
+| 내일 확산 가능성 — FireOutlook Spread (internal id: `spread_nowcast`) | `spread_nowcast_latest.parquet` | 한국·아르헨티나 | ✅ (v1.2에 포함) |
 | 화재 사건·불탄 면적 | `fire_events.parquet` | 한국·아르헨티나 | ✅ (v1.2에 포함) |
 | 불 유형 배지 | `aoi_month_fire_regime.parquet` | 한국·아르헨티나 | ✅ (v1.2에 포함) |
 | 산불 기상 위험도 배지 | `fwi_aoi_day.parquet` (+ `fwi_clim_aoi_month.parquet`) | 한국·아르헨티나, 2012-01-01 ~ 2026-11-11 | ✅ (v1.2) |
-| 다음 달 전망 | `recurrence_nextmonth_latest.parquet`, `recurrent_burn_sites.parquet` | 아르헨티나 확률, 한국 반복 횟수 | ✅ (v1.2) |
-| 다음 달 열원 발생 확률 | `aoi_occurrence_nextmonth_latest.parquet` (한국 시군구), `grid_occurrence_nextmonth_latest.parquet` (전 세계 0.5°) | 한국 252개 시군구, 전 세계 52,855개 격자 | ✅ (v1.2) |
+| 다음 달 전망 — FireOutlook Recurrence (internal id: `recurrence_nextmonth`) | `recurrence_nextmonth_latest.parquet`, `recurrent_burn_sites.parquet` | 아르헨티나 확률, 한국 반복 횟수 | ✅ (v1.2) |
+| 다음 달 열원 발생 확률 — FireOutlook Monthly – District / – Grid (internal id: `aoi_occurrence` / `grid_occurrence`) | `aoi_occurrence_nextmonth_latest.parquet` (한국 시군구), `grid_occurrence_nextmonth_latest.parquet` (전 세계 0.5°) | 한국 252개 시군구, 전 세계 52,855개 격자 | ✅ (v1.2) |
 | 고정 열원(공장) 점 표시 | `harmonized_hotspots_static_flags/` | 2000~2026 | ✅ (v1.2, 점 지도에서 빼기) |
 | FRP S-NPP 환산 | `harmonized_cell_day_frp.parquet` (칸 × 일), 비율 `reports/frp_snpp_ratios.csv` | 2000~2026 | ✅ (v1.2). 점 단위는 `frp ÷ 비율(위성·낮밤)`로 계산 (점 파일은 Release 미포함) |
 | 실시간 갱신 | `uv run python -m planetarium.fetch_nrt ...` | 최근 1~5일 | ✅ |
@@ -92,12 +92,13 @@ data/processed/
 | `GET /export.csv?type=calendar\|summary\|hotspots&...` | 위 결과 | CSV 다운로드 | ⭐ 필수 |
 | `GET /hotspots?bbox&start&end&layer=reference\|all&limit` | `harmonized_hotspots` | 확대 지도 점 | 높음 |
 | `GET /grid?bbox&year&month` | `harmonized_cell_month` | 넓은 지도 격자 | 높음 |
-| `GET /spread?aoi_id\|bbox` | `spread_nowcast_latest` | 내일 확산 가능성 레이어 | 높음 |
+| `GET /spread?aoi_id\|bbox` | `spread_nowcast_latest` | FireOutlook Spread 레이어 (내일 확산 가능성) | 높음 |
 | `GET /events?aoi_id&start&end` | `fire_events` | 화재 사건 목록·영역 | 중간 |
 | `GET /regime?aoi_id` | `aoi_month_fire_regime` | 불 유형 배지 | 중간 |
 | `GET /fwi?aoi_id&date` | `fwi_aoi_day` | 산불 기상 위험도 배지 (기준일 표시) | 중간 |
-| `GET /recurrence?aoi_id\|bbox` | `recurrence_nextmonth_latest` (+ `recurrent_burn_sites`) | 다음 달 전망 (아르헨티나 확률, 한국 반복 횟수) | 중간 |
-| `GET /occurrence?aoi_id` / `?unit=grid&bbox` | `aoi_occurrence_nextmonth_latest` / `grid_occurrence_nextmonth_latest` | 다음 달 열원 1건 이상 확률 + 예년 대비 (산업·지속 열원 의심은 회색) | 중간 |
+| `GET /recurrence?aoi_id\|bbox` | `recurrence_nextmonth_latest` (+ `recurrent_burn_sites`) | FireOutlook Recurrence (아르헨티나 확률, 한국 반복 횟수) | 중간 |
+| `GET /occurrence?aoi_id` / `?unit=grid&bbox` | `aoi_occurrence_nextmonth_latest` / `grid_occurrence_nextmonth_latest` | FireOutlook Monthly: 다음 달 열원 1건 이상 확률 + 예년 대비 (산업·지속 열원 의심은 회색) | 중간 |
+| `POST /forecast` | `planner_*` 서비스 파일 → `planetarium.forecast.forecast()` | FireOutlook Planner: 원하는 지역·기간(1~7일, 1~12개월) 탐지 확률·예상 건수 | 중간 |
 | `POST /harmonize` | 사용자 업로드 → `planetarium.converter` | FIRMS 파일 변환 (CSV + summary.json) | 낮음 |
 | `GET /method` | `m2v_meta.json` | 방법·검증 설명 | 낮음 |
 | `GET /weather?lat&lon` | Open-Meteo Forecast API (외부, 실시간) | 현재 바람·습도 | 낮음 |
@@ -140,6 +141,19 @@ spread = (pl.read_parquet(f"{P}/spread_nowcast_latest.parquet")
                             .otherwise(pl.lit("low")).alias("level")))
 ```
 
+**FireOutlook Planner (`POST /forecast`)** — 함수 하나를 그대로 부르면 된다. 서버 시작 때 `forecast.warmup()`을 한 번 부르면(약 1.2초) 30일 질의가 시군구·시도·주·bbox 0.01초 안팎, 전 세계 0.26초:
+
+```python
+from planetarium.forecast import forecast
+forecast("SIDO_51", horizon_days=30)                                 # 화면 기본: 오늘(KST)부터 30일 → daily[] 30개 + 요약
+forecast("SIDO_51", "2026-11-15", "2026-11-21")                       # 강원, 내일~7일 (일 단위)
+forecast("ADM1_ARG-1299", "2026-12-01", "2026-12-31")                 # 코르도바, 다음 달
+forecast((126.5, 37.0, 127.5, 38.0), "2027-03-01", "2027-03-15")      # bbox (서, 남, 동, 북)
+forecast({"type": "Polygon", "coordinates": [[[126.5, 37.0], [127.5, 37.0], [127.5, 38.0], [126.5, 37.0]]]}, "2027-01-01", "2027-03-31")
+# → p_any, expected_count(+q10/q90), baseline, skill, count_skill, display_hint, pieces[route·fraction_*], notice
+```
+응답 필드·라우팅·skill 표시·`p_any ≥ 0.98` 안내 규칙은 `docs/api_contract.md`의 `POST /forecast` 절.
+
 **조회 도우미 `planetarium/store.py`** (위 규칙을 그대로 담은 함수; 고정 열원 점은 기본으로 빠짐):
 
 ```python
@@ -170,13 +184,13 @@ frp = store.points("2025-03-25", bbox=(128.4, 36.0, 129.6, 36.8), frp_equiv=True
 5. **지역 합계는 `aoi_month`를 그대로**: 칸에서 다시 더하면 배경 추정·면적 가중이 빠져 숫자가 달라져요.
 6. **residual은 화면에 그리지 않기**: 합계 계산에만(자세한 규칙은 `api_contract.md`의 `/summary`). 점 지도에는 MODIS 기간의 "점으로 안 보이는 추정분"이 없어서, 점 합이 월 합계보다 작을 수 있다는 안내 문구를 넣어요.
 7. **합계에는 기준 점만**: `harmonized_hotspots/reference`의 `harmonized_weight`만 더해요. `other/`는 지도 표시용.
-8. **확산 레이어 필수 문구**: "위성 감지 기반 단기 확산 가능성입니다. 물리 시뮬레이션이 아니며, 오늘 감지 지점에서 반경 약 7.5 km 밖으로 번지는 경우와 새로 발생하는 불은 예측 대상이 아닙니다." 색 3단계(<5% / 5–20% / >20%), 파일에 없는 칸은 "대상 아님"(0% 아님).
+8. **FireOutlook Spread 필수 문구**: "위성 감지 기반 단기 확산 가능성입니다. 물리 시뮬레이션이 아니며, 오늘 감지 지점에서 반경 약 7.5 km 밖으로 번지는 경우와 새로 발생하는 불은 예측 대상이 아닙니다." 색 3단계(<5% / 5–20% / >20%), 파일에 없는 칸은 "대상 아님"(0% 아님).
 9. **불탄 면적 문구**: `burned_area_km2` = "위성 확인 연소 면적(하한)" — 실제보다 작아요(의성 약 64%).
 10. **FWI 배지**: 기본은 상대 등급 `fwi_rel_class`(평년보다 낮음/평년/높음/매우 높음), 상세 화면에 절대 등급 `fwi_class`. 문구: "기상으로 본 산불 위험도. 실제 발화·확산을 예측하지 않음."
 11. **불 유형 배지와 캘린더 값이 다를 수 있음**: 캘린더 값은 `aoi_month`, 불 유형은 `fire_regime` 기준(점 위치로 지역을 정해서 작은 값이 있는 시군구도 `none`일 수 있음).
 12. **출처 표시**: 앱 하단 또는 About 페이지에 NASA FIRMS 인정 문구, 경계 데이터(CC BY), NASA POWER, MCD64A1, Open-Meteo(실시간 기상) 출처 → `docs/references.md`.
 13. **고정 열원 점(v1.2)**: 점 지도에서는 `harmonized_hotspots_static_flags`와 anti-join 해서 빼요(합계에서는 이미 빠짐). 칸 값이 0보다 조금 작으면 0으로 그려요.
-14. **다음 달 전망**: 아르헨티나는 확률(`p_active`, "과거 반복 패턴 기반 전망" + 예측 정확도), **한국은 "지난 25년 중 이 달 N번 활성"(확률이라고 부르지 않음)**.
+14. **FireOutlook Recurrence (다음 달 전망)**: 아르헨티나는 확률(`p_active`, "과거 반복 패턴 기반 전망" + 예측 정확도), **한국은 "지난 25년 중 이 달 N번 활성"(확률이라고 부르지 않음)**.
 15. **FWI 기준일**: 마지막 NASA POWER 자료일(현재 2026-11-11, 약 4일 늦음)을 배지 옆에 꼭 표시.
 16. **비밀값**: `FIRMS_MAP_KEY`는 서버 `.env`에만(설정 방법은 6-1). 프론트엔드 코드·GitHub·채팅에 절대 넣지 않기.
 
@@ -203,6 +217,12 @@ frp = store.points("2025-03-25", bbox=(128.4, 36.0, 129.6, 36.8), frp_equiv=True
 ```powershell
 # 최근 2일 감지 받기 → 통합 데이터에 추가 → 내일 확산 가능성 다시 계산 (API 호출 3회)
 uv run python -m planetarium.fetch_nrt --fetch --days 2 --append --with-spread
+# FireOutlook Planner(30일 화면): 하루 1번, KST 12시 이후에 --with-planner까지 돌린다 (그때 전날 관측이 다 들어와 기준일이 어제로 올라감)
+# + FireOutlook Planner 일 단위(1~7일)까지 다시 계산 (추가 약 9분, 최대 메모리 약 17 GB) — 하루 1번이면 충분
+uv run python -m planetarium.fetch_nrt --fetch --days 2 --append --with-spread --with-planner
+# Planner 월 단위(1~12개월)는 달이 바뀔 때 1번 (예: 12월 초)
+uv run python -m planetarium.planner_monthly final --origin 2026-12 --as-of 2026-12-03
+uv run python -m planetarium.planner_publish publish
 # 키 상태 확인
 uv run python -m planetarium.fetch_nrt --status
 ```
@@ -217,7 +237,7 @@ uv run python -m planetarium.fetch_nrt --status
 - MODIS → VIIRS 변환 FireBridge: 한국 편향 **1.40 → 0.99**, 월 오차 절반, 추정 범위 적중률 **80%**
 - 통합 핫스팟 **5.5억 점**, 점 → 칸 → 지역 합계 **모두 일치** 검증
 - 산림청 큰 산불(100 ha 이상) **92% 탐지**, 한국 14년 중 대형 산불형 달 = 2022-03 울진·삼척, 2025-03 의성
-- 내일 확산 가능성: 단순 규칙(오늘 감지 칸이면 내일도) 대비 PR-AUC **약 5배**(한국), 3.3배(아르헨티나). 운영과 같은 기상 지연 조건으로 검증(v1.2-ops)
+- FireOutlook Spread (내일 확산 가능성): 단순 규칙(오늘 감지 칸이면 내일도) 대비 PR-AUC **약 5배**(한국), 3.3배(아르헨티나). 운영과 같은 기상 지연 조건으로 검증(v1.2-ops)
 
 ---
 
