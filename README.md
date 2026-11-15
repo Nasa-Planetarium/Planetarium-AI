@@ -42,6 +42,30 @@ Planetarium-AI/
 └── README.md
 ```
 
+## 데이터 받기 (GitHub Release)
+
+처리 결과는 용량 때문에 저장소가 아니라 Release에 올려 두었습니다.
+[data-v1.1-m2v-2026-11-14](https://github.com/Nasa-Planetarium/Planetarium-AI/releases/tag/data-v1.1-m2v-2026-11-14)에는
+칸·지역 표(`harmonized_cell_month`, `harmonized_cell_day`, `harmonized_residual_cell_month`, `aoi_month`, `aoi_month_compare`, `aoi_list`,
+`aoi_boundaries.geojson`, `m2v_meta.json`)가,
+[data-v1.1-hotspots-2026-11-14](https://github.com/Nasa-Planetarium/Planetarium-AI/releases/tag/data-v1.1-hotspots-2026-11-14)에는
+통합 핫스팟 점(`harmonized_hotspots_<연도>.tar`, 2000~2026, 2026-11-14 약 11:38 UTC 기준)이 있습니다.
+받은 파일은 `data/processed/`에 두고, tar는 같은 곳에 풀면 `harmonized_hotspots/{reference,other}/year=YYYY/month=MM/` 구조가 됩니다.
+지역 합계는 `aoi_month`를 그대로 쓰고, 점 합계는 `is_reference = true`인 점의 `harmonized_weight`만 더합니다
+(자세한 규칙: `docs/backend-handoff.md`, `docs/api_contract.md`, `docs/release_v1.1-m2v-2026-11-14.md`).
+
+```powershell
+gh release download data-v1.1-m2v-2026-11-14 --repo Nasa-Planetarium/Planetarium-AI --dir data/processed
+gh release download data-v1.1-hotspots-2026-11-14 --repo Nasa-Planetarium/Planetarium-AI --dir data/processed --pattern "harmonized_hotspots_2025.tar"
+tar -xf data/processed/harmonized_hotspots_2025.tar -C data/processed
+```
+
+```python
+import polars as pl
+kr = pl.read_parquet("data/processed/aoi_month.parquet").filter(pl.col("aoi_id") == "KR")
+pts = pl.scan_parquet("data/processed/harmonized_hotspots/reference/**/*.parquet", hive_partitioning=True)         .filter(pl.col("year") == 2025, pl.col("month") == 3).collect()
+```
+
 ## 실행
 
 ```powershell
@@ -131,6 +155,7 @@ FIRMS area API로 전 세계 최근 N일(1~5)을 받아 기존 점과 합치고 
 ```powershell
 uv run python -m planetarium.fetch_nrt --status                  # 키 상태 (MAP_KEY는 .env의 FIRMS_MAP_KEY, 출력하지 않음)
 uv run python -m planetarium.fetch_nrt --fetch --days 2 --append # 전 세계 최근 2일, 호출 3회 (NOAA-20·NOAA-21·MODIS)
+uv run python -m planetarium.fetch_nrt --fetch --days 2 --append --with-spread  # + 확산 가능성(spread_nowcast_latest) 다시 만들기
 ```
 
 순서: 받기(`data/raw/firms/api/<받은 날짜>/`) → API 파일 변환(순위 3)·범위표 → 칸×일 → 위성 상태·칸×월 → 그 연도 `harmonized_cell_month` 교체

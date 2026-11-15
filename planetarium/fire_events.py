@@ -275,23 +275,199 @@ def burned_area(region: str, force: bool) -> pl.DataFrame:
     return b.with_columns(burned_area_km2=(pl.col("pixels") * MCD_PIXEL_KM2).cast(pl.Float64)).drop("pixels")
 
 
+# ── 2b) 큰 사건: 볼록 껍질 + 버퍼 ─────────────────────────────────────────
+# 1 km 근접 매칭은 위성이 하루 두 번만 지나가 화선 사이 연소 면적이 빠진다(의성 2025-03: MCD64A1 964 km² 중 492 km²만 붙음).
+# 큰 사건(Σ가중치 ≥ HULL_MIN_WEIGHT 또는 감지 ≥ HULL_MIN_DET)은 감지 점 볼록 껍질 + HULL_BUFFER_KM 안의 불탄 픽셀 중
+# 연소일이 사건 기간 ± HULL_DATE_PAD일 안인 것까지 붙인다. 작은 사건은 기존 근접 규칙(1 km, ±3일).
+# 한 픽셀이 여러 사건 후보면 그 픽셀에서 가장 가까운 감지 점의 사건 하나에만 배정(중복 없음).
+HULL_MIN_WEIGHT = 100.0
+HULL_MIN_DET = 50
+HULL_BUFFER_KM = 2.0
+HULL_DATE_PAD = 31
+
+
+def burned_area_hull(region: str, force: bool) -> pl.DataFrame:
+    import shapely
+    ev = pl.read_parquet(WORK_DIR / f"events_{region}.parquet").select("event_id", "start_date", "end_date", "sum_weight", "n_det")
+    pts = pl.read_parquet(WORK_DIR / f"points_{region}.parquet").join(ev, on="event_id")
+    lat0 = pts["latitude"].to_numpy()
+    pts = pts.with_columns(x=pl.Series(pts["longitude"].to_numpy() * KM_LON * np.cos(np.radians(lat0))), y=pl.Series(lat0 * KM_LAT))
+    big = ev.filter((pl.col("sum_weight") >= HULL_MIN_WEIGHT) | (pl.col("n_det") >= HULL_MIN_DET))
+    bp = pts.join(big.select("event_id"), on="event_id", how="semi")
+    hulls = {}
+    for (eid,), g in bp.group_by("event_id"):
+        xy = np.column_stack([g["x"].to_numpy(), g["y"].to_numpy()])
+        hulls[eid] = (shapely.convex_hull(shapely.multipoints(xy)).buffer(HULL_BUFFER_KM), cKDTree(xy))
+    big_ids = list(hulls)
+    epoch = date(1970, 1, 1)
+    big_win = {r["event_id"]: ((r["start_date"] - epoch).days, (r["end_date"] - epoch).days) for r in big.to_dicts()}
+    tree = shapely.STRtree([hulls[e][0] for e in big_ids]) if big_ids else None
+    out = []
+    for tile in TILES[region]:
+        for y in tqdm(MCD_YEARS, desc=f"[{region}] 껍질 {tile}", unit="year", leave=False, dynamic_ncols=True):
+            cache = WORK_DIR / f"burned2_{region}_{tile}_{y}.parquet"
+            if cache.exists() and not force:
+                out.append(pl.read_parquet(cache))
+                continue
+            rows = []
+            for f in mcd_files(tile, y):
+                px = burned_pixels(f, tile)
+                if px.height == 0:
+                    continue
+                plat = px["lat"].to_numpy()
+                pxy = np.column_stack([px["lon"].to_numpy() * KM_LON * np.cos(np.radians(plat)), plat * KM_LAT])
+                bdn = px["burn_date"].cast(pl.Int32).to_numpy()
+                best_d = np.full(len(pxy), np.inf)
+                best_e = np.full(len(pxy), "", dtype=object)
+                # (a) 근접 규칙: 모든 사건, 감지 점 1 km 안, 기간 ±3일
+                d0, d1 = px["burn_date"].min(), px["burn_date"].max()
+                cand = pts.filter(pl.col("end_date") >= d0 - timedelta(days=BURN_DATE_PAD),
+                                  pl.col("start_date") <= d1 + timedelta(days=BURN_DATE_PAD))
+                if cand.height:
+                    k = min(8, cand.height)
+                    dist, idx = cKDTree(np.column_stack([cand["x"].to_numpy(), cand["y"].to_numpy()])).query(
+                        pxy, k=k, distance_upper_bound=BURN_MATCH_KM)
+                    if k == 1:
+                        dist, idx = dist[:, None], idx[:, None]
+                    s = cand["start_date"].cast(pl.Int32).to_numpy()
+                    e = cand["end_date"].cast(pl.Int32).to_numpy()
+                    eid = cand["event_id"].to_numpy()
+                    for j in range(k):
+                        ij = idx[:, j]
+                        valid = np.isfinite(dist[:, j]) & (ij < cand.height)
+                        ijc = np.where(valid, ij, 0)
+                        okd = valid & (bdn >= s[ijc] - BURN_DATE_PAD) & (bdn <= e[ijc] + BURN_DATE_PAD) & (dist[:, j] < best_d)
+                        best_d[okd] = dist[okd, j]
+                        best_e[okd] = eid[ijc[okd]]
+                # (b) 큰 사건: 볼록 껍질 + 2 km, 기간 ±31일 → 가장 가까운 감지 점까지 거리로 경쟁
+                if tree is not None:
+                    gi, ti = tree.query(shapely.points(pxy), predicate="intersects")
+                    if len(gi):
+                        pair = pl.DataFrame({"pix": gi, "ev": [big_ids[i] for i in ti]})
+                        for (e_id,), g in pair.group_by("ev"):
+                            s0, e0 = big_win[e_id]
+                            pix = g["pix"].to_numpy()
+                            pix = pix[(bdn[pix] >= s0 - HULL_DATE_PAD) & (bdn[pix] <= e0 + HULL_DATE_PAD)]
+                            if len(pix) == 0:
+                                continue
+                            dd, _ = hulls[e_id][1].query(pxy[pix])
+                            better = dd < best_d[pix]
+                            best_d[pix[better]] = dd[better]
+                            best_e[pix[better]] = e_id
+                m = best_e != ""
+                if m.any():
+                    rows.append(pl.DataFrame({"event_id": best_e[m].astype(str)}).group_by("event_id").agg(pixels=pl.len()))
+            res = (pl.concat(rows).group_by("event_id").agg(pl.col("pixels").sum()) if rows
+                   else pl.DataFrame(schema={"event_id": pl.String, "pixels": pl.UInt32}))
+            res.write_parquet(cache)
+            out.append(res)
+    b = pl.concat(out).group_by("event_id").agg(pl.col("pixels").sum())
+    return b.with_columns(burned_area_km2=(pl.col("pixels") * MCD_PIXEL_KM2).cast(pl.Float64)).drop("pixels")
+
+
 # ── 3) AOI × 월 화재 양상 ─────────────────────────────────────────────────
 
+# ── 1b) 행정구역: 감지 점 위치로 (0.1° 칸 대표값 대신) ─────────────────────
+# 0.1° 칸 대표 시군구는 경계 근처 점을 옆 시군구로 보낸다(예: 봉화읍 안 감지 → 영주시, 서산 운산면 → 예산군).
+# 점마다 경계 도형 안에 드는지(point-in-polygon)로 정하고, 도형 밖(해안·경계 오차)은 ADMIN_SNAP_DEG 안의 가장 가까운 도형으로.
+# 사건 속성은 harmonized_weight 가중 다수결, sgg_all은 점이 하나라도 있는 시군구 전부.
+ADMIN_SNAP_DEG = 0.02  # 약 2 km
+
+
+def _assign(lon: np.ndarray, lat: np.ndarray, geoms: list, codes: list) -> np.ndarray:
+    import shapely
+    tree = shapely.STRtree(geoms)
+    pts = shapely.points(lon, lat)
+    out = np.full(len(lon), None, dtype=object)
+    pi, gi = tree.query(pts, predicate="within")
+    out[pi] = np.asarray(codes, dtype=object)[gi]
+    miss = np.nonzero(out == None)[0]  # noqa: E711
+    if len(miss):
+        mi, mg = tree.query_nearest(pts[miss], max_distance=ADMIN_SNAP_DEG)
+        out[miss[mi]] = np.asarray(codes, dtype=object)[mg]
+    return out
+
+
+def point_admin(region: str) -> pl.DataFrame:
+    """points_<region> + 점 위치 기준 adm0·adm1(NE)와 한국 시도·시군구(admdongkor 2025-12, AOI와 같은 판)."""
+    import pyarrow.parquet as pq
+    import shapely
+
+    from planetarium.korea import ADM_DIR, TO_4326
+    from planetarium.world import load_ne
+    pts = pl.read_parquet(WORK_DIR / f"points_{region}.parquet")
+    lon, lat = pts["longitude"].to_numpy(), pts["latitude"].to_numpy()
+    units, geoms, _ = load_ne()
+    x0, y0, x1, y1 = BBOX[region]
+    sel = [i for i, g in enumerate(geoms) if shapely.intersects(g, shapely.box(x0 - 1, y0 - 1, x1 + 1, y1 + 1))]
+    a1 = _assign(lon, lat, [geoms[i] for i in sel], [units["adm1_code"][i] for i in sel])
+    a1_to_a0 = dict(zip(units["adm1_code"], units["adm0_a3"]))
+    pts = pts.with_columns(adm1_pt=pl.Series(a1, dtype=pl.String)).with_columns(
+        adm0_pt=pl.col("adm1_pt").replace_strict(a1_to_a0, default=None))
+    if region == "KR":
+        for name, col, nm, out_cd, out_nm in (("sido_20251231", "sidocd", "sidonm", "sido_cd_pt", "sido_nm_pt"),
+                                               ("sgg_20251231", "sggcd", "sggnm", "sgg_cd_pt", "sgg_nm_pt")):
+            t = pq.read_table(ADM_DIR / f"{name}.parquet")
+            g = [shapely.make_valid(shapely.transform(x, lambda xy: np.column_stack(TO_4326.transform(xy[:, 0], xy[:, 1]))))
+                 for x in shapely.from_wkb(t.column("geom").to_pylist())]
+            cd = _assign(lon, lat, g, t.column(col).to_pylist())
+            names = dict(zip(t.column(col).to_pylist(), t.column(nm).to_pylist()))
+            pts = pts.with_columns(pl.Series(out_cd, cd, dtype=pl.String)).with_columns(
+                pl.col(out_cd).replace_strict(names, default=None).alias(out_nm))
+        # 한국 점은 시군구 도형 안이면 KOR (NE 국경과 admdongkor 해안선 차이 보정)
+        pts = pts.with_columns(adm0_pt=pl.when(pl.col("sgg_cd_pt").is_not_null()).then(pl.lit("KOR")).otherwise("adm0_pt"))
+    else:
+        pts = pts.with_columns(*[pl.lit(None, dtype=pl.String).alias(c) for c in ("sido_cd_pt", "sido_nm_pt", "sgg_cd_pt", "sgg_nm_pt")])
+    pts.write_parquet(WORK_DIR / f"points_admin_{region}.parquet", compression="zstd")
+    return pts
+
+
+def wmode(col: str) -> pl.Expr:
+    """harmonized_weight 가중 다수결 (그룹 안에서)."""
+    return pl.col(col).filter(pl.col(col).is_not_null()).sort_by(
+        pl.col("harmonized_weight").filter(pl.col(col).is_not_null()).sum().over(col), descending=True).first()
+
+
+def event_admin(region: str) -> pl.DataFrame:
+    pts = point_admin(region)
+    # 같은 사건·같은 값의 가중치 합 → 최대 값
+    def best(col: str, alias: str) -> pl.DataFrame:
+        return (pts.filter(pl.col(col).is_not_null()).group_by("event_id", col).agg(w=pl.col("harmonized_weight").sum())
+                .sort("w", descending=True).unique("event_id", keep="first").select("event_id", pl.col(col).alias(alias)))
+    out = pts.select("event_id").unique()
+    for col, alias in (("adm0_pt", "country"), ("adm1_pt", "adm1_code"), ("sido_nm_pt", "sido_nm"), ("sgg_cd_pt", "sgg_cd"), ("sgg_nm_pt", "sgg_nm")):
+        out = out.join(best(col, alias), on="event_id", how="left")
+    allsgg = pts.filter(pl.col("sgg_nm_pt").is_not_null()).group_by("event_id").agg(
+        sgg_all=pl.col("sgg_nm_pt").unique().sort().str.join(","))
+    return out.join(allsgg, on="event_id", how="left")
+
+
 def regime(events: pl.DataFrame) -> pl.DataFrame:
+    """점 위치로 AOI를 정한다: KR(시군구 도형 안), SIDO_<cd>, SGG_<cd>, ADM0_ARG(adm0_pt), ADM1_<adm1_code>(아르헨티나)."""
     from planetarium.harmonize import aoi_membership
-    mem, aoi = aoi_membership()
+    _, aoi = aoi_membership()
     keep = aoi.filter(pl.col("level").is_in(["kr", "sido", "sgg"]) | (pl.col("aoi_id") == "ADM0_ARG")
                       | ((pl.col("level") == "adm1") & (pl.col("parent_aoi") == "ADM0_ARG")))
-    mem = mem.join(keep.select("aoi_id"), on="aoi_id", how="semi")
     large = events.select("event_id", is_large=(pl.col("sum_weight") >= LARGE_WEIGHT)
                           | (pl.col("burned_area_km2").fill_null(0) >= LARGE_BURN_KM2))
     parts = []
     for region in REGIONS:
-        p = (pl.read_parquet(WORK_DIR / f"points_{region}.parquet")
-             .with_columns(year=pl.col("date_local").dt.year().cast(pl.Int16), month=pl.col("date_local").dt.month().cast(pl.Int8))
-             .join(mem, on="cell_id").join(large, on="event_id"))
-        parts.append(p.group_by("aoi_id", "year", "month", "event_id").agg(
-            w=(pl.col("harmonized_weight") * pl.col("weight")).sum(), is_large=pl.col("is_large").first()))
+        p = (pl.read_parquet(WORK_DIR / f"points_admin_{region}.parquet")
+             .with_columns(year=pl.col("date_local").dt.year().cast(pl.Int16), month=pl.col("date_local").dt.month().cast(pl.Int8)))
+        if region == "KR":
+            a = pl.concat([
+                p.filter(pl.col("sgg_cd_pt").is_not_null()).with_columns(aoi_id=pl.lit("KR")),
+                p.filter(pl.col("sido_cd_pt").is_not_null()).with_columns(aoi_id=pl.concat_str(pl.lit("SIDO_"), "sido_cd_pt")),
+                p.filter(pl.col("sgg_cd_pt").is_not_null()).with_columns(aoi_id=pl.concat_str(pl.lit("SGG_"), "sgg_cd_pt")),
+            ])
+        else:
+            a = pl.concat([
+                p.filter(pl.col("adm0_pt") == "ARG").with_columns(aoi_id=pl.lit("ADM0_ARG")),
+                p.filter(pl.col("adm0_pt") == "ARG").with_columns(aoi_id=pl.concat_str(pl.lit("ADM1_"), "adm1_pt")),
+            ])
+        a = a.join(keep.select("aoi_id"), on="aoi_id", how="semi").join(large, on="event_id")
+        parts.append(a.group_by("aoi_id", "year", "month", "event_id").agg(
+            w=pl.col("harmonized_weight").sum(), is_large=pl.col("is_large").first()))
     em = pl.concat(parts)
     top = em.sort("w", descending=True).unique(["aoi_id", "year", "month"], keep="first").select(
         "aoi_id", "year", "month", top_event_id="event_id", top_event_w="w")
@@ -379,7 +555,7 @@ def validate(events: pl.DataFrame, reg: pl.DataFrame) -> dict:
 
 def main(argv: list[str] | None = None) -> None:
     ap = argparse.ArgumentParser(description="화재 사건 묶기 + 불탄 면적 + 화재 양상")
-    ap.add_argument("step", choices=["events", "burned", "regime", "validate", "all"])
+    ap.add_argument("step", choices=["events", "burned", "burned2", "admin", "regime", "validate", "all"])
     ap.add_argument("--regions", nargs="+", default=list(REGIONS))
     ap.add_argument("--force", action="store_true", help="이미 만든 작업 파일도 다시 (기본: 있으면 이어서 = --resume)")
     ap.add_argument("--resume", action="store_true", help="기본 동작")
@@ -387,7 +563,7 @@ def main(argv: list[str] | None = None) -> None:
     start_run_log("fire_events")
     t0 = time.perf_counter()
     WORK_DIR.mkdir(parents=True, exist_ok=True)
-    steps = ["events", "burned", "regime", "validate"] if args.step == "all" else [args.step]
+    steps = ["events", "burned", "burned2", "admin", "regime", "validate"] if args.step == "all" else [args.step]
     if "events" in steps:
         for r in args.regions:
             p = WORK_DIR / f"events_{r}.parquet"
@@ -412,6 +588,34 @@ def main(argv: list[str] | None = None) -> None:
                 "pixel_area_nominal_share", "burned_area_km2", "burn_confirmed", "instrument", "n_viirs", "n_modis",
                 "country", "adm1_code", "sido_nm", "sgg_cd", "sgg_nm", "sgg_all"]
         pl.concat(allev, how="diagonal_relaxed").select(cols).write_parquet(EVENTS_PATH, compression="zstd")
+    if "burned2" in steps:
+        ev = pl.read_parquet(EVENTS_PATH)
+        if "burned_area_km2_near" not in ev.columns:
+            ev = ev.rename({"burned_area_km2": "burned_area_km2_near"})
+        ev = ev.drop([c for c in ("burned_area_km2", "burn_confirmed") if c in ev.columns])
+        b2 = pl.concat([burned_area_hull(r, args.force) for r in args.regions])
+        in_mcd = pl.col("end_date").dt.year().is_between(MCD_YEARS.start, MCD_YEARS.stop - 1)
+        ev = ev.join(b2, on="event_id", how="left").with_columns(
+            burned_area_km2=pl.when(in_mcd).then(pl.col("burned_area_km2").fill_null(0.0))).with_columns(
+            burn_confirmed=pl.when(in_mcd).then(pl.col("burned_area_km2") > 0))
+        cols = [c for c in ev.columns if c not in ("burned_area_km2", "burn_confirmed")]
+        i = cols.index("burned_area_km2_near")
+        cols[i:i] = ["burned_area_km2", "burn_confirmed"]
+        ev.select(cols).write_parquet(EVENTS_PATH, compression="zstd")
+        for r in args.regions:
+            e = ev.filter(pl.col("region") == r)
+            print(f"[{r}] 불탄 면적 합: 근접 규칙 {e['burned_area_km2_near'].sum():,.0f} km² → 껍질 규칙 {e['burned_area_km2'].sum():,.0f} km², "
+                  f"확인 사건 {e['burn_confirmed'].sum():,}, 최대 메모리 {peak_memory_gb() or 0:.2f} GB")
+    if "admin" in steps:
+        ev = pl.read_parquet(EVENTS_PATH)
+        cols = ev.columns
+        old = ev.select("event_id", "sgg_nm", "country")
+        adm = pl.concat([event_admin(r) for r in args.regions], how="diagonal_relaxed")
+        ev = ev.drop("country", "adm1_code", "sido_nm", "sgg_cd", "sgg_nm", "sgg_all").join(adm, on="event_id", how="left").select(cols)
+        ev.write_parquet(EVENTS_PATH, compression="zstd")
+        ch = ev.select("event_id", "sgg_nm", "country").join(old, on="event_id", suffix="_old")
+        print(f"[행정구역] 점 위치 기준으로 바꿈: 시군구가 바뀐 사건 {(ch['sgg_nm'] != ch['sgg_nm_old']).sum():,}, "
+              f"국가가 바뀐 사건 {(ch['country'] != ch['country_old']).sum():,} (전체 {ev.height:,}), 최대 메모리 {peak_memory_gb() or 0:.2f} GB")
     events = pl.read_parquet(EVENTS_PATH) if EVENTS_PATH.exists() else None
     if "regime" in steps:
         reg = regime(events)

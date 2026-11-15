@@ -12,6 +12,8 @@ MAP_KEY
                            (중복 키 satellite·lat·lon·acq_datetime_utc, 우선순위 SP > Archive NRT > 7일 > API).
                            release_* 폴더는 건드리지 않는다. 날짜별 추가 점 수와 그 달 KR·ADM0_ARG·WORLD
                            value / value_projected / as_of_date 전후를 reports/fetch_nrt_append_<받은 날짜>.csv 로 남긴다.
+  --with-spread            --append 뒤에 data/processed/spread_nowcast_latest.parquet를 다시 만든다
+                           (NOAA-20 status=ok인 마지막 날 기준 내일 확률; 받는 중인 날은 기준일로 쓰지 않음).
 
 FIRMS area API: https://firms.modaps.eosdis.nasa.gov/api/area/csv/{MAP_KEY}/{SOURCE}/{AREA}/{DAY_RANGE}[/{DATE}]
   SOURCE: VIIRS_NOAA20_NRT, VIIRS_NOAA21_NRT, MODIS_NRT (VIIRS_SNPP_NRT는 S-NPP 종료로 기본 제외)
@@ -21,6 +23,7 @@ FIRMS area API: https://firms.modaps.eosdis.nasa.gov/api/area/csv/{MAP_KEY}/{SOU
   uv run python -m planetarium.fetch_nrt --status
   uv run python -m planetarium.fetch_nrt --fetch --days 2 [--area world] [--sources VIIRS_NOAA20_NRT MODIS_NRT]
   uv run python -m planetarium.fetch_nrt --fetch --days 2 --append
+  uv run python -m planetarium.fetch_nrt --fetch --days 2 --append --with-spread
 """
 
 from __future__ import annotations
@@ -278,13 +281,24 @@ def main(argv: list[str] | None = None) -> None:
     ap.add_argument("--days", type=int, default=1, help="최근 1~5일")
     ap.add_argument("--format", choices=["parquet", "csv"], default="parquet")
     ap.add_argument("--append", action="store_true", help="--fetch와 함께: 기존 점과 합쳐 data/processed 작업 파일 갱신 (release_* 불변)")
+    ap.add_argument("--with-spread", action="store_true",
+                    help="--append 뒤에 확산 가능성(spread_nowcast_latest.parquet)을 최신 관측일 기준으로 다시 만든다")
     args = ap.parse_args(argv)
+    if args.with_spread and not (args.fetch and args.append):
+        ap.error("--with-spread는 --fetch --append와 함께 써야 합니다")
     start_run_log("fetch_nrt")
     if args.status or not args.fetch:
         st = mapkey_status()
         print("[키 상태]", json.dumps(st, ensure_ascii=False))
     if args.fetch and args.append:
         append(args.sources, args.area, args.days)
+        if args.with_spread:
+            from planetarium import spread_nowcast_model
+            t0 = time.perf_counter()
+            print("\n===== 확산 가능성 다시 만들기 (spread_nowcast_latest) =====", flush=True)
+            spread_nowcast_model.latest()
+            start_run_log("fetch_nrt")
+            print(f"[확산 가능성] 끝 ({time.perf_counter() - t0:,.0f}초)")
     elif args.fetch:
         fetch_and_convert(args.sources, args.area, args.days, args.format)
 

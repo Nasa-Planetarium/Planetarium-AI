@@ -43,6 +43,11 @@ MODIS(2000~)와 VIIRS(2012~) 화재 감지를 **VIIRS(S-NPP) 기준 감지량**�
 | `harmonized_cell_day.parquet` | 0.1° 칸 × 현지 날짜 | 908 MB, 209,765,318행 | 날짜 범위 합계 (`/summary`) |
 | `harmonized_residual_cell_month.parquet` | 기준 점이 없는 칸 × 월 | 109 MB, 19,948,578행 | 합계 보정용 (점으로 안 보이는 추정분) |
 | `../../models/m2v_meta.json` | — | — | "방법 설명" 페이지 |
+| `spread_nowcast_latest.parquet` (2026-11-15) | 0.025° 후보 칸 (기준일 1일) | 0.2 MB, 10,189행 (11-13 기준) | 확산 가능성 레이어 `/spread` |
+| `fire_events.parquet` (2026-11-15) | 화재 사건 1건 (한국·아르헨티나) | 49 MB, 1,276,028행 | 사건 목록·지도 `/events` |
+| `aoi_month_fire_regime.parquet` (2026-11-15) | AOI × 월 (한국 KR·시도·시군구, 아르헨티나) | 0.3 MB, 92,335행 | 불 유형 배지 `/regime` |
+| `fwi_aoi_day.parquet` (2026-11-15) | AOI × 날짜 (한국 KR·시도·시군구, 아르헨티나), 2012~2025 | 27 MB, 1,508,630행 (AOI 295개) | 산불 기상 위험도 배지 `/fwi` |
+| `fwi_clim_aoi_month.parquet` (2026-11-15) | AOI × 달 경계값 (q25·q50·q75·q90) | 0.04 MB, 3,540행 | 새 날짜의 상대 등급 판정 |
 
 > 배경 예측(감지가 없는 칸의 작은 m2v 예측값, 0.5 미만)은 `harmonized_cell_month`에 넣지 않고 **`data/interim/harmonized_background/<연도>.parquet`에 따로** 있어요(2000~2012, 9,016만 행). 지역 합계(`aoi_month`)에는 이미 더해져 있으니 **캘린더·비교는 `aoi_month*`만 읽으면 돼요.** 격자 지도에서 이 작은 값까지 그릴 필요는 없어요(2005년 기준 전체의 약 3%).
 
@@ -116,6 +121,10 @@ MODIS(2000~)와 VIIRS(2012~) 화재 감지를 **VIIRS(S-NPP) 기준 감지량**�
 | `GET /status` | `start`, `end` | 위성별 자료 상태, 최신 갱신 시각 |
 | `GET /export.csv` | `type=summary\|calendar\|hotspots` + 해당 API 파라미터 | CSV 다운로드 |
 | `GET /method` | — | 모델 이름·계수·성능 요약 (`m2v_meta.json`) |
+| `GET /spread` | `aoi_id` 또는 `bbox` | 내일 확산 가능성 칸 목록 (확률·3단계·기준일·예측일·`weather_lag_days`·필수 문구) |
+| `GET /events` | `aoi_id`, `start`, `end`, `limit`, `min_det` | 화재 사건 (영역·기간·감지 수·위성 확인 연소 면적(하한)) |
+| `GET /regime` | `aoi_id`, `start_year`, `end_year` | 월별 불 유형 배지 (`large_fire`/`many_small`/`mixed`/`none`) |
+| `GET /fwi` | `aoi_id`, `date` | 산불 기상 위험도: 절대 등급 `fwi_class` + 상대 등급 `fwi_rel_class` (앱 기본 배지는 상대 등급) |
 
 ### 응답 예시 (v1 실제 값)
 
@@ -208,6 +217,75 @@ MODIS(2000~)와 VIIRS(2012~) 화재 감지를 **VIIRS(S-NPP) 기준 감지량**�
 - `method_version` = `v1-m2v-2026-11-14` (응답에 항상 포함 추천)
 - 모델 이름: `m2v_xgb`(M2V Harmonizer), `m2v_q10_q90`(M2V Uncertainty Band) — `m2v_meta.json`의 `model_names`
 
+### 공간 일반화 한계 (2026-11-14 검증, v1.1 값은 그대로)
+
+- **실제 사용 조건 = leave-year-out**: 학습에 들어 있는 지역의 새 연도를 예측하면 월 합계 편향(Σ예측/Σ실제)이 대륙·한국·아르헨티나 모두 **0.98~0.99**.
+  v1.1은 모든 국가가 학습에 들어 있으므로 배포값(`modis_m2v`)은 이 조건이에요.
+- **처음 보는 대륙(leave-continent-out)에서는 수준이 틀려요**: 대륙 월 합계 **0.27~0.76배**, 한국(아시아 없이 학습) **3.0배**, 아르헨티나(남미 없이 학습) **0.65배**.
+  계절 모양(상관 0.75~0.98)은 따라가지만 합계와 구간은 믿을 수 없어요.
+- **안내**: 학습에 없는 새 지역(그 나라·대륙의 S-NPP 학습 자료가 없는 곳)에는 이 모델을 그대로 쓰지 말고 `ratio_country`(국가 → 하위지역 → 위도띠 × 월 비율)를 쓰세요.
+  같은 검증에서 편향 0.85~1.34.
+- 자세히: `reports/m2v_leave_continent_out.csv`, `reports/figures/m2v_leave_continent_out.png`, `models/m2v_meta.json`의 `spatial_generalization`.
+
+---
+
+## 3-1. 확산 가능성 · 화재 사건 · 불 유형 (2026-11-15 추가, 한국·아르헨티나)
+
+API 형식은 `docs/api_contract.md`의 "확산 가능성·화재 사건·불 유형" 절을 따라 주세요.
+
+### 확산 가능성 레이어 (`spread_nowcast_latest`)
+
+- 오늘 감지 지점에서 반경 약 7.5 km 안의 2.5 km 칸마다 **내일 위성 감지가 생길 확률**. 모델 `spread_nowcast_xgb`(XGBoost),
+  감지 특성 + NASA POWER 기상. 기준일·예측일·기상 지연(`weather_lag_days`)을 응답에 꼭 넣어 주세요.
+- 표시 3단계: **< 5% / 5–20% / > 20%**.
+- **필수 문구**: "위성 감지 기반 단기 확산 가능성입니다. 물리 시뮬레이션이 아니며, 오늘 감지 지점에서 반경 약 7.5 km 밖으로 번지는 경우와 새로 발생하는 불은 예측 대상이 아닙니다."
+- 갱신: `uv run python -m planetarium.fetch_nrt --fetch --days 2 --append --with-spread` (정기 실행은 아직 설정하지 않음).
+
+### 화재 사건 (`fire_events`)과 불 유형 (`aoi_month_fire_regime`)
+
+- 사건 = 기준 감지 점을 시공간으로 이은 묶음 (750 m VIIRS / 2 km MODIS, 하루 차이까지). 시군구·시도·국가는 **감지 점 위치** 기준 가중 다수결.
+- `burned_area_km2`는 **"위성 확인 연소 면적(하한)"**으로 표시해 주세요 (MCD64A1, 2012~2025; 의성 2025-03은 공식 피해 면적의 약 64%).
+- **fire_regime은 감지 점 위치로 시군구를 정하고, aoi_month는 칸 면적 비율로 나눠서, 작은 값이 있는 시군구라도 fire_regime이 none일 수 있음. 캘린더 값은 aoi_month, 불 유형 배지는 fire_regime 기준.**
+
+### 검증 — 화재 사건 vs 산림청 산불통계 (2022~2025)
+
+산림청 산불 하나가 같은 시군구(사건의 `sgg_all`)에서 기간이 겹치는(앞뒤 하루) 사건과 만나면 "탐지"로 셌어요.
+
+| 피해 면적 | 산불 수 | 탐지 | 탐지율 |
+|---|---|---|---|
+| 100 ha 이상 (큰 산불) | 25 | 23 | **92%** |
+| 10~100 ha | 53 | 36 | 68% |
+| 1~10 ha | 266 | 66 | 25% |
+| 1 ha 미만 | 1,692 | 138 | 8% |
+
+놓친 큰 산불 2건(자료 상태는 모든 위성 정상):
+- **영주 평은면 2023-04-03~04 (244.5 ha)**: S-NPP·NOAA-20·Aqua·Terra 모두 35 km 안에 감지 없음 → 위성 관측 시각 사이에 타고 꺼졌거나 연기·구름에 가려진 것으로 추정(미확인).
+- **강릉 2023-04-11 (120.7 ha)**: NOAA-20 11개·Terra 6개 감지는 있었지만 기준 위성 S-NPP는 감지 없음(가장 가까운 21 km). 사건은 기준 위성 점만으로 묶기 때문에 빠짐.
+- 이전에 놓쳤던 봉화(130 ha)·서산 운산(158 ha)은 0.1° 칸 대표 시군구 대신 점 위치로 시군구를 정한 뒤 잡혔어요 (84% → 92%).
+- 자료: `reports/fire_events_kfs_detection.csv`, `reports/fire_events_kfs_large.csv`, `reports/fire_events_kfs_missed_diagnosis.csv`.
+
+### 산불 기상 위험도 배지 (`fwi_aoi_day`, 2026-11-15)
+
+- 캐나다 FWI를 NASA POWER 일 자료로 근사 계산(근사 내용 `data/processed/fwi_meta.json`). 확산 예측 모델에는 넣지 않았어요(넣어도 성능이 오르지 않음).
+- **앱 기본 배지는 상대 등급 `fwi_rel_class`** — 같은 AOI·같은 달의 2012~2025 분포에서의 백분위:
+  평년보다 낮음(< 25) / 평년(25~75) / 높음(75~90) / 매우 높음(≥ 90). 절대 등급 `fwi_class`는 상세 화면에 함께.
+- **아르헨티나는 캐나다 절대 등급이 잘 맞지 않아요** (FWI 중앙값 20.3으로 늘 높게 나오고, `extreme`에서 다음 날 새 감지가 오히려 줄어듦).
+- 2026년 이후 날짜는 아직 파일에 없어요(POWER 일 자료가 2025-12-31까지). 새로 계산하면 `fwi_clim_aoi_month.parquet` 경계값(q25·q75·q90)으로 상대 등급만 정해요.
+
+검증 — 등급별 "다음 날 새 감지" 배율 (0.5° 칸, 그날 감지 없던 칸, 지역 평균 = 1.0)
+
+| 상대 등급 | 한국 | 아르헨티나 |
+|---|---|---|
+| 평년보다 낮음 | 0.56× | 0.63× |
+| 평년 | 1.03× | 1.05× |
+| 높음 | 1.32× | 1.29× |
+| 매우 높음 | 1.53× | 1.32× |
+| AUC (백분위) | 0.60 | 0.58 |
+| (참고) AUC 절대 FWI | 0.63 | 0.55 |
+
+- 한국은 절대 FWI의 AUC가 조금 더 높아요(봄 건조기 같은 계절 차이가 절대값에 담기고, 상대 등급은 달별로 정규화해 그 차이를 뺌). 그래서 상세 화면에 절대 등급도 같이 보여 주세요.
+- 자료: `reports/fwi_validation.csv`(절대), `reports/fwi_validation_relative.csv`(상대).
+
 ---
 
 ## 4. 꼭 지켜야 할 것
@@ -225,7 +303,7 @@ MODIS(2000~)와 VIIRS(2012~) 화재 감지를 **VIIRS(S-NPP) 기준 감지량**�
 
 ## 5. 파일 받는 법
 
-- 데이터 파일은 GitHub에 없어요(용량). `data/processed/release_v1-m2v-2026-11-14/`를 공유 드라이브로 전달할 예정이에요.
+- 데이터 파일은 저장소가 아니라 GitHub Release에 있어요: [data-v1.1-m2v-2026-11-14](https://github.com/Nasa-Planetarium/Planetarium-AI/releases/tag/data-v1.1-m2v-2026-11-14)(칸·AOI 표), [data-v1.1-hotspots-2026-11-14](https://github.com/Nasa-Planetarium/Planetarium-AI/releases/tag/data-v1.1-hotspots-2026-11-14)(통합 핫스팟 점, 연도별 tar). 사용법은 README의 '데이터 받기'.
 - v0 → v1 변경점
   - 숫자: 2000~2012-01 추정값이 m2v로 바뀜 (2000~2011 합계: 한국 −24.5%, 아르헨티나 −22.2%, 전 세계 −3.5%). 그림 `reports/figures/v0_vs_v1_korea_annual.png`
   - `value_source` 이름: `modis_harmonized` → `modis_m2v`, `modis_harmonized_terra_only` → `modis_m2v_terra`, `noaa20_bridged` → `n20_bridge`

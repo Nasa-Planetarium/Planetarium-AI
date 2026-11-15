@@ -57,6 +57,12 @@ All datasets below are publicly available. Please keep this list in sync with wh
 - Free API is for **non-commercial use only**: < 10,000 calls/day, 5,000/hour, 600/minute (https://open-meteo.com/en/terms).
 - Not used to train models (the free-tier budget cannot cover 2012–2025 for our candidate cells). Keep it for showing current weather in the app.
 
+### 5-3. Canadian Fire Weather Index System — `fwi_cell_day`, `fwi_aoi_day`
+
+- Van Wagner, C. E. (1987). *Development and structure of the Canadian Forest Fire Weather Index System*. Forestry Technical Report 35, Canadian Forestry Service, Ottawa.
+- Van Wagner, C. E., & Pickett, T. L. (1985). *Equations and FORTRAN program for the Canadian Forest Fire Weather Index System*. Forestry Technical Report 33 (test values used to check our code).
+- Computed from NASA POWER daily statistics instead of noon observations (approximations in `data/processed/fwi_meta.json`).
+
 ## 6. Software (main libraries)
 
 Polars, PyArrow, XGBoost, scikit-learn, Shapely, pyproj, uv. (Cite versions from `pyproject.toml` / `uv.lock` when submitting.)

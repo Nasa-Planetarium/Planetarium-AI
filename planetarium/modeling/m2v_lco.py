@@ -85,7 +85,11 @@ def interval_hit(mt: pl.DataFrame, table: pl.DataFrame) -> pl.DataFrame:
 def main(argv: list[str] | None = None) -> None:
     ap = argparse.ArgumentParser(description="m2v_xgb leave-continent-out 검증")
     ap.add_argument("--continents", nargs="*", help="일부 대륙만 (시험용)")
+    ap.add_argument("--figure-only", action="store_true", help="CSV는 그대로, 그림만 다시 (아시아 제외 모델만 재학습)")
     args = ap.parse_args(argv)
+    if args.figure_only:
+        figure_only()
+        return
     start_run_log("m2v_lco")
     t_all = time.perf_counter()
 
@@ -194,6 +198,58 @@ def main(argv: list[str] | None = None) -> None:
     print(f"[완료] {OUT_CSV.name}, {OUT_FIG.name} — {time.perf_counter() - t_all:,.0f}초, 최대 메모리 {peak_memory_gb() or 0:.1f} GB")
 
 
+def figure_only() -> None:
+    """CSV는 그대로 두고 그림만: 아시아를 뺀 m2v_xgb·ratio_country를 다시 학습해 한국 월 합계를 만든다.
+    진단(로그 출력만): 같은 모델로 범주형(국가·하위지역·대륙)을 결측으로 두고 예측했을 때의 아시아·한국 편향."""
+    start_run_log("m2v_lco")
+    t0 = time.perf_counter()
+    out = pl.read_csv(OUT_CSV)
+    tt = pl.read_parquet(TRAIN_PATH).with_columns(w=pl.col("sample_weight") / pl.col("sample_weight").mean(),
+                                                  continent=pl.col("continent").fill_null("none"))
+    cats = category_maps()
+    rest = tt.filter(pl.col("continent") != "Asia")
+    m = xgb_train(rest.filter(pl.col("year") != VAL_YEAR), rest.filter(pl.col("year") == VAL_YEAR), M1_FEATURES, cats,
+                  OBJECTIVES[OBJECTIVE])
+    rc = b1c_fit(country_sums().filter(pl.col("continent") != "Asia"), FOLD_YEARS)
+    del tt, rest
+    print(f"[아시아 제외] m2v_xgb iter {m.best_iteration} ({time.perf_counter() - t0:.0f}초)")
+
+    def pred_nocat(df):
+        import xgboost as xgb
+
+        from planetarium.modeling.m1_xgb import feature_types, to_matrix
+        X = to_matrix(df, M1_FEATURES, cats)
+        for i, f in enumerate(M1_FEATURES):
+            if f in ("adm0_a3", "subregion", "continent"):
+                X[:, i] = np.nan
+        d = xgb.DMatrix(X, feature_types=feature_types(M1_FEATURES), enable_categorical=True)
+        return m.predict(d, iteration_range=(0, m.best_iteration + 1))
+
+    grid = pl.read_parquet(GRID_PATH).with_columns(
+        pl.col("adm0_a3").fill_null("none"), pl.col("subregion").fill_null("none"), pl.col("continent").fill_null("none"))
+    parts, diag = [], []
+    for y in tqdm(FOLD_YEARS, desc="한국 월 합계 (아시아 제외)", unit="year", dynamic_ncols=True):
+        panel = load_panel("train", [y]).collect().with_columns(pl.col("adm0_a3").fill_null("none"),
+                                                                pl.col("continent").fill_null("none"))
+        dz = dense_zero_rows(y, grid, panel.select("cell_id", "year", "month")).with_columns(y=pl.lit(0.0))
+        pc, zc = panel.filter(pl.col("continent") == "Asia"), dz.filter(pl.col("continent") == "Asia")
+        for model, pp, pz in (("m2v_xgb", xgb_predict(m, pc, M1_FEATURES, cats), xgb_predict(m, zc, M1_FEATURES, cats)),
+                              ("ratio_country", b1c_predict(pc, rc), np.zeros(zc.height)),
+                              ("m2v_xgb_nocat", pred_nocat(pc), pred_nocat(zc))):
+            r = pl.concat([region_rows(pc, pp, "Asia"), region_rows(zc, pz, "Asia")]).group_by(
+                "year", "month", "region").agg(pl.col("true", "pred").sum()).with_columns(model=pl.lit(model), scheme=pl.lit("LCO"))
+            (diag if model == "m2v_xgb_nocat" else parts).append(r)
+        del panel, dz
+    lco = pl.concat(parts)
+    plot(out, lco)
+    d = pl.concat(diag + parts).group_by("model", "region").agg(bias=pl.col("pred").sum() / pl.col("true").sum(),
+                                                                MAE=(pl.col("pred") - pl.col("true")).abs().mean())
+    with pl.Config(tbl_formatting="ASCII_MARKDOWN", tbl_hide_column_data_types=True, tbl_hide_dataframe_shape=True, float_precision=3):
+        print("[진단: 아시아 제외 모델, 범주형 결측 처리 비교 — 파일로 저장하지 않음]")
+        print(d.sort("region", "model"))
+    print(f"[완료] {OUT_FIG.name} — {time.perf_counter() - t0:,.0f}초, 최대 메모리 {peak_memory_gb() or 0:.1f} GB")
+
+
 def plot(out: pl.DataFrame, lco: pl.DataFrame) -> None:
     import matplotlib
     matplotlib.use("Agg")
@@ -221,17 +277,17 @@ def plot(out: pl.DataFrame, lco: pl.DataFrame) -> None:
         ax.grid(axis="y", alpha=0.3)
     axes[0].legend(fontsize=8)
     ax = axes[2]
-    k = lco.filter(pl.col("region") == "korea").sort("year", "month")
+    k = lco.filter(pl.col("region") == "korea")
     if k.height:
-        t = [f"{a}-{b:02d}" for a, b in k.select("year", "month").iter_rows()]
+        tr = k.filter(pl.col("model") == "m2v_xgb").sort("year", "month")
+        rc = k.filter(pl.col("model") == "ratio_country").sort("year", "month")
+        t = [f"{a}-{b:02d}" for a, b in tr.select("year", "month").iter_rows()]
         xi = np.arange(len(t))
-        tr = k.filter(pl.col("model") == "m2v_xgb")
-        ax.plot(xi[:tr.height], tr["true"], color="k", lw=1.2, label="S-NPP observed")
-        ax.plot(xi[:tr.height], tr["pred"], color="#08519c", lw=1, label="m2v_xgb (trained without Asia)")
-        rc = k.filter(pl.col("model") == "ratio_country")
+        ax.plot(xi, tr["true"], color="k", lw=1.2, label="S-NPP observed")
+        ax.plot(xi, tr["pred"], color="#08519c", lw=1, label="m2v_xgb (trained without Asia)")
         ax.plot(xi[:rc.height], rc["pred"], color="#d94801", lw=1, alpha=0.8, label="ratio_country (without Asia)")
         step = max(1, len(t) // 12)
-        ax.set_xticks(xi[::step][: len(xi[::step])], [t[i] for i in range(0, tr.height, step)], rotation=45, fontsize=7)
+        ax.set_xticks(xi[::step], [t[i] for i in range(0, len(t), step)], rotation=45, fontsize=7)
         ax.set_title("Korea monthly totals, leave-Asia-out (2012-02 ~ 2025-12)", fontsize=10)
         ax.legend(fontsize=8)
         ax.grid(alpha=0.3)

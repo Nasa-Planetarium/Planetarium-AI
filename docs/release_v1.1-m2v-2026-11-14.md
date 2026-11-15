@@ -64,6 +64,20 @@ Validation (leave-one-year-out, 2012–2025): bias (Σpred/Σobs) Korea 0.986, A
 - **`value_projected_month`**: for the month in progress only, the cell's full-month estimate, on the day-1 row.
 - Grouping `value + residual_month` by month and AOI reproduces `aoi_month.value` exactly.
 
+## Known limitation: spatial generalization (added 2026-11-14, after release)
+
+The released values are **not changed**. This note records how far the model can be trusted outside the conditions it was built for.
+
+- **Use condition (what the release relies on):** leave-year-out validation — regions that are in the training data, a year that is not — gives
+  monthly-total bias (Σpred / Σtrue) of **0.98–0.99** for every continent, Korea and Argentina. Every country is in the training data of v1.1,
+  so the released `modis_m2v` values are in this condition.
+- **Outside it:** leave-continent-out validation — a whole continent removed from training — gets the level wrong: monthly totals are
+  **0.27–0.76×** the observed values for the six continents, Korea (trained without Asia) is **3.0×**, Argentina (trained without South America) is
+  **0.65×**. Correlation stays at 0.75–0.98 (the seasonal shape is followed), and the AOI intervals stop covering the truth (0–24 % of months).
+- **Guidance:** for a new region that has no training data (no S-NPP years in that country or continent), do not apply `m2v_xgb` as is;
+  use `ratio_country` (country → subregion → latitude band × month ratio), which had bias 0.85–1.34 in the same test.
+- Details: `reports/m2v_leave_continent_out.csv`, `reports/figures/m2v_leave_continent_out.png`, `models/m2v_meta.json` → `spatial_generalization`.
+
 ## Notes
 - `harmonized_cell_month` stores non-zero cells only; a missing row means 0 when the month's `status` is `ok`.
 - 2000-11 – 2002-06 (Terra only): cell- and point-level intervals are null; intervals for this period are provided at AOI level only.
