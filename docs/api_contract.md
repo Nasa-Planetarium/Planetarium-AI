@@ -244,12 +244,31 @@
   `reports/figures/occurrence_calibration.png`). 기준선을 이기지 못하는 갱신에서는 `model = baseline_same_month_rate`, `p_any = baseline_p`로 나간다.
 - 참고: 시군구·달력 월 조합의 45%는 2012~ 동안 감지가 한 번도 없었다(양성 비율 < 5%). 95%를 넘는 조합은 0.07%.
   울산 남구·포항 남구·울주·당진·광양처럼 산업 지역이 상위에 오르는데, 고정 열원 목록(2개 연도 이상 type 1·2)에 없는 산업 열원이 남아 있을 수 있다.
+- **`suspected_industrial = true`(산업 열원 의심) 시군구는 순위·강조(상위 N, 색 강조, 알림)에서 제외하고 회색으로 표시**한다. 값은 상세 화면에서만 보여 준다.
+  기준: 2012-02 이후 감지가 있던 달의 비율 ≥ 25% **그리고** 계절성이 거의 없음(12개 달력 월 발생 비율의 변동계수 ≤ 0.40, 한국 전체는 0.48)
+  **그리고** 가장 적은 달도 ≥ 10%. 현재 4곳: 울산 남구, 포항 남구, 함안군, 제주시 (`reports/occurrence_industrial_flags.csv`).
+  제주시는 산업 시설이라기보다 1년 내내 이어지는 소각일 가능성도 있어 "의심"으로만 둔다. 울주·당진·광양은 계절성이 있어 기준에 걸리지 않았다.
 
 ```json
 // GET /occurrence?aoi=SGG_50110
 {"aoi_id": "SGG_50110", "target_month": "2026-12", "p_any": 0.34, "p_none": 0.66, "baseline_p": 0.57,
  "model": "aoi_occurrence_xgb+platt", "as_of_date": "2026-11-14", "vs_normal": "예년보다 낮음"}
 ```
+
+#### `/occurrence?unit=grid&bbox` — 전 세계 0.5° 격자 (2026-11-15)
+
+- 읽는 파일: `data/processed/grid_occurrence_nextmonth_latest.parquet` (설명 `models/grid_occurrence_meta.json`).
+  대상: 2012-02 이후 한 번이라도 탐지된 육지 0.5° 격자 52,855개 (남극·공해 제외). `unit`을 안 주면 시군구(`aoi`) 응답.
+- 컬럼: `cell_id`(0.5° 격자 id = 행 × 720 + 열), `lat`, `lon`(격자 중심), `target_month`, **`p_any`**(다음 달 그 격자에 기준 감지 ≥ 1건일 확률,
+  고정 열원 제외), `p_none`, **`baseline_p`**(예년 같은 달 발생 비율), **`persistent_source`**, `model`, `as_of_date`.
+- **`persistent_source = true`(지속 열원 의심: 가스 플레어·제철소 등) 격자는 순위·강조에서 빼고 회색**으로 그린다 (시군구의 `suspected_industrial`과 같은 규칙).
+  기준: 2012-02 이후 탐지 달 비율 ≥ 0.75, 달력 월별 평균 탐지 수의 변동계수 ≤ 1.0, 기준 점의 상위 3개 0.01° 칸 집중 비율 ≥ 0.12 → 259개 격자.
+  울산·포항·바스라·퍼미안(뉴멕시코 쪽)은 잡히고 아마존·콩고 분지·호주 북부 사바나는 걸리지 않는다. 넓게 퍼진 유전(니제르 델타, 퍼미안 델라웨어 쪽)과
+  고정 열원 목록으로 이미 대부분 빠진 곳(한티만시, 당진, 광양)은 잡히지 않는다 (`reports/grid_occurrence_persistence_check.csv`).
+- 표시: 색 단계 < 10% / 10~40% / 40~70% / ≥ 70%, 예년 대비는 시군구와 같은 규칙(`p_any − baseline_p` ±0.10).
+  필수 문구: "과거 감지 기록과 최근 활동으로 본 확률입니다. 날씨 예보가 아닙니다. 회색 격자는 공장·가스 플레어 같은 지속 열원 의심 지역입니다."
+- 검증 (확장 창 2020~2025, 지속 열원 제외): 전체 PR-AUC 0.900 / Brier 0.096, 기준선 "예년 같은 달 비율" 0.869 / 0.104 → 6개 대륙 모두와
+  한국·아르헨티나에서 기준선을 이겨 채택 (`reports/grid_occurrence_metrics.csv`, `reports/figures/grid_occurrence_calibration.png`). 보정은 isotonic.
 
 ### `/recurrence?aoi|bbox` — 확정 (2026-11-15)
 

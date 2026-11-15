@@ -264,6 +264,20 @@ def report() -> dict:
     return {"adopt": adopt, "calibration": cal, "metrics": m.to_dicts(), "extremes": ext.to_dicts()[0]}
 
 
+IND_OCC, IND_CV, IND_MIN = 0.25, 0.40, 0.10
+
+
+def industrial_flags(p: pl.DataFrame | None = None) -> pl.DataFrame:
+    """산업 열원 의심 시군구: 2012-02 ~ 관측 구간에서 발생 달 비율 ≥ 0.25 이고 계절성이 거의 없음
+    (12개 달력 월 발생 비율의 변동계수 ≤ 0.40, 가장 낮은 달도 ≥ 0.10). 한국 전체 시군구의 같은 변동계수는 0.48."""
+    p = (p if p is not None else pl.read_parquet(PANEL)).filter(pl.col("label").is_not_null())
+    cal = p.group_by("aoi_id", "month").agg(r=pl.col("label").mean())
+    s = cal.group_by("aoi_id").agg(month_rate_min=pl.col("r").min(), seasonal_cv=pl.col("r").std() / pl.col("r").mean()).join(
+        p.group_by("aoi_id").agg(occ_share=pl.col("label").mean()), on="aoi_id")
+    return s.with_columns(suspected_industrial=(pl.col("occ_share") >= IND_OCC) & (pl.col("seasonal_cv") <= IND_CV)
+                          & (pl.col("month_rate_min") >= IND_MIN))
+
+
 def latest(adopt: bool | None = None, cal: str | None = None) -> pl.DataFrame:
     """대상 2026-12: 시험 해 2026과 같은 구조 (학습 ≤ 2024, 2025로 조기 종료·보정)."""
     p = pl.read_parquet(PANEL)
@@ -290,9 +304,13 @@ def latest(adopt: bool | None = None, cal: str | None = None) -> pl.DataFrame:
         target_month=pl.lit(f"{TARGET[0]}-{TARGET[1]:02d}"), p_any=pl.Series(p_any.astype(np.float32)),
         baseline_p=pl.Series(base.astype(np.float32)), p_model=pl.Series(pm.astype(np.float32)),
         model=pl.lit(f"aoi_occurrence_xgb+{cal}" if adopt else "baseline_same_month_rate"), as_of_date=pl.lit(as_of))
-    out = out.with_columns(p_none=(1 - pl.col("p_any")).cast(pl.Float32)).select(
-        "aoi_id", "target_month", "p_any", "p_none", "baseline_p", "model", "as_of_date", "p_model", "rate_all", "rate_5y", "n_years",
-        "lag1_value", "lag1_projected").sort("p_any", descending=True)
+    ind = industrial_flags(p)
+    out = out.with_columns(p_none=(1 - pl.col("p_any")).cast(pl.Float32)).join(
+        ind.select("aoi_id", "suspected_industrial", "occ_share", "seasonal_cv"), on="aoi_id", how="left").with_columns(
+        pl.col("suspected_industrial").fill_null(False)).select(
+        "aoi_id", "target_month", "p_any", "p_none", "baseline_p", "model", "as_of_date", "suspected_industrial", "p_model", "rate_all",
+        "rate_5y", "n_years", "lag1_value", "lag1_projected", "occ_share", "seasonal_cv").sort("p_any", descending=True)
+    ind.write_csv(REPORTS_DIR / "occurrence_industrial_flags.csv")
     out.write_parquet(LATEST_PATH)
     names = pl.read_parquet(PROCESSED_DATA_DIR / "aoi_list.parquet", columns=["aoi_id", "name"])
     with pl.Config(tbl_rows=12, float_precision=3):

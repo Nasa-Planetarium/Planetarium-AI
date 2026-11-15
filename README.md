@@ -46,7 +46,8 @@ Planetarium-AI/
 
 처리 결과는 용량 때문에 저장소가 아니라 Release에 올려 두었습니다 (최신 **v1.2, 2026-11-15 데이터 확정**).
 [data-v1.2-2026-11-15](https://github.com/Nasa-Planetarium/Planetarium-AI/releases/tag/data-v1.2-2026-11-15)에는
-칸·지역 표(고정 열원 점 제외본), 위성 상태, 확산 가능성·화재 사건·불 유형·FWI·다음 달 전망, 2026년 점(`harmonized_hotspots_2026.tar`),
+칸·지역 표(고정 열원 점 제외본), 위성 상태, 확산 가능성·화재 사건·불 유형·FWI·다음 달 전망,
+다음 달 열원 발생 확률(`aoi_occurrence_nextmonth_latest` 한국 시군구, `grid_occurrence_nextmonth_latest` 전 세계 0.5° 격자), 2026년 점(`harmonized_hotspots_2026.tar`),
 고정 열원 점 표시(`harmonized_hotspots_static_flags.tar`), 모델·meta, `release_manifest.csv`(행 수·크기·sha256)가 있습니다.
 2000~2025년 점은 v1.1과 같으므로 [data-v1.1-hotspots-2026-11-14](https://github.com/Nasa-Planetarium/Planetarium-AI/releases/tag/data-v1.1-hotspots-2026-11-14)의
 `harmonized_hotspots_<연도>.tar`를 그대로 씁니다.

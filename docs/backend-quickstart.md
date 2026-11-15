@@ -22,6 +22,7 @@
 | 불 유형 배지 | `aoi_month_fire_regime.parquet` | 한국·아르헨티나 | ✅ (v1.2에 포함) |
 | 산불 기상 위험도 배지 | `fwi_aoi_day.parquet` (+ `fwi_clim_aoi_month.parquet`) | 한국·아르헨티나, 2012-01-01 ~ 2026-11-11 | ✅ (v1.2) |
 | 다음 달 전망 | `recurrence_nextmonth_latest.parquet`, `recurrent_burn_sites.parquet` | 아르헨티나 확률, 한국 반복 횟수 | ✅ (v1.2) |
+| 다음 달 열원 발생 확률 | `aoi_occurrence_nextmonth_latest.parquet` (한국 시군구), `grid_occurrence_nextmonth_latest.parquet` (전 세계 0.5°) | 한국 252개 시군구, 전 세계 52,855개 격자 | ✅ (v1.2) |
 | 고정 열원(공장) 점 표시 | `harmonized_hotspots_static_flags/` | 2000~2026 | ✅ (v1.2, 점 지도에서 빼기) |
 | 실시간 갱신 | `uv run python -m planetarium.fetch_nrt ...` | 최근 1~5일 | ✅ |
 
@@ -33,7 +34,7 @@
 
 | Release | 내용 |
 |---|---|
-| [`data-v1.2-2026-11-15`](https://github.com/Nasa-Planetarium/Planetarium-AI/releases/tag/data-v1.2-2026-11-15) | 칸·지역 표 전부(고정 열원 제외본), 위성 상태, 확산·사건·불 유형·FWI·다음 달 전망, `harmonized_hotspots_2026.tar`, `harmonized_hotspots_static_flags.tar`, 모델·meta, `release_manifest.csv`(sha256) (약 2.8 GB) |
+| [`data-v1.2-2026-11-15`](https://github.com/Nasa-Planetarium/Planetarium-AI/releases/tag/data-v1.2-2026-11-15) | 칸·지역 표 전부(고정 열원 제외본), 위성 상태, 확산·사건·불 유형·FWI·다음 달 전망·다음 달 열원 발생 확률(시군구·0.5° 격자), `harmonized_hotspots_2026.tar`, `harmonized_hotspots_static_flags.tar`, 모델·meta, `release_manifest.csv`(sha256) (약 2.8 GB, 55개 파일) |
 | [`data-v1.1-hotspots-2026-11-14`](https://github.com/Nasa-Planetarium/Planetarium-AI/releases/tag/data-v1.1-hotspots-2026-11-14) | 점 파일 2000~2025년 (`harmonized_hotspots_<연도>.tar`, v1.2와 같음). **2026년은 v1.2의 tar를 쓰세요** |
 
 ```powershell
@@ -62,7 +63,8 @@ data/processed/
 ├── satellite_day_status.parquet, satellite_month_status.parquet
 ├── spread_nowcast_latest.parquet, fire_events.parquet, aoi_month_fire_regime.parquet
 ├── fwi_aoi_day.parquet, fwi_clim_aoi_month.parquet
-└── recurrence_nextmonth_latest.parquet, recurrent_burn_sites.parquet
+├── recurrence_nextmonth_latest.parquet, recurrent_burn_sites.parquet
+└── aoi_occurrence_nextmonth_latest.parquet, grid_occurrence_nextmonth_latest.parquet
 ```
 
 ---
@@ -83,6 +85,7 @@ data/processed/
 | `GET /regime?aoi_id` | `aoi_month_fire_regime` | 불 유형 배지 | 중간 |
 | `GET /fwi?aoi_id&date` | `fwi_aoi_day` | 산불 기상 위험도 배지 (기준일 표시) | 중간 |
 | `GET /recurrence?aoi_id\|bbox` | `recurrence_nextmonth_latest` (+ `recurrent_burn_sites`) | 다음 달 전망 (아르헨티나 확률, 한국 반복 횟수) | 중간 |
+| `GET /occurrence?aoi_id` / `?unit=grid&bbox` | `aoi_occurrence_nextmonth_latest` / `grid_occurrence_nextmonth_latest` | 다음 달 열원 1건 이상 확률 + 예년 대비 (산업·지속 열원 의심은 회색) | 중간 |
 | `POST /harmonize` | 사용자 업로드 → `planetarium.converter` | FIRMS 파일 변환 (CSV + summary.json) | 낮음 |
 | `GET /method` | `m2v_meta.json` | 방법·검증 설명 | 낮음 |
 | `GET /weather?lat&lon` | Open-Meteo Forecast API (외부, 실시간) | 현재 바람·습도 | 낮음 |
