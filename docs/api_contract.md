@@ -19,9 +19,11 @@
 | `GET /fwi` | `fwi_aoi_day.parquet` (+ `fwi_clim_aoi_month.parquet`) | 지역 산불 기상 위험도 배지 (한국·아르헨티나) |
 | `GET /export.csv` | 위 결과를 CSV로 | |
 
-사용자 지정 스텝 예측은 Python의 `planetarium.store.occurrence_forecast(regions, start, end, as_of=None)`을 사용합니다. `regions`의 각 객체는 문자열 `id`와 `point`, `bbox`, `bboxes` 중 하나를 받습니다. 날짜는 `YYYY-MM-DD`이며 기간 양 끝을 포함합니다.
+### 위치별 30일 탐지량 예측
 
-결과는 `region_id`, `as_of_date`, `date_local`, `step`, `p_any`, `p_none`, `n_cells`, `model`을 갖습니다. `p_any`는 그 지역에서 해당 현지 날짜에 기준 감지가 1건 이상일 확률입니다. 스텝은 `as_of_date` 다음 날부터 이어집니다. [입력·출력 예시](../reports/forecast_benchmark.md)
+Python에서 `planetarium.store.value_forecast(regions, as_of=None, model=None, model_dir=None)`을 호출합니다. 각 지역은 고유한 문자열 `id`와 `point=[경도, 위도]`, `bbox=[서, 남, 동, 북]`, `bboxes=[[서, 남, 동, 북], ...]` 중 하나를 받습니다. 좌표는 해당 0.1° 칸을 고르고 범위는 중심점이 포함된 칸의 일별 `value`를 합산합니다. `bboxes`의 중복 칸은 한 번만 합산합니다. 서쪽 경도가 동쪽 경도보다 크면 날짜변경선을 가로지르는 범위입니다.
+
+결과 컬럼은 `region_id`, `as_of_date`, `date_local`, `step`, `value`, `n_cells`, `model`입니다. `as_of`를 넘기면 그 날짜까지, 생략하면 설치된 데이터에서 요청 지역 모두의 최신 관측 가능 날짜를 기준으로 삼습니다. `date_local`은 각 칸의 현지 태양일이며 지역마다 기준일 다음 날부터 30일을 반환합니다. `value`는 일별 S-NPP 기준 환산 탐지량의 예측값입니다. [학습·호출 예시와 모델 지표](../reports/forecast_benchmark.md)
 
 ### `/summary?aoi|bbox|polygon&start&end&freq=day|month`
 

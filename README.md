@@ -245,12 +245,9 @@ uv run python -m planetarium.modeling.m2         # n20_bridge
 
 컬럼 설명과 처리 방식은 `firms-merge-guide.html` 문서를 참고하세요.
 
-## 지역·기간별 열원 탐지 확률
+## 위치별 30일 탐지량 예측
 
-`store.occurrence_forecast`에 위치나 여러 범위와 시작일·종료일을 넘기면 지역별 날짜마다 `p_any`를 반환합니다.
-받은 일별 관측의 간격으로 기준일 다음 날부터 연속 예측합니다. [지역·기간 조회 예시](reports/forecast_benchmark.md) · [월말 관측 갱신 방식의 전 세계 검증](reports/forecast_monthly_backtest.md)
-
-월을 가로지르는 임의 날짜 구간도 평가할 수 있습니다. [시작일·종료일 지정 학습과 평가](reports/forecast_benchmark.md#임의-날짜-구간의-학습과-평가)
+`store.value_forecast`에 좌표나 사각 범위를 넘기면 관측 기준일 다음 날부터 30일간의 현지 날짜별 `value`를 반환합니다. `value`의 단위는 릴리스와 같은 S-NPP 기준 환산 탐지량입니다. [모델 비교와 실행 방법](reports/forecast_benchmark.md)
 
 ## 크레딧 (Acknowledgements)
 

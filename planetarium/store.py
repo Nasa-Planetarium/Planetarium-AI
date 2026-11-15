@@ -105,20 +105,21 @@ def cell_days(start: str | date, end: str | date | None = None, bbox: BBox | Non
             .with_columns(_cell_center()).filter(_bbox(bbox, "lat", "lon")).collect())
 
 
-def occurrence_forecast(
+def value_forecast(
     regions: list[dict],
-    start: str | date,
-    end: str | date,
     *,
     as_of: str | date | None = None,
-    model: str = "auto",
+    model: str | None = None,
     root: Path | None = None,
-    work: Path | None = None,
+    model_dir: Path | None = None,
 ) -> pl.DataFrame:
-    """Predict daily any-detection probabilities for points or unions of bounds."""
-    from planetarium.modeling.daily_occurrence import forecast
+    """Predict the next 30 daily S-NPP-equivalent values for each region."""
+    from planetarium.modeling.value_forecast import DEFAULT_MODEL, forecast
 
-    return forecast(regions, start, end, as_of=as_of, model=model, root=root, work=work)
+    return forecast(
+        regions, as_of=as_of, model=DEFAULT_MODEL if model is None else model,
+        root=root, model_dir=model_dir,
+    )
 
 
 def aoi(aoi_id: str, month: str | None = None, start: str | None = None, end: str | None = None, compare: bool = True,

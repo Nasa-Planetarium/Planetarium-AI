@@ -1,4 +1,4 @@
-"""Pinned Hugging Face adapters for daily binary histories."""
+"""Pinned Hugging Face adapters for daily value histories."""
 
 from __future__ import annotations
 
@@ -97,9 +97,7 @@ def _tirex2(checkpoint, device, batch_size, horizon):
     return infer, f"tirex-2=={version('tirex-2')}"
 
 
-def infer_quantiles(
-    model, keys, context_length, horizon, scored_indices, device, batch_size, threads
-):
+def load_inference(model, horizon, device, batch_size, threads):
     import torch
     from huggingface_hub import snapshot_download
 
@@ -119,21 +117,28 @@ def infer_quantiles(
         infer, package = _tirex2(*options)
     else:
         infer, package = _chronos(model, *options)
-    forecasts = np.empty((len(keys), len(scored_indices), 3), dtype=np.float32)
-    with torch.inference_mode():
-        for i in range(0, len(keys), batch_size):
-            end = min(i + batch_size, len(keys))
-            packed = keys[i:end].view(np.uint8).reshape(-1, context_length // 8)
-            context = np.unpackbits(packed, axis=1).astype(np.float32)
-            prediction = infer(context)
-            if (
-                prediction.shape != (end - i, horizon, 3)
-                or not np.isfinite(prediction).all()
-            ):
-                raise ValueError(
-                    f"{model} returned invalid quantiles with shape {prediction.shape}"
-                )
-            forecasts[i:end] = prediction[:, scored_indices, :]
-            if i == 0 or (i // batch_size + 1) % 100 == 0 or end == len(keys):
-                print(f"{model}: {end:,}/{len(keys):,} contexts", flush=True)
-    return forecasts, {"package": package, "torch": str(torch.__version__)}
+
+    def predict(context):
+        unique, inverse = np.unique(
+            np.ascontiguousarray(context, dtype=np.float32), axis=0, return_inverse=True
+        )
+        forecasts = np.empty((len(unique), horizon, 3), dtype=np.float32)
+        with torch.inference_mode():
+            for start in range(0, len(unique), batch_size):
+                end = min(start + batch_size, len(unique))
+                forecast = infer(unique[start:end])
+                if (
+                    forecast.shape != (end - start, horizon, 3)
+                    or not np.isfinite(forecast).all()
+                ):
+                    raise ValueError(
+                        f"{model} returned invalid quantiles: {forecast.shape}"
+                    )
+                forecasts[start:end] = forecast
+        return forecasts[inverse]
+
+    return predict, {
+        "package": package,
+        "torch": str(torch.__version__),
+        "revision": revision,
+    }
