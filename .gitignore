@@ -1,30 +1,13 @@
-# 데이터와 모델 산출물은 깃에 올리지 않음 (폴더 구조만 .gitkeep으로 유지)
-data/**/*
-!data/**/.gitkeep
-models/*
-!models/.gitkeep
-
-# 큰 압축·데이터 파일 (저장소 어디에 있든)
-data.zip
-*.zip
-*.parquet
-*.parquet.tmp
-
-# 리포트: 실행 로그는 올리지 않음 (CSV·그림은 올림)
-reports/*_run.log
-
-# Python / uv
-.venv/
 __pycache__/
-*.pyc
-.ipynb_checkpoints/
-
-# 비밀값 (FIRMS MAP_KEY 등)
+*.py[cod]
+*.egg-info/
+.venv/
 .env
 .env.*
-!.env.example
-
-# 옛 코드 백업
-.legacy_code_*/
-*legacy*
-release_tmp/
+build/
+dist/
+/.release-assets/
+/data/*
+!/data/.gitkeep
+/models/*
+!/models/.gitkeep

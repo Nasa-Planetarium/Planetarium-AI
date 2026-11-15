@@ -4,11 +4,13 @@ import json
 import math
 import os
 from pathlib import Path
+import tempfile
 
 import duckdb
 
 
 ROOT = Path(__file__).resolve().parent
+DATA_ROOT = ROOT.parent / "data" / "processed"
 X_SCALE = 6371.0088 * math.cos(math.radians(30))
 Y_SCALE = 6371.0088 / math.cos(math.radians(30))
 COORDS = f"""
@@ -26,6 +28,40 @@ def convert_firms(source, output, *, work=None, workers=3):
     return convert_csv(source, output, work=work, workers=workers)
 
 
+def convert_api_csv(payload, output, *, bbox, date_from, date_to, workers=3):
+    """Convert a FIRMS Area API response and record the queried region and UTC days."""
+    from .converter.harmonize import detect_sensor
+
+    if not isinstance(payload, bytes):
+        raise TypeError("Provide the FIRMS CSV response body as bytes")
+    bounds = _bbox(bbox)
+    first, last = _day(date_from), _day(date_to)
+    if first > last:
+        raise ValueError("date_from must be on or before date_to")
+    output = Path(output).resolve()
+    if output.exists():
+        raise FileExistsError(output)
+    output.parent.mkdir(parents=True, exist_ok=True)
+    with tempfile.TemporaryDirectory(prefix=".firms-api-", dir=output.parent) as temp:
+        folder = Path(temp)
+        source = folder / "firms-api.csv"
+        source.write_bytes(payload)
+        stage = folder / "update"
+        if detect_sensor(source, allow_empty=True):
+            metadata = convert_firms(source, stage, work=folder, workers=workers)
+            observed_first, observed_last = map(_day, metadata["date_range_utc_inclusive"])
+            if not first <= observed_first <= observed_last <= last:
+                raise ValueError("FIRMS acquisitions fall outside the stated UTC date range")
+        else:
+            stage.mkdir()
+            metadata = {"schema_version": "harmonized-1", "grid_km": 1, "daily_key": ["date_utc", "grid_id"],
+                        "source_sensors": [], "source_detection_count": 0, "grid_day_rows": 0}
+        metadata.update(bbox_wsen=list(bounds), coverage_utc_inclusive=[str(first), str(last)])
+        (stage / "metadata.json").write_text(json.dumps(metadata, indent=2) + "\n", encoding="utf-8")
+        stage.rename(output)
+    return metadata
+
+
 def _day(value):
     if isinstance(value, str):
         return date.fromisoformat(value)
@@ -34,13 +70,18 @@ def _day(value):
     return value
 
 
-def _spatial(bbox):
-    if bbox is None:
-        return "TRUE", []
+def _bbox(bbox):
     west, south, east, north = map(float, bbox)
     if not (-180 <= west <= 180 and -180 <= east <= 180 and west != east
             and -90 <= south < north <= 90):
         raise ValueError("Expected (west, south, east, north) in WGS84 degrees")
+    return west, south, east, north
+
+
+def _spatial(bbox):
+    if bbox is None:
+        return "TRUE", []
+    west, south, east, north = _bbox(bbox)
     x = "(longitude BETWEEN ? AND ?)" if west < east else "(longitude >= ? OR longitude <= ?)"
     return f"{x} AND latitude BETWEEN ? AND ?", [west, east, south, north]
 
@@ -49,15 +90,13 @@ class FirmsStore:
     """Bounded map queries using published Parquet partitions and their native IDs."""
 
     def __init__(self, asset_root=None, *, threads=4):
-        data_root = asset_root if asset_root is not None else os.environ.get("FIRMS_BACKEND_DATA_HOME", ROOT)
+        data_root = asset_root if asset_root is not None else os.environ.get("FIRMS_BACKEND_DATA_HOME", DATA_ROOT)
         self.root = Path(data_root).resolve()
         self.threads = threads
 
     def metadata(self):
         available = {
             "archive": self.root / "dataset/metadata.json",
-            "daily_forecast": self.root / "predictions/daily/metadata.json",
-            "annual_forecast": self.root / "predictions/annual/metadata.json",
         }
         return {name: json.loads(path.read_text(encoding="utf-8")) for name, path in available.items() if path.is_file()}
 
@@ -67,7 +106,7 @@ class FirmsStore:
         relative = f"dataset/grid_daily/year={day.year}/month={day.month}/data.parquet"
         return self._rows(
             relative, f"SELECT * EXCLUDE(year,month), {COORDS} FROM read_parquet(?) WHERE date_utc = ?",
-            [day], bbox, None, None, "source_detection_count", limit,
+            [day], bbox, "source_detection_count", limit,
         )
 
     def observations(self, day, *, bbox=None, limit=5000):
@@ -76,29 +115,7 @@ class FirmsStore:
         relative = f"dataset/observations/year={day.year}/month={day.month}/*.parquet"
         return self._rows(
             relative, "SELECT * EXCLUDE(year,month) FROM read_parquet(?) WHERE date_utc = ?",
-            [day], bbox, None, None, "observed_at_utc", limit,
-        )
-
-    def forecast_daily(self, day, *, bbox=None, minimum=0.0, limit=5000):
-        """Return the saved UTC-day detection probabilities and conditional FRP."""
-        day = _day(day)
-        return self._rows(
-            f"predictions/daily/day={day}/data.parquet",
-            "SELECT * EXCLUDE(day) FROM read_parquet(?)",
-            [], bbox, "p_detected", minimum, "p_detected", limit,
-        )
-
-    def forecast_monthly(self, month, *, bbox=None, minimum=0.0, limit=5000):
-        """Return the saved monthly probability of one or more detections and conditional FRP."""
-        if isinstance(month, str) and len(month) == 7:
-            month = month + "-01"
-        day = _day(month)
-        if day.day != 1:
-            raise ValueError("Expected a UTC month in YYYY-MM format or its first day")
-        return self._rows(
-            f"predictions/annual/month={day:%Y-%m}/data.parquet",
-            "SELECT * EXCLUDE(month) FROM read_parquet(?)",
-            [], bbox, "p_detected_any", minimum, "p_detected_any", limit,
+            [day], bbox, "observed_at_utc", limit,
         )
 
     def _archive_day(self, value):
@@ -109,18 +126,13 @@ class FirmsStore:
             raise FileNotFoundError(f"UTC day {day} is outside the archive [{first}, {last}]")
         return day
 
-    def _rows(self, relative, query, params, bbox, probability, minimum, order, limit):
+    def _rows(self, relative, query, params, bbox, order, limit):
         if type(limit) is not int or not 1 <= limit <= 50000:
             raise ValueError("limit must be an integer between 1 and 50000")
         path = self.root / relative
         if not any(path.parent.glob(path.name)):
             raise FileNotFoundError(f"FIRMS partition is unavailable: {path}")
         predicate, location = _spatial(bbox)
-        if minimum is not None:
-            if not 0 <= minimum <= 1:
-                raise ValueError("minimum must be between 0 and 1")
-            predicate = f"{predicate} AND {probability} >= ?"
-            location.append(minimum)
         with duckdb.connect(config={"threads": str(self.threads)}) as db:
             result = db.execute(f"""
                 SELECT * FROM ({query}) WHERE {predicate}

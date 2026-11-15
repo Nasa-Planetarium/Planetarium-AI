@@ -99,20 +99,6 @@
       "bytes": 145469440,
       "sha256": "a4518678785b8d010835e14aed27fe1389665553c8bf9c18a373aa5bf8178483",
       "files": 2
-    },
-    {
-      "name": "firms-1km-timesfm3-daily-01.tar",
-      "group": "daily",
-      "bytes": 113684480,
-      "sha256": "fa0848ec75ca06c1abd91bd1526a0a413bc8fb532b880a9933362295f3cb6b1b",
-      "files": 8
-    },
-    {
-      "name": "firms-1km-timesfm3-annual-01.tar",
-      "group": "annual",
-      "bytes": 1712343040,
-      "sha256": "36a35690ed106834d9ddf825a4aefcca154a53a099d36f7e37a527a7e772e5e5",
-      "files": 13
     }
   ]
 }

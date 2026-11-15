@@ -1,13 +1,6 @@
-"""Convert FIRMS MODIS/VIIRS CSVs into observation, grid, and calendar outputs."""
-import argparse
+"""FIRMS CSV normalization and grid SQL."""
 import csv
-from datetime import date
-import json
 import math
-from pathlib import Path
-import tempfile
-
-import duckdb
 
 
 def sql_string(value):
@@ -101,37 +94,6 @@ def define_grid(db, grid_km):
     """)
 
 
-def copy_query(db, query, path):
-    db.execute(f"COPY ({query}) TO {sql_string(path)} (FORMAT CSV, HEADER true)")
-
-
-def write_grid_cells(db, path, grid_km):
-    cells = db.execute("""
-        SELECT DISTINCT grid_x, grid_y, cell_id(grid_x, grid_y)
-        FROM map_points ORDER BY grid_x, grid_y
-    """)
-    count = 0
-    with path.open("w", encoding="utf-8") as output:
-        output.write('{"type":"FeatureCollection","features":[')
-        while batch := cells.fetchmany(4096):
-            for x, y, identifier in batch:
-                west = max(-180, math.degrees(x * grid_km / GRID_X_SCALE))
-                east = min(180, math.degrees((x + 1) * grid_km / GRID_X_SCALE))
-                south = math.degrees(math.asin(max(-1, y * grid_km / GRID_Y_SCALE)))
-                north = math.degrees(math.asin(min(1, (y + 1) * grid_km / GRID_Y_SCALE)))
-                ring = [[west, south], [east, south], [east, north], [west, north], [west, south]]
-                if count:
-                    output.write(",")
-                json.dump({
-                    "type": "Feature", "id": identifier,
-                    "properties": {"grid_id": identifier},
-                    "geometry": {"type": "Polygon", "coordinates": [ring]},
-                }, output, separators=(",", ":"))
-                count += 1
-        output.write("]}\n")
-    return count
-
-
 GRID_DAILY_COLUMNS = """
     date_utc, cell_id(grid_x, grid_y) AS grid_id,
     sensor, platform, detected_pixels, frp_value_count, peak_pixel_frp_mw,
@@ -168,25 +130,12 @@ def build_grid_activity(db):
     """)
 
 
-def write_grid_activity(db, output, agreement_model):
-    build_grid_activity(db)
-    add_grid_probabilities(db, agreement_model)
-    copy_query(db, f"""
-        SELECT {GRID_DAILY_COLUMNS} FROM grid_daily
-        ORDER BY date_utc, grid_id, sensor, platform
-    """, output / "grid_daily.csv")
-
-
 def load_grid_model(model_path):
     import joblib
     fitted = joblib.load(model_path)
     if fitted.get("version") != 2 or "frp_models" not in fitted:
         raise ValueError("Use the bundled world_daily_model.joblib")
     return fitted
-
-
-def add_grid_probabilities(db, model_path):
-    add_world_grid_outputs(db, load_grid_model(model_path))
 
 
 def add_world_grid_outputs(db, fitted):
@@ -246,164 +195,3 @@ def add_world_grid_outputs(db, fitted):
         FROM world_grid_predictions p
         WHERE d.date_utc = p.day AND d.grid_x = p.x AND d.grid_y = p.y AND d.platform = p.platform_name
     """)
-
-
-def convert(*, sensor, source, output, bbox, start, end, map_start, map_end,
-            threads=8, calendar_model=None, agreement_model=None):
-    """Convert a single sensor's FIRMS CSV using pretrained models."""
-    sensor = sensor.upper()
-    if sensor not in ("MODIS", "VIIRS"):
-        raise ValueError("sensor must be MODIS or VIIRS")
-    validate_options(bbox, start, end, map_start, map_end, threads, 1)
-    model_root = Path(__file__).resolve().parent / "global"
-    source = Path(source).resolve()
-    output = Path(output)
-    calendar_model = Path(calendar_model) if calendar_model else default_calendar_model(model_root, bbox)
-    agreement_model = Path(agreement_model or model_root / "world_daily_model.joblib")
-    for model in (calendar_model, agreement_model):
-        if not model.is_file():
-            raise FileNotFoundError(f"Model file does not exist: {model}")
-    return run(argparse.Namespace(
-        modis=source if sensor == "MODIS" else None,
-        viirs=source if sensor == "VIIRS" else None,
-        output=output, bbox=bbox, start=start, end=end, map_start=map_start, map_end=map_end,
-        threads=threads, calendar_model=calendar_model, agreement_model=agreement_model, grid_km=1,
-    ))
-
-
-def default_calendar_model(model_root, bbox):
-    west, south, east, north = bbox
-    width = math.radians((east - west) % 360 if west > east else east - west) * GRID_X_SCALE
-    height = GRID_Y_SCALE * (math.sin(math.radians(north)) - math.sin(math.radians(south)))
-    extent = max(width, height)
-    for limit, name in ((100, "world_calendar_10km_model.joblib"),
-                        (700, "world_calendar_50km_model.joblib")):
-        regional = model_root / name
-        if extent <= limit and regional.is_file():
-            return regional
-    return model_root / "world_calendar_model.joblib"
-
-
-def validate_options(bbox, start, end, map_start, map_end, threads, grid_km):
-    west, south, east, north = bbox
-    if not (-180 <= west <= 180 and -180 <= east <= 180 and -90 <= south < north <= 90):
-        raise ValueError("invalid longitude/latitude bounds")
-    if not (start <= end and map_start <= map_end and threads > 0):
-        raise ValueError("invalid date range or thread count")
-    if grid_km != 1:
-        raise ValueError("trained models require --grid-km 1")
-
-
-def run(args):
-    west, south, east, north = args.bbox
-    source = (args.modis or args.viirs).resolve()
-    sensor = "MODIS" if args.modis else "VIIRS"
-    args.output.mkdir(parents=True, exist_ok=True)
-    with tempfile.TemporaryDirectory(prefix="firms-duckdb-") as tmp:
-        with duckdb.connect(config={"threads": str(args.threads), "memory_limit": "6GB",
-                                    "temp_directory": tmp, "preserve_insertion_order": "false"}) as db:
-            query = hotspot_query(source, sensor, west, east)
-            filtered = [str(min(args.start, args.map_start)), str(max(args.end, args.map_end)),
-                        south, north, west, east]
-            db.execute("CREATE TABLE points AS " + query, filtered)
-            print("Loaded AOI observations", flush=True)
-            define_grid(db, args.grid_km)
-            from .world_calendar import apply_to_points, combined_calendar_query
-
-            model_info = apply_to_points(db, args.calendar_model, args.start, args.end)
-            db.execute(f"CREATE TEMP TABLE world_months AS {combined_calendar_query()}")
-            start, end = sql_string(args.start), sql_string(args.end)
-            copy_query(db, f"""
-                SELECT CAST(series.month AS DATE) AS month,
-                       world_months.* EXCLUDE (month, activity_noaa20_equivalent_cell_days, activity_source),
-                       CASE WHEN series.month >= {start}::DATE AND last_day(series.month) <= {end}::DATE
-                            THEN activity_noaa20_equivalent_cell_days
-                       END AS activity_noaa20_equivalent_cell_days,
-                       CASE WHEN series.month < {start}::DATE
-                              OR last_day(series.month) > {end}::DATE
-                            THEN 'partial_requested_month'
-                            WHEN blocks_with_records IS NULL THEN 'unavailable'
-                            ELSE world_months.activity_source END AS activity_source
-                FROM generate_series(date_trunc('month', {start}::DATE),
-                     date_trunc('month', {end}::DATE), INTERVAL 1 MONTH) AS series(month)
-                LEFT JOIN world_months ON series.month = world_months.month
-                ORDER BY series.month
-            """, args.output / "calendar.csv")
-            calendar_rows = (args.end.year - args.start.year) * 12 + args.end.month - args.start.month + 1
-            map_start, map_end = sql_string(args.map_start), sql_string(args.map_end)
-            db.execute(f"""
-                CREATE TEMP VIEW map_points AS
-                SELECT *, cell_x(lon) AS grid_x, cell_y(lat) AS grid_y
-                FROM points WHERE observation_date BETWEEN {map_start}::DATE AND {map_end}::DATE
-            """)
-            copy_query(db, """
-                SELECT strftime(observed_at, '%Y-%m-%dT%H:%M:%SZ') AS observed_at_utc,
-                       lon AS longitude, lat AS latitude, sensor, platform, 'detected' AS detection_status,
-                       hotspot_type, type_raw, confidence_raw, scan_km, track_km, frp_mw, daynight,
-                       bt_mir_k, mir_band, bt_tir_k, tir_band, version_raw, satellite_raw,
-                       instrument_raw, source_file, cell_id(grid_x, grid_y) AS grid_id
-                FROM map_points
-                ORDER BY observed_at, sensor, platform, lat, lon
-            """, args.output / "hotspots.csv")
-            map_counts = dict(db.execute(
-                "SELECT sensor, count(*) FROM map_points GROUP BY sensor"
-            ).fetchall())
-            write_grid_activity(db, args.output, args.agreement_model)
-            grid_cells = write_grid_cells(db, args.output / "grid_cells.geojson", args.grid_km)
-    metadata = {
-        "schema_version": 2, "bbox_wsen": args.bbox,
-        "input_sensor": sensor, "input_file": source.name,
-        "calendar_dates_utc_inclusive": [str(args.start), str(args.end)],
-        "map_dates_utc_inclusive": [str(args.map_start), str(args.map_end)],
-        "map_observations_by_sensor": map_counts, "calendar_month_rows": calendar_rows,
-        "grid_km": args.grid_km, "grid_projection": "spherical equal-area cylindrical, standard parallel 30 degrees",
-        "map_grid_cells": grid_cells,
-        "map_grid_daily_grain": "UTC day, grid cell, sensor and platform; all map detections",
-        "map_grid_strength": "median of minute-level sums of valid pixel FRP in MW per cell, day and platform",
-        "map_grid_probability": "probability of a qualifying record from the other reference platform in this cell and UTC day, conditional on a source detection" ,
-        "map_grid_frp_reference": "NOAA-20 MW; observed if platform is NOAA-20, otherwise a paired-detection estimate",
-        "metric": "monthly sum of distinct UTC date and grid cell pairs per platform",
-        "calendar_model": model_info,
-        "cohort": "all five platforms; day and night; MODIS confidence >=30, VIIRS n/h; presumed vegetation or unknown",
-        "reference": "NOAA-20 recorded activity",
-        "file_names": {"hotspots": "hotspots.csv", "calendar": "calendar.csv",
-                       "grid_daily": "grid_daily.csv", "grid_cells": "grid_cells.geojson"},
-    }
-    (args.output / "metadata.json").write_text(json.dumps(metadata, indent=2) + "\n", encoding="utf-8")
-    return metadata
-
-
-def main():
-    p = argparse.ArgumentParser(description=__doc__)
-    source = p.add_mutually_exclusive_group(required=True)
-    source.add_argument("--modis", type=Path)
-    source.add_argument("--viirs", type=Path)
-    p.add_argument("--bbox", nargs=4, type=float, required=True, metavar=("WEST", "SOUTH", "EAST", "NORTH"))
-    p.add_argument("--start", required=True, type=date.fromisoformat)
-    p.add_argument("--end", required=True, type=date.fromisoformat)
-    p.add_argument("--map-start", required=True, type=date.fromisoformat)
-    p.add_argument("--map-end", required=True, type=date.fromisoformat)
-    p.add_argument("--grid-km", type=float, default=1)
-    model_root = Path(__file__).resolve().parent / "global"
-    p.add_argument("--agreement-model", type=Path, default=model_root / "world_daily_model.joblib",
-                   help="Trusted local world_daily_model.joblib trained at 1 km")
-    p.add_argument("--calendar-model", type=Path,
-                   help="Trusted local calendar model. Defaults to a packaged model chosen by region size")
-    p.add_argument("--threads", type=int, default=8)
-    p.add_argument("--output", type=Path, required=True)
-    args = p.parse_args()
-    try:
-        validate_options(args.bbox, args.start, args.end, args.map_start, args.map_end, args.threads, args.grid_km)
-        metadata = convert(
-            sensor="MODIS" if args.modis else "VIIRS", source=args.modis or args.viirs,
-            output=args.output, bbox=args.bbox, start=args.start, end=args.end,
-            map_start=args.map_start, map_end=args.map_end, threads=args.threads,
-            calendar_model=args.calendar_model, agreement_model=args.agreement_model,
-        )
-    except (ValueError, FileNotFoundError) as exc:
-        p.error(str(exc))
-    print(json.dumps(metadata, indent=2), flush=True)
-
-
-if __name__ == "__main__":
-    main()

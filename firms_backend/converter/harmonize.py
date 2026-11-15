@@ -260,7 +260,7 @@ def assemble(folders, output, work, *, link_observations=False):
     return metadata
 
 
-def detect_sensor(source):
+def detect_sensor(source, *, allow_empty=False):
     with source.open(encoding="utf-8-sig", newline="") as stream:
         records = csv.DictReader(stream)
         if records.fieldnames is None:
@@ -275,6 +275,8 @@ def detect_sensor(source):
             if satellite in {"N", "SNPP", "S-NPP", "N20", "J1", "NOAA-20", "N21", "J2", "NOAA-21"}:
                 return "VIIRS"
             raise ValueError(f"Unknown FIRMS satellite: {satellite!r}")
+        if allow_empty and {"latitude", "longitude", "acq_date", "acq_time"} <= fields.keys():
+            return None
         raise ValueError("The input CSV has a header and no detections")
 
 

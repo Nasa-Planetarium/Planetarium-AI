@@ -1,24 +1,29 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
 [project]
-name = "planetarium"
-version = "0.1.0"
-description = "Team Planetarium - NASA Space Apps 2026: MODIS/VIIRS hotspot harmonization"
+name = "planetarium-firms-backend"
+version = "0.2.0"
+description = "Harmonized NASA FIRMS 1 km data and regional TimesFM forecasts"
 readme = "README.md"
-requires-python = ">=3.11"
+requires-python = ">=3.12"
 dependencies = [
-    "earthaccess>=0.17.0",
-    "matplotlib>=3.9",
-    "polars>=1.20",
-    "pyarrow>=18",
-    "pyhdf>=0.11.7",
-    "pyproj>=3.6",
-    "scikit-learn>=1.5",
-    "shapely>=2.0",
-    "tqdm>=4.66",
-    "tzdata>=2026.6",
-    "xgboost>=3.0",
+    "duckdb==2.0.0",
+    "joblib==1.6.0",
+    "numpy==2.5.4",
+    "scikit-learn==1.9.1",
 ]
 
-[dependency-groups]
-dev = [
-    "ipykernel>=6.29",
+[project.optional-dependencies]
+forecast = [
+    "timesfm[torch] @ git+https://github.com/google-research/timesfm.git@918df02c9d366b2145bc5876135fa2131d3ed2a6",
 ]
+
+[tool.setuptools.packages.find]
+include = ["firms_backend*"]
+namespaces = false
+
+[tool.setuptools.package-data]
+firms_backend = ["release-manifest.json"]
+"firms_backend.converter" = ["global/*.joblib"]

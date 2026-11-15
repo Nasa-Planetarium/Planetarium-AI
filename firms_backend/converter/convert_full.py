@@ -1,11 +1,8 @@
 """Convert one complete worldwide FIRMS CSV into partitioned Parquet and monthly CSV."""
-import argparse
 from concurrent.futures import FIRST_COMPLETED, ThreadPoolExecutor, wait
 import json
 from pathlib import Path
 import shutil
-import tempfile
-import warnings
 
 import duckdb
 
@@ -191,7 +188,7 @@ def summarize(sensor, source, output, work, counts):
     print(json.dumps(metadata), flush=True)
 
 
-def from_normalized(sensor, source, work, output, workers, previous_counts=None):
+def from_normalized(sensor, source, work, output, workers):
     import joblib
 
     fitted = load_grid_model(MODEL_ROOT / "world_daily_model.joblib")
@@ -200,11 +197,10 @@ def from_normalized(sensor, source, work, output, workers, previous_counts=None)
                         key=lambda path: tuple(int(part.split("=")[1]) for part in path.parts[-2:]))
     if not partitions:
         raise ValueError(f"No observation rows in {source}")
-    previous_counts = previous_counts or {}
-    output.mkdir(parents=True, exist_ok=bool(previous_counts))
-    (work / "monthly").mkdir(exist_ok=bool(previous_counts))
-    counts = list(previous_counts.values())
-    remaining = (month for month in partitions if month not in previous_counts)
+    output.mkdir(parents=True)
+    (work / "monthly").mkdir()
+    counts = []
+    remaining = iter(partitions)
     with ThreadPoolExecutor(max_workers=workers) as pool:
         pending = set()
         for _ in range(workers):
@@ -221,27 +217,3 @@ def from_normalized(sensor, source, work, output, workers, previous_counts=None)
             if len(counts) % 12 < len(results) or len(counts) == len(partitions):
                 print(f"{sensor}: {len(counts)}/{len(partitions)} months saved", flush=True)
     summarize(sensor, source, output, work, counts)
-
-
-def main():
-    parser = argparse.ArgumentParser(description=__doc__)
-    source = parser.add_mutually_exclusive_group(required=True)
-    source.add_argument("--modis", type=Path)
-    source.add_argument("--viirs", type=Path)
-    parser.add_argument("--output", required=True, type=Path)
-    parser.add_argument("--work", type=Path, help="Parent directory for temporary working files")
-    parser.add_argument("--workers", type=int, choices=range(1, 5), default=3)
-    args = parser.parse_args()
-    sensor = "MODIS" if args.modis else "VIIRS"
-    path = (args.modis or args.viirs).resolve()
-    if args.output.exists():
-        raise FileExistsError(args.output)
-    warnings.filterwarnings("ignore", message="X does not have valid feature names")
-    with tempfile.TemporaryDirectory(prefix="firms-world-", dir=args.work) as tmp:
-        work = Path(tmp)
-        normalize(path, sensor, work)
-        from_normalized(sensor, path, work, args.output, args.workers)
-
-
-if __name__ == "__main__":
-    main()
