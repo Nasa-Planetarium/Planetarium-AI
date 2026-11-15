@@ -6,6 +6,7 @@ readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
     "earthaccess>=0.17.0",
+    "filelock>=3.20,<5",
     "lightgbm>=4.5",
     "matplotlib>=3.9",
     "polars>=1.20",

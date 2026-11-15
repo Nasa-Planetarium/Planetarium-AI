@@ -19,7 +19,9 @@
 | `GET /fwi` | `fwi_aoi_day.parquet` (+ `fwi_clim_aoi_month.parquet`) | 지역 산불 기상 위험도 배지 (한국·아르헨티나) |
 | `GET /export.csv` | 위 결과를 CSV로 | |
 
-월 단위 `p_any`의 사건은 지역 내 다음 달 기준 감지 1건 이상입니다. 전 세계 0.5° 육지 격자를 대상으로 한 확장 검증은 [열원 탐지 확률 실험](../reports/forecast_benchmark.md)에 정리했습니다.
+사용자 지정 스텝 예측은 Python의 `planetarium.store.occurrence_forecast(regions, start, end, as_of=None)`을 사용합니다. `regions`의 각 객체는 문자열 `id`와 `point`, `bbox`, `bboxes` 중 하나를 받습니다. 날짜는 `YYYY-MM-DD`이며 기간 양 끝을 포함합니다.
+
+결과는 `region_id`, `as_of_date`, `date_local`, `step`, `p_any`, `p_none`, `n_cells`, `model`을 갖습니다. `p_any`는 그 지역에서 해당 현지 날짜에 기준 감지가 1건 이상일 확률입니다. 스텝은 `as_of_date` 다음 날부터 이어집니다. [입력·출력 예시](../reports/forecast_benchmark.md)
 
 ### `/summary?aoi|bbox|polygon&start&end&freq=day|month`
 

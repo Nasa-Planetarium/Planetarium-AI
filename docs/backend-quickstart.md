@@ -104,7 +104,7 @@ data/processed/
 
 **지역 ID 예시**: `WORLD`, `KR`(한국), `SIDO_11`(서울), `SGG_47730`(의성군), `ADM0_ARG`(아르헨티나). 전체 목록은 `aoi_list.aoi_id`.
 
-전 세계 육지 격자 확률의 확장 비교 방식과 `p_any`·`p_none` 실험 출력은 [다음 달 열원 탐지 확률 실험](../reports/forecast_benchmark.md)에 있습니다.
+사용자 지정 위치·기간의 연속 예측은 `store.occurrence_forecast`를 호출합니다. 여러 위치를 따로 입력하거나 사각 범위의 합집합을 입력할 수 있으며, 현지 날짜와 스텝마다 `p_any`·`p_none`을 반환합니다. [다중 지역 예시와 검증 결과](../reports/forecast_benchmark.md)
 
 ---
 

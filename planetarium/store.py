@@ -105,6 +105,22 @@ def cell_days(start: str | date, end: str | date | None = None, bbox: BBox | Non
             .with_columns(_cell_center()).filter(_bbox(bbox, "lat", "lon")).collect())
 
 
+def occurrence_forecast(
+    regions: list[dict],
+    start: str | date,
+    end: str | date,
+    *,
+    as_of: str | date | None = None,
+    model: str = "auto",
+    root: Path | None = None,
+    work: Path | None = None,
+) -> pl.DataFrame:
+    """Predict daily any-detection probabilities for points or unions of bounds."""
+    from planetarium.modeling.daily_occurrence import forecast
+
+    return forecast(regions, start, end, as_of=as_of, model=model, root=root, work=work)
+
+
 def aoi(aoi_id: str, month: str | None = None, start: str | None = None, end: str | None = None, compare: bool = True,
         root: Path | None = None) -> pl.DataFrame:
     """지역 × 월 (aoi_month, 면적 가중 합계·status·as_of_date) + 예년 비교(aoi_month_compare). month 하나 또는 start~end ("YYYY-MM")."""

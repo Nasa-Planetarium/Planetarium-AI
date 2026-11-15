@@ -245,10 +245,10 @@ uv run python -m planetarium.modeling.m2         # n20_bridge
 
 컬럼 설명과 처리 방식은 `firms-merge-guide.html` 문서를 참고하세요.
 
-## 다음 달 열원 탐지 확률 실험
+## 지역·기간별 열원 탐지 확률
 
-전 세계 0.5° 육지 격자마다 기준월 다음 달에 기준 열원이 한 건 이상 탐지될 확률을 검증합니다.
-이진 학습과 확률 보정의 기준, 모델 비교, 전망 파일 경로는 [실험 기록](reports/forecast_benchmark.md)에 있습니다.
+`store.occurrence_forecast`에 위치나 여러 범위와 시작일·종료일을 넘기면 지역별 날짜마다 `p_any`를 반환합니다.
+받은 일별 관측의 간격으로 기준일 다음 스텝부터 연속 예측합니다. [조회 예시와 전 세계 검증](reports/forecast_benchmark.md)
 
 ## 크레딧 (Acknowledgements)
 

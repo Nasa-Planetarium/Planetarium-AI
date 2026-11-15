@@ -1,401 +1,339 @@
-"""Rolling verification of next-month hotspot occurrence probabilities."""
+"""Prepare, fit, evaluate and query daily hotspot occurrence forecasts."""
 
 from __future__ import annotations
 
 import argparse
 import json
-import time
-from dataclasses import dataclass
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
 import numpy as np
 import polars as pl
 from filelock import FileLock
-from scipy.ndimage import uniform_filter
-from sklearn.metrics import average_precision_score
+from sklearn.linear_model import LogisticRegression
+from sklearn.metrics import average_precision_score, brier_score_loss, log_loss
+from sklearn.preprocessing import StandardScaler
 
-from planetarium.config import INTERIM_DATA_DIR, PROCESSED_DATA_DIR, REPORTS_DIR
-from planetarium.grid_occurrence import id05, tcol
+from planetarium.config import REPORTS_DIR, SEED
+from planetarium.modeling.daily_occurrence import (
+    Series,
+    block_series,
+    calendar_bin,
+    feature_rows,
+    forecast,
+    grid_series,
+    history_stats,
+    initial_state,
+    model_predictor,
+    roll,
+    transition_table,
+    usable,
+)
+from planetarium.modeling.daily_occurrence_data import WORK, load_panel
 
-WORK = INTERIM_DATA_DIR / "occurrence_benchmark"
 REPORT = REPORTS_DIR / "forecast_benchmark.md"
-FIRST = 2012 * 12 + 1
-LAST = 2026 * 12 + 9
-YEARS = range(2020, 2027)
-LOOKBACK = 36
-FIT_SAMPLE = 600_000
-CAL_SAMPLE = 200_000
-MODELS = {
-    "timesfm3": "TimesFM 3.0 + Platt",
-    "seasonal": "과거 같은 달 발생률",
-    "markov": "계절 Markov",
-    "logistic": "로지스틱 회귀",
-    "lightgbm": "LightGBM",
-    "xgboost": "XGBoost",
-    "catboost": "CatBoost",
-    "patchtsmixer": "PatchTSMixer 이진 분류",
-    "patchtst": "PatchTST 이진 분류",
+MODELS = ("seasonal", "markov1", "markov2", "logistic", "xgboost")
+LEADS = (1, 2, 3, 7, 14)
+TRAIN = range(2016, 2023)
+CAL = 2023
+PERIODS = {"validation": (2023, 2023), "test": (2024, 2025), "recent": (2026, 2026)}
+LABELS = {
+    "seasonal": "계절 발생률",
+    "markov1": "1차 계절 Markov",
+    "markov2": "2차 계절 Markov",
+    "logistic": "로지스틱 전이 모델",
+    "xgboost": "XGBoost 전이 모델",
 }
-BASELINES = {"seasonal", "markov"}
-NEURAL = {"patchtsmixer", "patchtst"}
-DATES = np.arange(FIRST, LAST + 2)
-EVALUATION = np.flatnonzero((DATES >= 2020 * 12) & (DATES <= 2026 * 12 + 6))
-FUTURE = len(DATES) - 1
-SPLITS = {
-    "validation": (2020 * 12, 2024 * 12),
-    "test": (2024 * 12, 2026 * 12),
-    "recent": (2026 * 12, 2026 * 12 + 7),
-}
+START_MARKER = "<!-- daily-occurrence-results:start -->"
+END_MARKER = "<!-- daily-occurrence-results:end -->"
 
 
-def _write(path: Path, content: str) -> None:
-    temporary = path.with_suffix(path.suffix + ".tmp")
-    temporary.write_text(content, encoding="utf-8")
-    temporary.replace(path)
+def _atomic(path: Path, text: str) -> None:
+    tmp = path.with_suffix(path.suffix + ".tmp")
+    tmp.write_text(text, encoding="utf-8")
+    tmp.replace(path)
 
 
-def aggregate() -> pl.DataFrame:
-    """Reuse the release's grid IDs and monthly point-count label definition."""
-    return (
-        pl.scan_parquet(PROCESSED_DATA_DIR / "harmonized_cell_day.parquet")
-        .with_columns(t=tcol())
-        .filter(pl.col("t").is_between(FIRST, LAST), pl.col("n_points") > 0)
-        .group_by(g=id05(pl.col("cell_id")), t="t")
-        .agg(n=pl.col("n_points").cast(pl.UInt64).sum())
-        .collect(engine="streaming")
+def _combined(parts):
+    return Series(
+        np.column_stack([s.events for s in parts]),
+        np.concatenate([s.sides for s in parts]),
+        np.concatenate([s.lat for s in parts]),
+        np.concatenate([s.size for s in parts]),
     )
 
 
-def land_cells() -> pl.DataFrame:
-    import shapely
-    from shapely.geometry import shape
-
-    data = json.loads(
-        (PROCESSED_DATA_DIR / "aoi_boundaries.geojson").read_text(encoding="utf-8")
-    )
-    geometries, countries, continents = [], [], []
-    for item in data["features"]:
-        props = item["properties"]
-        if (
-            props["level"] not in {"country", "kr"}
-            or props["parent_aoi"] == "CONT_Antarctica"
-        ):
-            continue
-        for part in shapely.get_parts(shapely.make_valid(shape(item["geometry"]))):
-            if part.area > 0:
-                geometries.append(part)
-                countries.append(props["aoi_id"])
-                continents.append(props["parent_aoi"])
-
-    grid = np.arange(360 * 720, dtype=np.int32)
-    lon, lat = grid % 720 * 0.5 - 180, grid // 720 * 0.5 - 90
-    boxes = shapely.box(lon, lat, lon + 0.5, lat + 0.5)
-    grid_ix, part_ix = shapely.STRtree(geometries).query(boxes, predicate="intersects")
-    overlap = shapely.area(
-        shapely.intersection(boxes[grid_ix], np.asarray(geometries)[part_ix])
-    )
-    return (
-        pl.DataFrame(
-            {
-                "g": grid_ix.astype(np.int32),
-                "country": np.asarray(countries)[part_ix],
-                "continent": np.asarray(continents)[part_ix],
-                "area": overlap,
-            }
+def _training_rows(
+    panel, series: Series, years, samples: int
+) -> tuple[np.ndarray, np.ndarray]:
+    groups_x, groups_y = [], []
+    rng = np.random.default_rng(SEED)
+    bins = calendar_bin(panel.dates)
+    for year in years:
+        start, stop = np.searchsorted(
+            panel.dates,
+            [np.datetime64(f"{year}-01-01"), np.datetime64(f"{year + 1}-01-01")],
         )
-        .filter(pl.col("area") > 0)
-        .group_by("g", "country", "continent")
-        .agg(pl.col("area").sum())
-        .sort(["g", "area", "country"], descending=[False, True, False])
-        .unique("g", keep="first")
-        .sort("g")
-        .with_columns(
-            lon=pl.col("g") % 720 * 0.5 - 179.75, lat=pl.col("g") // 720 * 0.5 - 89.75
-        )
-        .drop("area")
-    )
+        stats = history_stats(series, panel.dates, panel.coverage, int(start))
+        t = rng.integers(start, stop, size=samples)
+        g = rng.integers(len(series.size), size=samples)
+        side = series.sides[g]
+        known = (
+            panel.coverage[t] & panel.coverage[t - 1] & panel.coverage[t - 2] & side
+        ) == side
+        t, g = t[known], g[known]
+        states = 2 * series.events[t - 2, g] + series.events[t - 1, g]
+        groups_x.append(feature_rows(stats, series, bins[t], g, states))
+        groups_y.append(series.events[t, g])
+    return np.concatenate(groups_x), np.concatenate(groups_y)
 
 
-def features(counts: np.ndarray, cells: pl.DataFrame, target: int) -> np.ndarray:
-    """Only observations at positions smaller than target can enter this row."""
-    prior = counts[:target]
-    active = prior > 0
-    same_index = np.arange(target - 12, -1, -12)
-    same = active[same_index]
-    previous = active[-1]
-    with_prior = same_index[same_index > 0]
-    conditional = active[with_prior - 1] == previous
-    base = (same.sum(axis=0) + 0.5) / (len(same) + 1)
-    markov = ((active[with_prior] & conditional).sum(axis=0) + 4 * base) / (
-        conditional.sum(axis=0) + 4
-    )
-    _, country = np.unique(cells["country"].to_numpy(), return_inverse=True)
-    country_base = (np.bincount(country, weights=base) / np.bincount(country))[country]
-    g = cells["g"].to_numpy()
-    row, col = g // 720, g % 720
-    dense = np.zeros((360, 720), dtype=np.float32)
-    dense[row, col] = base
-    near = uniform_filter(dense, size=3, mode=("constant", "wrap"))[row, col]
-    angle = 2 * np.pi * (DATES[target] % 12) / 12
-    return np.column_stack(
-        (
-            base,
-            markov,
-            (same[:5].sum(axis=0) + 0.5) / (min(5, len(same)) + 1),
-            (same.sum(axis=0) + 2 * country_base) / (len(same) + 2),
-            country_base,
-            near,
-            *(np.log1p(prior[-lag]) for lag in (1, 2, 3, 6, 12)),
-            *(active[-length:].mean(axis=0) for length in (3, 6, 12, 36)),
-            cells["lat"].to_numpy() / 90,
-            cells["lon"].to_numpy() / 180,
-            np.full(len(cells), np.sin(angle)),
-            np.full(len(cells), np.cos(angle)),
-        )
-    ).astype(np.float32)
+def fit(panel, path: Path, threads: int, device: str) -> None:
+    from xgboost import XGBClassifier
 
+    path.mkdir(parents=True, exist_ok=True)
+    rng = np.random.default_rng(SEED)
+    grids = grid_series(panel)
+    subset = rng.choice(len(grids.size), min(5500, len(grids.size)), replace=False)
+    areas = [
+        block_series(panel, span, sample_count=1100, rng=rng) for span in (2, 4, 8, 12)
+    ]
+    series = _combined([grids.select(subset), *areas])
+    xx, yy = _training_rows(panel, series, TRAIN, 92_000)
+    cx, cy = _training_rows(panel, series, [CAL], 180_000)
+    print(f"Fitting {len(yy):,} one-step pairs, calibration {len(cy):,}", flush=True)
 
-def prepare() -> None:
-    WORK.mkdir(parents=True, exist_ok=True)
-    marker = WORK / "panel.json"
-    if marker.exists():
-        print(marker, flush=True)
-        return
-    status = (
-        pl.read_parquet(PROCESSED_DATA_DIR / "aoi_month.parquet")
-        .filter(pl.col("aoi_id") == "WORLD")
-        .with_columns(t=tcol())
-        .filter(pl.col("t").is_between(FIRST, LAST))
-        .sort("t")
-    )
-    if (
-        status["t"].to_list() != list(range(FIRST, LAST + 1))
-        or not status["status"].is_in(["ok", "nrt"]).all()
-        or not (status["value_source"] == "snpp_observed").all()
-        or not (
-            status.filter(pl.col("t") <= 2026 * 12 + 6)["data_source"] == "SP"
-        ).all()
-    ):
-        raise ValueError("Unexpected observation coverage for the v1.2 S-NPP panel.")
-    cells = land_cells()
-    det = (
-        aggregate()
-        .join(cells.with_row_index("ix").select("g", "ix"), on="g", how="inner")
-        .select("t", "ix", "n")
-    )
-    if det["n"].max() > np.iinfo(np.uint32).max:
-        raise ValueError("Monthly detection count exceeds the stored range.")
-    counts = np.zeros((len(DATES) - 1, cells.height), dtype=np.uint32)
-    counts[det["t"].to_numpy() - FIRST, det["ix"].to_numpy()] = det["n"].to_numpy()
-    cells.write_parquet(WORK / "cells.parquet")
-    np.save(WORK / "counts.npy", counts)
-    shape = (
-        len(DATES) - LOOKBACK,
-        cells.height,
-        features(counts, cells, LOOKBACK).shape[1],
-    )
-    xx = np.lib.format.open_memmap(
-        WORK / "features.npy", mode="w+", dtype=np.float32, shape=shape
-    )
-    for target in range(LOOKBACK, len(DATES)):
-        xx[target - LOOKBACK] = features(counts, cells, target)
-    xx.flush()
-    _write(
-        marker,
-        json.dumps(
-            {
-                "grids": cells.height,
-                "months": len(counts),
-                "positive_rows": int(np.count_nonzero(counts)),
-            },
-            indent=2,
-        ),
-    )
-    print(f"{cells.height:,} cells, {len(counts)} observed months", flush=True)
-
-
-@dataclass
-class Panel:
-    cells: pl.DataFrame
-    counts: np.ndarray
-    x: np.ndarray
-
-    @property
-    def width(self) -> int:
-        return self.cells.height
-
-    def lookup(self, ids: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
-        target, grid = np.divmod(ids, self.width)
-        return self.x[target - LOOKBACK, grid], (self.counts[target, grid] > 0).astype(
-            np.uint8
-        )
-
-
-def sample(months: np.ndarray, width: int, limit: int, seed: int) -> np.ndarray:
-    size = len(months) * width
-    if size <= limit:
-        rows = np.arange(size)
-    else:
-        rows = np.random.default_rng(seed).choice(size, size=limit, replace=False)
-        rows.sort()
-    return months[rows // width] * width + rows % width
-
-
-def month_text(value: int) -> str:
-    return f"{value // 12:04d}-{value % 12 + 1:02d}"
-
-
-def score(p: np.ndarray, panel: Panel) -> pl.DataFrame:
-    truth = panel.counts[EVALUATION] > 0
-    rows = []
-    groups = {"WORLD": np.ones(panel.width, dtype=bool)}
-    continent = panel.cells["continent"].to_numpy()
-    groups.update({str(name): continent == name for name in np.unique(continent)})
-    for split, (first, stop) in SPLITS.items():
-        use = (DATES[EVALUATION] >= first) & (DATES[EVALUATION] < stop)
-        for group, cols in groups.items():
-            y = truth[use][:, cols].ravel()
-            s = p[use][:, cols].ravel()
-            clipped = s.astype(np.float64).clip(1e-7, 1 - 1e-7)
-            bins = np.minimum((s * 10).astype(int), 9)
-            ece = np.abs(np.bincount(bins, weights=s - y, minlength=10)).sum() / len(y)
-            rows.append(
-                {
-                    "split": split,
-                    "group": group,
-                    "rows": len(y),
-                    "positive_rate": y.mean(),
-                    "brier": np.square(s - y).mean(),
-                    "pr_auc": average_precision_score(y, s) if y.any() else None,
-                    "log_loss": -np.where(
-                        y, np.log(clipped), np.log1p(-clipped)
-                    ).mean(),
-                    "ece": ece,
-                    "mean_probability": s.mean(),
-                }
-            )
-    return pl.DataFrame(rows)
-
-
-def _render() -> None:
-    files = sorted((WORK / "metrics").glob("*.csv"))
-    lines = ["<!-- occurrence-results:start -->", "", "## 전 세계 비교", ""]
-    if files:
-        frame = pl.concat([pl.read_csv(f) for f in files], how="diagonal_relaxed")
-        _write(WORK / "metrics.csv", frame.write_csv())
-        rows = {
-            (r["model"], r["split"]): r
-            for r in frame.filter(pl.col("group") == "WORLD").to_dicts()
+    def train_logistic():
+        scaler = StandardScaler().fit(xx)
+        estimator = LogisticRegression(max_iter=120).fit(scaler.transform(xx), yy)
+        return estimator.decision_function(scaler.transform(cx)), {
+            "mean": scaler.mean_.tolist(),
+            "scale": scaler.scale_.tolist(),
+            "coef": estimator.coef_[0].tolist(),
+            "bias": float(estimator.intercept_[0]),
         }
-        lines += [
-            "| 모델 | 2020–2023 Brier | 2024–2025 Brier | 2024–2025 PR-AUC | 2024–2025 log loss | 2026년 1–7월 Brier |",
-            "|---|---:|---:|---:|---:|---:|",
-        ]
-        for name in sorted(
-            {r[0] for r in rows}, key=lambda m: rows[m, "validation"]["brier"]
-        ):
-            val, test, recent = (rows[name, s] for s in SPLITS)
-            lines.append(
-                f"| {MODELS[name]} | {val['brier']:.5f} | {test['brier']:.5f} | "
-                f"{test['pr_auc']:.5f} | {test['log_loss']:.5f} | {recent['brier']:.5f} |"
+
+    def train_xgb():
+        estimator = XGBClassifier(
+            n_estimators=180,
+            max_depth=5,
+            learning_rate=0.07,
+            objective="binary:logistic",
+            tree_method="hist",
+            max_bin=64,
+            device=device,
+            n_jobs=threads,
+            random_state=SEED,
+        ).fit(xx, yy)
+        booster = estimator.get_booster()
+        booster.set_param({"device": "cpu", "nthread": threads})
+        margin = booster.inplace_predict(cx, predict_type="margin")
+        booster.save_model(path / "xgboost.tmp.ubj")
+        (path / "xgboost.tmp.ubj").replace(path / "xgboost.ubj")
+        return margin, {}
+
+    with ThreadPoolExecutor(2) as pool:
+        jobs = {
+            "logistic": pool.submit(train_logistic),
+            "xgboost": pool.submit(train_xgb),
+        }
+        for name, job in jobs.items():
+            margin, config = job.result()
+            cal = LogisticRegression(max_iter=100).fit(margin.reshape(-1, 1), cy)
+            _atomic(
+                path / f"{name}.json",
+                json.dumps(
+                    {
+                        **config,
+                        "cal_slope": float(cal.coef_[0, 0]),
+                        "cal_bias": float(cal.intercept_[0]),
+                        "cal_until": f"{CAL}-12-31",
+                        "train_until": f"{max(TRAIN)}-12-31",
+                        "fit_rows": len(yy),
+                        "cal_rows": len(cy),
+                        "device": device if name == "xgboost" else "cpu",
+                    }
+                ),
             )
-    lines += ["", "<!-- occurrence-results:end -->"]
+            print(f"{name} fit and calibration complete", flush=True)
+
+
+def _measure(fragments) -> dict:
+    truth = np.concatenate([item[0] for item in fragments])
+    p = np.concatenate([item[1] for item in fragments])
+    if not np.isfinite(p).all() or p.min() < 0 or p.max() > 1:
+        raise ValueError("Non-probability output in the rollout.")
+    return {
+        "rows": len(truth),
+        "positive_rate": float(truth.mean()),
+        "brier": brier_score_loss(truth, p),
+        "log_loss": log_loss(truth, p.clip(1e-7, 1 - 1e-7)),
+        "pr_auc": average_precision_score(truth, p),
+    }
+
+
+def evaluate(panel, path: Path) -> pl.DataFrame:
+    predictors = {
+        name: model_predictor(name, path)[0] for name in ("logistic", "xgboost")
+    }
+    test_blocks = block_series(panel, 4)
+    results = []
+    for grain, series in (("cell", grid_series(panel)), ("box", test_blocks)):
+        complete = usable(panel.coverage, series.sides)
+        for period, years in PERIODS.items():
+            store = {(model, lead): [] for model in MODELS for lead in LEADS}
+            for year in range(years[0], years[1] + 1):
+                end = f"{year}-07-31" if period == "recent" else f"{year}-12-31"
+                lo = int(np.searchsorted(panel.dates, np.datetime64(f"{year}-01-01")))
+                hi = int(np.searchsorted(panel.dates, np.datetime64(end), side="right"))
+                if hi - lo <= max(LEADS):
+                    continue
+                stats = history_stats(series, panel.dates, panel.coverage, lo)
+                tables = {model: {} for model in MODELS}
+                origins = range(lo, hi - max(LEADS), 14)
+                for origin in origins:
+                    state = initial_state(
+                        series, stats, panel.dates, panel.coverage, origin
+                    )
+                    bins = calendar_bin(
+                        panel.dates[origin + 1 : origin + 1 + max(LEADS)]
+                    )
+                    for model in MODELS:
+                        known = tables[model]
+                        for b in set(bins) - known.keys():
+                            known[b] = transition_table(
+                                model, stats, series, int(b), predictors.get(model)
+                            )
+                        predicted = roll(state, bins, known.__getitem__)
+                        for lead in LEADS:
+                            target = origin + lead
+                            valid = complete[origin] & complete[target]
+                            store[model, lead].append(
+                                (
+                                    series.events[target, valid],
+                                    predicted[lead - 1, valid],
+                                )
+                            )
+                print(f"{grain} {year}: {len(origins)} forecast origins", flush=True)
+            for (model, lead), values in store.items():
+                if values:
+                    results.append(
+                        {
+                            "period": period,
+                            "grain": grain,
+                            "model": model,
+                            "step": lead,
+                            **_measure(values),
+                        }
+                    )
+    return pl.DataFrame(results)
+
+
+def record(frame: pl.DataFrame, base: Path, path: Path) -> None:
+    # Select using validation only, giving the two spatial scales equal weight.
+    selected = (
+        frame.filter((pl.col("period") == "validation") & pl.col("step").is_in([1, 7]))
+        .group_by("model")
+        .agg(pl.col("brier").mean())
+        .sort("brier", "model")["model"][0]
+    )
+    _atomic(
+        path / "selected.json",
+        json.dumps({"model": selected, "available_from": f"{CAL}-12-31"}),
+    )
+    frame.write_csv(base / "metrics.csv")
+    x = frame.filter(pl.col("period") == "test")
+    by_key = {(r["model"], r["grain"], r["step"]): r for r in x.to_dicts()}
+    lines = [
+        START_MARKER,
+        "",
+        f"검증 구간에서 선택한 기본 모델은 **{LABELS[selected]}**입니다.",
+        "",
+        "### 2024–2025 전 세계 홀드아웃",
+        "",
+        "| 모델 | 격자 1스텝 Brier | 3스텝 | 7스텝 | 14스텝 | 격자 1스텝 PR-AUC | 범위 1스텝 Brier | 범위 7스텝 Brier |",
+        "|---|---:|---:|---:|---:|---:|---:|---:|",
+    ]
+    for model in MODELS:
+        nums = [by_key[model, "cell", step]["brier"] for step in (1, 3, 7, 14)]
+        nums += [
+            by_key[model, "cell", 1]["pr_auc"],
+            *[by_key[model, "box", step]["brier"] for step in (1, 7)],
+        ]
+        lines.append(
+            "| " + " | ".join([LABELS[model], *[f"{v:.5f}" for v in nums]]) + " |"
+        )
+    lines += ["", END_MARKER]
     text = REPORT.read_text(encoding="utf-8")
-    start, end = "<!-- occurrence-results:start -->", "<!-- occurrence-results:end -->"
-    if start in text and end in text:
-        text = text.split(start, 1)[0] + "\n".join(lines) + text.split(end, 1)[1]
+    if START_MARKER in text and END_MARKER in text:
+        text = (
+            text.split(START_MARKER, 1)[0]
+            + "\n".join(lines)
+            + text.split(END_MARKER, 1)[1]
+        )
     else:
         text += "\n" + "\n".join(lines) + "\n"
-    _write(REPORT, text)
-
-
-def run(model: str, threads: int, device: str, force: bool) -> None:
-    from planetarium.modeling.occurrence_models import make_predictor, timesfm_signal
-
-    if not (WORK / "panel.json").exists():
-        raise ValueError("Run prepare before running a model.")
-    panel = Panel(
-        pl.read_parquet(WORK / "cells.parquet"),
-        np.load(WORK / "counts.npy", mmap_mode="r"),
-        np.load(WORK / "features.npy", mmap_mode="r"),
-    )
-    for name in ("runs", "metrics"):
-        (WORK / name).mkdir(exist_ok=True)
-    summary = WORK / "metrics" / f"{model}.csv"
-    with FileLock(WORK / "runs" / f"{model}.lock", timeout=0):
-        if summary.exists() and not force:
-            print(f"{model} already complete")
-            return
-        start = time.perf_counter()
-        predictions = np.empty((len(EVALUATION), panel.width), dtype=np.float32)
-        signal = (
-            timesfm_signal(panel, WORK, device, threads)
-            if model == "timesfm3"
-            else None
-        )
-        for year in YEARS:
-            which = np.flatnonzero(DATES[EVALUATION] // 12 == year)
-            train_months = np.flatnonzero(
-                (np.arange(len(DATES)) >= LOOKBACK) & (DATES < (year - 1) * 12)
-            )
-            calibration_months = np.flatnonzero(DATES // 12 == year - 1)
-            assert DATES[train_months[-1]] < DATES[calibration_months[0]] < year * 12
-            predictor = make_predictor(
-                model, panel, train_months, calibration_months, threads, device, signal
-            )
-            for i in which:
-                predictions[i] = predictor(int(EVALUATION[i]))
-            if year == YEARS[-1]:
-                future = predictor(FUTURE)
-            print(f"{model} {year}: {len(which)} months scored", flush=True)
-        for p in (predictions, future):
-            if not np.isfinite(p).all() or p.min() < 0 or p.max() > 1:
-                raise ValueError("Model returned invalid probabilities.")
-        stem = WORK / "runs" / model
-        np.savez_compressed(
-            stem.with_suffix(".npz"),
-            p_any=predictions,
-            g=panel.cells["g"].to_numpy(),
-            target_month=DATES[EVALUATION],
-        )
-        (
-            panel.cells.with_columns(
-                origin_month=pl.lit(month_text(LAST)),
-                target_month=pl.lit(month_text(LAST + 1)),
-                p_any=pl.Series(future.astype(np.float32)),
-                p_none=pl.Series((1 - future).astype(np.float32)),
-            )
-            .rename({"g": "cell_id"})
-            .write_parquet(stem.with_suffix(".parquet"))
-        )
-        results = score(predictions, panel).with_columns(pl.lit(model).alias("model"))
-        with FileLock(WORK / "report.lock"):
-            _write(summary, results.write_csv())
-            _render()
-        print(f"{model} complete ({time.perf_counter() - start:.1f}s)", flush=True)
+    _atomic(REPORT, text)
 
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("command", choices=["prepare", "run", "report"])
-    parser.add_argument("--model", choices=MODELS)
-    parser.add_argument("--threads", type=int, default=4)
-    parser.add_argument("--device", choices=["cpu", "cuda"], default="cpu")
-    parser.add_argument("--force", action="store_true")
+    parser.add_argument(
+        "--root",
+        type=Path,
+        help="Directory containing the release Parquet and GeoJSON files",
+    )
+    parser.add_argument("--work", type=Path, default=WORK)
+    sub = parser.add_subparsers(dest="command", required=True)
+    sub.add_parser("prepare")
+    sub.add_parser("report")
+    bench = sub.add_parser("benchmark")
+    bench.add_argument("--threads", type=int, default=8)
+    bench.add_argument("--device", choices=("cpu", "cuda"), default="cpu")
+    request = sub.add_parser("forecast")
+    request.add_argument("--regions", type=Path, required=True)
+    request.add_argument("--start", required=True)
+    request.add_argument("--end", required=True)
+    request.add_argument("--as-of")
+    request.add_argument("--model", choices=("auto", *MODELS), default="auto")
+    request.add_argument("--output", type=Path)
     args = parser.parse_args()
-    if args.threads < 1:
-        parser.error("threads must be positive")
-    if args.command == "prepare":
-        WORK.parent.mkdir(parents=True, exist_ok=True)
-        with FileLock(INTERIM_DATA_DIR / "occurrence_benchmark_prepare.lock"):
-            prepare()
-    elif args.command == "report":
-        with FileLock(WORK / "report.lock"):
-            _render()
-    elif args.model is not None:
-        run(args.model, args.threads, args.device, args.force)
-    else:
-        parser.error("run requires --model")
+    if args.command == "forecast":
+        regions = json.loads(args.regions.read_text(encoding="utf-8"))
+        table = forecast(
+            regions,
+            args.start,
+            args.end,
+            as_of=args.as_of,
+            model=args.model,
+            root=args.root,
+            work=args.work,
+        )
+        if args.output:
+            if args.output.suffix == ".parquet":
+                table.write_parquet(args.output)
+            else:
+                table.write_csv(args.output)
+        else:
+            print(table.write_csv(), end="")
+        return
+
+    panel = load_panel(args.root, args.work)
+    print(
+        f"{panel.cells.height:,} grid cells, {len(panel.dates):,} daily positions, {panel.fingerprint}"
+    )
+    if args.command in {"benchmark", "report"}:
+        base = args.work / panel.fingerprint
+        path = base / "models"
+        with FileLock(base / "benchmark.lock"):
+            if args.command == "benchmark":
+                if args.threads < 1:
+                    parser.error("threads must be positive")
+                fit(panel, path, args.threads, args.device)
+                frame = evaluate(panel, path)
+            else:
+                frame = pl.read_csv(base / "metrics.csv")
+            record(frame, base, path)
 
 
 if __name__ == "__main__":
