@@ -1,0 +1,5 @@
+region,before_model,before_base,p_any,value_source,after_model,after_base,actual_2016_2025_mean
+ADM1_ARG-1299,19.04,29.49,1.0,model_calibrated,25.26,25.44,25.1
+ADM0_ARG,30.0,30.0,1.0,baseline,30.0,30.0,30.0
+WORLD,30.0,30.0,1.0,baseline,30.0,30.0,30.0
+SIDO_51,0.94,0.76,0.619,model_calibrated,0.94,0.76,1.3

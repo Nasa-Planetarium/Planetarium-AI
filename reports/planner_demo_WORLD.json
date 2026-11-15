@@ -1,0 +1,99 @@
+{
+ "product": "FireOutlook Planner",
+ "region": "aoi_id WORLD",
+ "region_group": "all regions",
+ "start": "2027-01-01",
+ "end": "2027-03-31",
+ "as_of": "2026-11-14",
+ "p_any": 1.0,
+ "expected_count": 3825013.39,
+ "expected_count_q10": 3305931.74,
+ "expected_count_q90": 4827281.17,
+ "baseline": {
+  "p_any": 1.0,
+  "count": 3531236.26,
+  "definition": "예년 같은 기간 (2012~ 같은 달 비율·중앙값)"
+ },
+ "skill": "none",
+ "count_skill": "high",
+ "models": [
+  "baseline_same_month_rate"
+ ],
+ "horizons": [
+  2,
+  3,
+  4
+ ],
+ "pieces": [
+  {
+   "kind": "monthly",
+   "month": "2027-01",
+   "days": 31,
+   "fraction_count": 1.0,
+   "fraction_prob": 1.0,
+   "fraction_method": "full month",
+   "p_any": 1.0,
+   "base_p": 1.0,
+   "expected": 1434025.1251,
+   "q10": 1238108.6753,
+   "q90": 1789006.6438,
+   "base_count": 1343374.3561,
+   "count_source": "AutoTheta",
+   "count_skill": "high",
+   "model": "baseline_same_month_rate",
+   "route": "baseline (region skill none)",
+   "horizon_months": 2,
+   "skill": "none"
+  },
+  {
+   "kind": "monthly",
+   "month": "2027-02",
+   "days": 28,
+   "fraction_count": 1.0,
+   "fraction_prob": 1.0,
+   "fraction_method": "full month",
+   "p_any": 1.0,
+   "base_p": 1.0,
+   "expected": 1144161.9567,
+   "q10": 989517.3969,
+   "q90": 1453908.4814,
+   "base_count": 1091100.7196,
+   "count_source": "AutoTheta",
+   "count_skill": "high",
+   "model": "baseline_same_month_rate",
+   "route": "baseline (region skill none)",
+   "horizon_months": 3,
+   "skill": "none"
+  },
+  {
+   "kind": "monthly",
+   "month": "2027-03",
+   "days": 31,
+   "fraction_count": 1.0,
+   "fraction_prob": 1.0,
+   "fraction_method": "full month",
+   "p_any": 1.0,
+   "base_p": 1.0,
+   "expected": 1246826.3115,
+   "q10": 1078305.6707,
+   "q90": 1584366.0405,
+   "base_count": 1096761.1826,
+   "count_source": "AutoTheta",
+   "count_skill": "high",
+   "model": "baseline_same_month_rate",
+   "route": "baseline (region skill none)",
+   "horizon_months": 4,
+   "skill": "none"
+  }
+ ],
+ "persistent_source_cells": {
+  "count": 259,
+  "area_share": 0.0058,
+  "note": "공장·가스 플레어 같은 지속 열원 의심 격자가 들어 있으면 값이 높게 나올 수 있음"
+ },
+ "display_hint": "거의 확실히 탐지됨 — 예상 건수를 보세요",
+ "suspected_industrial_sgg": [],
+ "unit": "S-NPP 기준 탐지 수 (expected_count)",
+ "notice": "위성 탐지 기반 확률이며 산불 발생을 보장하지 않습니다. (Probability of satellite fire detections; it does not guarantee that a wildfire will occur.)",
+ "elapsed_s": 0.633
+}

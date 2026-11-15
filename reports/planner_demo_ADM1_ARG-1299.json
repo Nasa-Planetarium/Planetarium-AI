@@ -1,0 +1,57 @@
+{
+ "product": "FireOutlook Planner",
+ "region": "aoi_id ADM1_ARG-1299",
+ "region_group": "adm1",
+ "start": "2026-12-01",
+ "end": "2026-12-31",
+ "as_of": "2026-11-14",
+ "p_any": 0.9999,
+ "expected_count": 139.8,
+ "expected_count_q10": 70.77,
+ "expected_count_q90": 1100.04,
+ "baseline": {
+  "p_any": 1.0,
+  "count": 139.8,
+  "definition": "예년 같은 기간 (2012~ 같은 달 비율·중앙값)"
+ },
+ "skill": "low",
+ "count_skill": "none",
+ "models": [
+  "grid_occurrence_xgb+isotonic"
+ ],
+ "horizons": [
+  1
+ ],
+ "pieces": [
+  {
+   "kind": "monthly",
+   "month": "2026-12",
+   "days": 31,
+   "fraction_count": 1.0,
+   "fraction_prob": 1.0,
+   "fraction_method": "full month",
+   "p_any": 0.9999,
+   "base_p": 1.0,
+   "expected": 139.8023,
+   "q10": 70.7692,
+   "q90": 1100.0355,
+   "base_count": 139.8023,
+   "count_source": "baseline_median",
+   "count_skill": "none",
+   "model": "grid_occurrence_xgb+isotonic",
+   "route": "grid hazard sum + region isotonic",
+   "horizon_months": 1,
+   "skill": "low"
+  }
+ ],
+ "persistent_source_cells": {
+  "count": 0,
+  "area_share": 0.0,
+  "note": ""
+ },
+ "display_hint": "거의 확실히 탐지됨 — 예상 건수를 보세요",
+ "suspected_industrial_sgg": [],
+ "unit": "S-NPP 기준 탐지 수 (expected_count)",
+ "notice": "위성 탐지 기반 확률이며 산불 발생을 보장하지 않습니다. (Probability of satellite fire detections; it does not guarantee that a wildfire will occur.)",
+ "elapsed_s": 0.642
+}
