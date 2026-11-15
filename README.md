@@ -1,299 +1,386 @@
-# Planetarium-AI
+# Planetarium-AI — one continuous fire record from MODIS and VIIRS
 
-Team Planetarium · NASA Space Apps 2026 Seoul
-챌린지: Harmonization of MODIS and VIIRS Hot Spots
+**A harmonized, gap-free record of satellite fire detections from 2000 to today, put on one sensor scale (VIIRS S-NPP),
+with validated outlooks of burning activity from tomorrow to 12 months ahead.**
 
-폴더 구조는 [Cookiecutter Data Science v2](https://cookiecutter-data-science.drivendata.org/) 관례를 따릅니다.
+[![Data release](https://img.shields.io/badge/data%20release-v1.2--2026--11--15-2a78d6)](https://github.com/Nasa-Planetarium/Planetarium-AI/releases/tag/data-v1.2-2026-11-15)
+
+**[Web app](https://emberline-9sd.pages.dev)** · **[Data release v1.2](https://github.com/Nasa-Planetarium/Planetarium-AI/releases/tag/data-v1.2-2026-11-15)** ·
+**[API docs](docs/api_contract.md)** · [Release notes](docs/release_v1.2-2026-11-15.md) · [Data sources](docs/references.md)
+
+Team Planetarium · NASA Space Apps Challenge 2026 (Seoul) · Challenge: *Harmonization of MODIS and VIIRS Hot Spots*
+
+The data is a single 2000-11 – 2026-11 series of **fire detections and burning activity** for 5,051 regions and every 0.1° cell on Earth.
+It is built for **wildfire & emergency responders, land managers and scientists** who need to compare this season with the past
+without being fooled by a change of satellite. This README covers the dataset, the models and the algorithms; the service is at the
+**[web app](https://emberline-9sd.pages.dev)**.
+
+---
+
+## Contents
+
+1. [The problem](#1-the-problem)
+2. [What we built](#2-what-we-built)
+3. [Harmonized dataset v1.2](#3-harmonized-dataset-v12)
+4. [FireBridge — MODIS-to-VIIRS harmonizer](#4-firebridge--modis-to-viirs-harmonizer)
+5. [Continuity self-check](#5-continuity-self-check)
+6. [FireOutlook — forecasts of burning activity](#6-fireoutlook--forecasts-of-burning-activity)
+7. [Validation philosophy](#7-validation-philosophy)
+8. [How to use](#8-how-to-use)
+9. [Limitations & future work](#9-limitations--future-work)
+10. [Team, AI use, credits, references](#10-team-ai-use-credits-references)
+
+---
+
+## 1. The problem
+
+MODIS (Terra and Aqua) sees fire at 1 km resolution. VIIRS (S-NPP from 2012, then NOAA-20 and NOAA-21) sees it at 375 m and records many
+more detections of the same fires. Every year from 2012 to 2025, S-NPP recorded about 6–7 times as many detection points worldwide as
+Aqua (`reports/aqua_snpp_overlap.csv`). **If you simply join the MODIS record to the VIIRS record, burning activity appears to jump in
+2012**, and every comparison with "a normal year" before 2012 is wrong.
+
+![Naive splice vs harmonized series, World and Argentina](docs/figures/01_naive_vs_harmonized.png)
+
+*Orange: raw MODIS counts until 2012-01, then raw VIIRS counts. Blue: our harmonized series, with MODIS converted to the VIIRS S-NPP
+scale by FireBridge. After 2012 the two lines coincide by construction, because VIIRS is observed. The harmonized series also excludes
+static industrial heat sources, so it runs slightly below raw VIIRS.*
+
+## 2. What we built
+
+| Component | What it does | Method | Key result (source) |
+|---|---|---|---|
+| **Harmonized dataset v1.2** | One series of fire detections on the VIIRS S-NPP scale, 2000-11 – 2026-11, for 0.1° cells × day / month and 5,051 regions | MODIS converted by FireBridge; S-NPP observed; NOAA-20 bridged after S-NPP data ended; static sources removed | Points → cells → regions reconcile with **0 mismatches** for every year 2000–2026 (`reports/hotspots_verify_*.csv`) |
+| **FireBridge** (`m2v_xgb`) | Converts MODIS detections to what VIIRS S-NPP would have seen | XGBoost, Tweedie objective (power 1.1), 24 MODIS-only features, plus a quantile band | Korea monthly MAE **80.2 → 42.1**, bias **1.395 → 0.986** vs the latitude-band baseline (`models/m2v_meta.json`) |
+| **FireOutlook Spread** (`spread_nowcast`) | Probability that a 0.025° cell near today's fire has a detection tomorrow (Korea, Argentina) | XGBoost on fire features, validated with the operational weather delay | PR-AUC about **5×** (Korea) and **3.3×** (Argentina) that of the persistence rule (`docs/backend-quickstart.md`) |
+| **FireOutlook Monthly – District** (`aoi_occurrence`) | P(≥ 1 detection next month) for 252 Korean municipalities | XGBoost + Platt calibration | Model PR-AUC **0.422** vs same-month-rate baseline 0.404 (base rate 0.130); Brier 0.0927 vs 0.0964 (`reports/occurrence_metrics.csv`) |
+| **FireOutlook Monthly – Grid** (`grid_occurrence`) | P(≥ 1 detection next month) for 52,855 land 0.5° cells | XGBoost + isotonic calibration | Model PR-AUC **0.900** vs same-month-rate baseline 0.869 (base rate 0.353); Brier 0.096 vs 0.104 (`reports/grid_occurrence_metrics.csv`) |
+| **FireOutlook Recurrence** (`recurrence_nextmonth`) | Argentina: probability of burning activity next month | XGBoost | Model PR-AUC **0.570** vs recurrence-rate baseline 0.494 (base rate 0.075), static-source cells excluded (`reports/recurrence_metrics_no_static.csv`) |
+| **FireOutlook Planner** (`planner_*`) | Any region (aoi_id, bbox, polygon) × any period, 1 day – 12 months ahead | Direct multi-horizon XGBoost + LightGBM ensemble, isotonic calibration, hazard aggregation | Holdout Brier skill vs climatology **+15.9%** at 1 day, **+5.4%** at 2 months (`reports/planner_daily_metrics.csv`, `reports/planner_monthly_metrics.csv`) |
+| **Continuity self-check** | Chooses each region's baseline period for "above / similar / below normal" | Harmonized change vs raw-MODIS change, 2003–2011 → 2013–2021 | Korea's "below normal" share in 2023–2025: **53% → 33%** (`reports/compare_continuity_validation.csv`) |
+| **QC rules** | Daily data status per satellite; flags missing and low-coverage days | 30-day median baseline, cross-satellite check, known outages | Months with < 50% usable days are left out of training (`reports/train_excluded_months.csv`) |
+| **Static-source exclusion** | Removes steel works, refineries, gas flares and similar sources from all totals | 0.01° cells where FIRMS reported non-vegetation `type` 1 or 2 in ≥ 2 years | Korea 2012-02 – 2026-11 total **−22.7%**, world −1.1% (`reports/static_exclusion_before_after_totals.csv`) |
+
+```mermaid
+flowchart LR
+    subgraph IN["Inputs (NASA FIRMS)"]
+        M["MODIS C6.1<br/>Terra · Aqua"]
+        V["VIIRS C2<br/>S-NPP · NOAA-20 · NOAA-21"]
+        N["NRT feeds<br/>7-day files · area API"]
+    end
+    IN --> D["Merge + de-duplicate<br/>SP > archive NRT > 7-day > API"]
+    D --> QC["QC: satellite day status<br/>ok / low / missing"]
+    QC --> S["Static-source mask<br/>0.01° industrial cells"]
+    S --> FB["FireBridge<br/>MODIS → S-NPP scale"]
+    FB --> H["Harmonized dataset v1.2<br/>points · 0.1° cell-day · cell-month · 5,051 regions"]
+    H --> C["Continuity self-check<br/>same-month comparison"]
+    H --> FO["FireOutlook models<br/>Spread · Monthly · Recurrence · Planner"]
+    C --> REL["Release v1.2<br/>Parquet tables + model files"]
+    FO --> REL
+```
+
+## 3. Harmonized dataset v1.2
+
+| Property | Value |
+|---|---|
+| Period | 2000-11 – 2026-11 (the current month is marked `partial`) |
+| Scale | VIIRS S-NPP-equivalent detection counts (`value`) with a 10–90% band (`value_lo`, `value_hi`) |
+| Spatial units | 0.1° cells worldwide; 5,051 regions: world, 8 continents, 248 countries, 4,524 first-level divisions, Korea, 17 Korean provinces, 252 Korean municipalities (`aoi_list.parquet`) |
+| Tables | `harmonized_cell_day` (212,790,231 rows), `harmonized_cell_month` (51,565,721), `aoi_month` (1,580,963), point files with per-point weights (`release_manifest.csv`) |
+| Points | 321,562,117 reference detections counted in the cell-day table (`docs/release_v1.2-2026-11-15.md`) |
+| Sources by period (`value_source`) | `modis_m2v_terra` 2000-11 – 2002-06 · `modis_m2v` 2002-07 – 2012-01 · `snpp_observed` 2012-02 – 2026-11-02 · `n20_bridge` from 2026-11-03 |
+| Static-source exclusion | Points inside 0.01° cells where FIRMS standard processing reported `type` 1 or 2 in at least two years are removed from all totals |
+
+**Main columns of `aoi_month`** (the same columns exist per cell in `harmonized_cell_month`):
+
+| Column | Meaning |
+|---|---|
+| `aoi_id`, `year`, `month` | Region and month |
+| `value`, `value_lo`, `value_hi` | S-NPP-equivalent fire detections and their 10–90% band |
+| `value_projected`, `as_of_date` | For the month in progress: month-end estimate and last observed date |
+| `raw_modis`, `raw_viirs` | Original detection counts, for reference |
+| `value_source` | Sensor and method that produced `value` (see above) |
+| `data_source`, `status` | `SP` / `NRT`; `ok`, `nrt`, `partial`, `missing` |
+| `n_cells` | Number of 0.1° cells in the region |
+
+`aoi_month_compare` adds `percentile`, `ratio_to_median`, `verdict` (above / similar / below / uncertain), `baseline_median`,
+`baseline_p25`, `baseline_p75`, `baseline_period` and `continuity_ratio`. Full schemas: [API docs](docs/api_contract.md).
+
+**QC rules.** Each satellite gets a daily status from its detections in a fixed East Asia box. A day is `missing` if it has no data or is a
+known outage. It is `low` if detections fall below 50% of the previous 30-day median **while the other satellites look normal on the same
+day**; a drop shared by all satellites is real weather or fire activity, not a data problem. Training uses only months in which Aqua, Terra
+and S-NPP all have usable data on at least 50% of days. Full rules: [developer guide](docs/developer-guide.md).
+
+**Consistency check.** Point weights + residual = cell value, cell sums = region totals, and daily sums = monthly totals:
+0 mismatches for every year 2000–2026 (`reports/hotspots_verify_aoi_month.csv`, `reports/hotspots_verify_cell_month.csv`).
+
+## 4. FireBridge — MODIS-to-VIIRS harmonizer
+
+**Target.** S-NPP detections per 0.1° cell and month, 2012-02 – 2025-12. They are counted on days when Aqua, Terra and S-NPP all have
+usable data, then scaled to the full month.
+
+**Inputs (MODIS only, no VIIRS information).** For Aqua and Terra each: detections, active days, confident detections, FRP sum and
+maximum, night share, detections in the 3×3 neighbourhood and observed days. Also Terra orbit drift, month (sin/cos), cell latitude and
+longitude, and country, UN subregion and continent as categorical features (`models/m2v_meta.json`).
+
+| Setting | Value |
+|---|---|
+| Objective | Tweedie, variance power 1.1 (chosen by inner-year Poisson deviance) |
+| Trees | `hist`, depth 8, learning rate 0.05, min child weight 10, subsample 0.8, colsample 0.9, λ 1.0, 2,697 rounds |
+| Sample weights | Inverse sampling rate (cells with zero detections are subsampled) |
+| Variants | **FireBridge-Terra** (`m2v_xgb_terra`, Terra-only inputs, used for 2000-11 – 2002-06) · **N20 Bridge** (`n20_bridge`, NOAA-20 → S-NPP ratio after S-NPP data ended on 2026-11-02) |
+| Uncertainty | **FireBridge Uncertainty Band** (`m2v_q10_q90`, quantile regression) for cells; for regions, out-of-fold ratio quantiles by region type and size |
+
+**Leave-year-out validation (LYO).** Each year from 2012 to 2025 is held out in turn, and regional monthly totals are compared with observed
+S-NPP. FireBridge has the lowest error in Korea, Argentina and the world. The adoption rule was fixed in advance: FireBridge had to beat the
+latitude-band baseline on both MAE and |bias − 1| for Korea.
+
+![FireBridge MAE vs baselines](docs/figures/02_firebridge_mae.png)
+
+| Region | Latitude-band ratio (MAE / bias) | Country ratio | Log-linear ridge | **FireBridge** |
+|---|---|---|---|---|
+| Korea | 80.2 / 1.395 | 49.4 / 0.977 | 89.9 / 1.567 | **42.1 / 0.986** |
+| Argentina | 3,323 / 1.188 | 1,371 / 0.998 | 10,504 / 1.637 | **1,358 / 0.986** |
+| World | 46,674 / 1.000 | 45,266 / 1.000 | 668,253 / 1.355 | **34,413 / 0.992** |
+
+*MAE in detections per month, pooled over 14 held-out years; bias = predicted ÷ observed (`reports/validation_summary.csv`).*
+
+![Yearly bias](docs/figures/03_firebridge_yearly_bias.png)
+
+**Uncertainty band.** Share of observed regional monthly totals inside the 10–90% band (target 80%; `reports/m2v_aoi_interval_coverage.csv`):
+
+| Region group | Region-months | Coverage |
+|---|---|---|
+| Korean municipalities (`sgg`) | 41,580 | 90% |
+| Korean provinces (`sido`) | 2,805 | 87% |
+| First-level divisions (`adm1`) | 738,884 | 87% |
+| Countries | 39,930 | 83% |
+| **Continents** | 1,320 | **67%** |
+| World | 165 | 79% |
+
+Continents fall short because low-count continent-months (fewer than 1,000 detections, mostly Antarctica and the open ocean) are covered only 0–36% of the
+time, while large continents (≥ 10,000 a month) reach 79%.
+
+![Interval coverage](docs/figures/08_interval_coverage.png)
+
+**Leave-continent-out (LCO).** We also held out whole continents. FireBridge keeps the seasonal shape (correlation 0.75–0.98) but
+**not the level** on a continent it never saw: bias 0.27–0.76× for continents and 3.0× for Korea (`models/m2v_meta.json`,
+`reports/m2v_leave_continent_out.csv`). All released values come from a model that saw every country, which is the LYO condition. For a
+region outside the training data, the documented fallback is the country-ratio method (LCO bias 0.85–1.34).
+
+![Leave-continent-out](docs/figures/04_firebridge_leave_continent_out.png)
+
+## 5. Continuity self-check
+
+The app labels each month "above / similar / below normal" against the same month in other years. That comparison is fair only if the
+pre-2012 harmonized values are on the same footing as the VIIRS years. We test this per region:
 
 ```
-Planetarium-AI/
-├── data/
-│   ├── raw/firms/            원본 그대로 (수정 금지)
-│   │   ├── modis/            modis_2000~2025_all_countries.zip (26개)
-│   │   ├── viirs-snpp/       viirs-snpp_2012~2025_all_countries.zip (14개)
-│   │   ├── viirs-noaa20/     viirs-jpss1_2018~2025_all_countries.zip (8개, NOAA-20)
-│   │   ├── downloads/        FIRMS Archive Download zip (M-C61·SV-C2·J1V-C2·J2V-C2 2026-01~09 / J2V-C2_846116 = NOAA-21 정식 2023-03~2025-12)
-│   │   └── active_fire_7d/   FIRMS 최근 7일 NRT csv (날짜별 폴더)
-│   ├── external/             외부 출처 (자세한 내용은 data/external/README.md)
-│   │   ├── boundaries/       행정구역 경계 (admdongkor 2026-10·2025-12, geoBoundaries, KOSTAT 2013, Natural Earth)
-│   │   └── kfs_wildfire_stats/ 산림청 산불통계 2022–2025
-│   ├── interim/
-│   │   ├── firms_hotspots/   공통 스키마 감지 점: <sensor>_<year> / dl_<kind>_<slug>_<id> / nrt7d_<slug>_<날짜>.parquet
-│   │   └── firms_coverage.parquet  파일×위성별 시간·공간 범위 (중복 제거용)
-│   └── processed/            격자·월 집계, 보정 결과처럼 모델/앱에 바로 쓰는 최종본
-├── docs/                     문서
-├── models/                   학습한 보정 모델
-├── notebooks/                탐색용 노트북 (예: 1.0-gh-eda-korea.ipynb)
-├── references/               FIRMS 속성 설명 등 참고 자료
-├── reports/
-│   ├── figures/              발표용 그림
-│   ├── firms_merge_summary.csv   위성 × source × 연도별 행 수·기간
-│   ├── firms_dedupe_summary.csv  중복 제거로 빠진 행 수
-│   └── *_run.log                 실행 로그
-├── planetarium/              파이썬 패키지 (재사용 코드)
-│   ├── config.py             경로·상수 (동아시아 상자, 알려진 결측일, SEED)
-│   ├── runlog.py             실행 로그를 reports/*_run.log에도 기록
-│   ├── dataset.py            원본 zip·csv -> 통합 Parquet, load_hotspots() (중복 제거 포함)
-│   ├── features.py           통합 Parquet -> 0.1° 칸 × 현지 날짜 집계 (다섯 위성), 고정 열원 마스크
-│   ├── monthly.py            위성별 자료 상태(satellite_day_status), 칸 × 월 집계 (동아시아)
-│   ├── korea.py              한국 0.1° 칸 목록 (육지 비율, 시·도/시군구)
-│   └── train_table.py        M1 학습 표 (MODIS 특성 → S-NPP 감지 수)
-├── pyproject.toml            uv 의존성
-└── README.md
+continuity_ratio = (harmonized 2013–2021 ÷ harmonized 2003–2011) ÷ (raw MODIS 2013–2021 ÷ raw MODIS 2003–2011)
 ```
 
-## 데이터 받기 (GitHub Release)
+Raw MODIS is one sensor across both periods, so its change is the reference. If the harmonized change agrees within **0.85–1.15**,
+the region uses the full baseline (2001–2025). Otherwise it uses only the VIIRS years (2012–2025), and its pre-2012 months are marked
+`uncertain`. Regions with fewer than 50 raw MODIS detections in either period take their parent region's ratio. A month with fewer than
+8 baseline years is `uncertain`.
 
-처리 결과는 용량 때문에 저장소가 아니라 Release에 올려 두었습니다 (최신 **v1.2, 2026-11-15 데이터 확정**).
-[data-v1.2-2026-11-15](https://github.com/Nasa-Planetarium/Planetarium-AI/releases/tag/data-v1.2-2026-11-15)에는
-칸·지역 표(고정 열원 점 제외본), 위성 상태, 확산 가능성(FireOutlook Spread, internal id: `spread_nowcast`)·화재 사건·불 유형·FWI·다음 달 전망(FireOutlook Recurrence, internal id: `recurrence_nextmonth`),
-다음 달 열원 발생 확률(FireOutlook Monthly – District `aoi_occurrence_nextmonth_latest` 한국 시군구, FireOutlook Monthly – Grid `grid_occurrence_nextmonth_latest` 전 세계 0.5° 격자), 2026년 점(`harmonized_hotspots_2026.tar`),
-고정 열원 점 표시(`harmonized_hotspots_static_flags.tar`), 모델·meta, `release_manifest.csv`(행 수·크기·sha256)가 있습니다.
-2000~2025년 점은 v1.1과 같으므로 [data-v1.1-hotspots-2026-11-14](https://github.com/Nasa-Planetarium/Planetarium-AI/releases/tag/data-v1.1-hotspots-2026-11-14)의
-`harmonized_hotspots_<연도>.tar`를 그대로 씁니다.
-받은 파일은 `data/processed/`에 두고, tar는 같은 곳에 풀면 `harmonized_hotspots/{reference,other}/year=YYYY/month=MM/` 구조가 됩니다.
-지역 합계는 `aoi_month`를 그대로 쓰고, 점 합계는 `is_reference = true`인 점의 `harmonized_weight`만 더하되
-**고정 열원 점(`harmonized_hotspots_static_flags`)은 anti-join으로 뺍니다**
-(자세한 규칙: `docs/backend-quickstart.md`, `docs/api_contract.md`, `docs/release_v1.2-2026-11-15.md`).
+**Result:** 3,036 regions use 2001–2025 and 2,015 use 2012–2025. Korea (0.68) fails the check; Argentina (1.05) and the world (1.02) pass.
+Verdicts of passing regions do not change. In failing regions, the false tilt toward "below normal" in recent years disappears
+(`reports/compare_continuity_validation.csv`, `reports/compare_continuity_ratios.csv`).
 
-```powershell
-gh release download data-v1.2-2026-11-15 --repo Nasa-Planetarium/Planetarium-AI --dir data/processed
-tar -xf data/processed/harmonized_hotspots_2026.tar -C data/processed
-tar -xf data/processed/harmonized_hotspots_static_flags.tar -C data/processed
-gh release download data-v1.1-hotspots-2026-11-14 --repo Nasa-Planetarium/Planetarium-AI --dir data/processed --pattern "harmonized_hotspots_2025.tar"
-tar -xf data/processed/harmonized_hotspots_2025.tar -C data/processed
+![Continuity verdicts](docs/figures/07_continuity_verdicts.png)
+
+## 6. FireOutlook — forecasts of burning activity
+
+*FireBridge harmonizes the past; FireOutlook estimates tomorrow and the months ahead.* All outlooks predict **satellite fire detections**,
+not wildfire occurrence, and every model is compared with a simple baseline.
+
+| Model | Algorithm | Target | Validation | vs baseline |
+|---|---|---|---|---|
+| **Spread** | XGBoost, fire features only (weather that arrives 4 days late did not help) | Detection tomorrow in a 0.025° cell within ~7.5 km of today's fire | Leave-year-out 2012–2025 | PR-AUC 0.210 (Korea), 0.190 (Argentina); about 5× / 3.3× the persistence rule |
+| **Monthly – District** | XGBoost + Platt | ≥ 1 detection in a Korean municipality next month | Expanding window, test years 2016–2025 (pooled) | Model PR-AUC 0.422 vs baseline 0.404 (base rate 0.130); Brier 0.0927 vs 0.0964 |
+| **Monthly – Grid** | XGBoost + isotonic | ≥ 1 detection in a 0.5° cell next month | Expanding window, test years 2020–2025 (pooled, persistent sources excluded) | Model PR-AUC 0.900 vs baseline 0.869 (base rate 0.353); Brier 0.096 vs 0.104; better on every continent |
+| **Recurrence** | XGBoost | Burning activity next month in 0.025° cells (Argentina) | Expanding window, test years 2016–2025 (pooled), static-source cells excluded | Model PR-AUC 0.570 vs recurrence-rate baseline 0.494 (base rate 0.075) |
+| **Planner** | XGBoost + LightGBM ensemble, isotonic; statsforecast AutoETS/AutoTheta for some regional counts | ≥ 1 detection and expected count for any region × period | Selection 2020–2023, holdout 2024–2025, extra check 2026 | See below |
+
+*Sources: `reports/spread_ops_metrics.csv`, `docs/backend-quickstart.md`, `reports/occurrence_metrics.csv` (row `xgboost_platt`),
+`reports/grid_occurrence_metrics.csv` (rows `excl_persistent, ALL`), `reports/recurrence_metrics_no_static.csv` (rows `ARG`).*
+
+![Next-month probability map](docs/figures/06_grid_occurrence_map.png)
+
+### FireOutlook Planner
+
+The Planner answers: *"In region R between dates A and B, what is the probability of at least one fire detection, and how many are expected?"*
+It combines precomputed 0.5° grid forecasts and answers a 30-day query in 0.006–0.012 s for a municipality, province, bbox or polygon, and in
+0.26 s for the world (`reports/planner_30d_latency.csv`).
+
+```mermaid
+flowchart TB
+    Q["Query: region + period"] --> SPLIT{"Split the period"}
+    SPLIT -->|"days 1–7"| DM["Daily model<br/>P(≥1 within k days), k = 1..7<br/>→ per-day hazard"]
+    SPLIT -->|"day 8 onward"| MM["Monthly model, h = 1..12<br/>× climatological day weights"]
+    SPLIT -->|"rest of current month"| BL["Baseline<br/>same calendar days, past years"]
+    DM --> AGG["Grid → region<br/>area weights, hazard sum,<br/>region calibration"]
+    MM --> AGG
+    BL --> AGG
+    AGG --> COMB["Combine pieces<br/>p = 1 − Π(1 − p_piece)"]
+    COMB --> GATE{"Beats the baseline<br/>in validation and holdout?"}
+    GATE -->|"yes"| OUT1["value_source = model_calibrated"]
+    GATE -->|"no"| OUT2["value_source = baseline"]
 ```
+
+**Why direct multi-horizon instead of recursive forecasting.** Each lead time (1–7 days, 1–12 months) has its own model. It is trained on
+that lead time's target, using only information available on the reference date. No model feeds its own predictions back in as inputs, so
+errors do not compound over lead times. Each lead time also gets its own isotonic calibration and its own skill score, and can fall back to
+the baseline on its own when it does not win. *(This is a design choice; the repository has no numerical comparison with a recursive model.)*
+
+![Planner BSS by lead time](docs/figures/05_planner_bss_by_lead.png)
+
+*Brier skill score of the ensemble on all 0.5° land cells. At 1 month the service uses FireOutlook Monthly – Grid, which scores about the same
+(holdout Brier 0.0949 vs 0.0948, `reports/planner_grid_h1_vs_grid_occurrence.csv`).*
+
+**Calibration and `value_source`.** Combining pieces over-predicts for regions (Korean municipalities: 0.107 predicted vs 0.066 observed).
+Each unit therefore gets a skill grade from the smaller of the raw and the cross-fitted Brier skill. The rule is **"show the normal when the
+model does not beat it"**. Units graded `none` return the calibrated baseline (`value_source = "baseline"`). Units graded `high` or `low` return
+the isotonic-calibrated model probability (`"model_calibrated"`). 30-day holdout 2024–2025 (`reports/planner_30d_validation.csv`):
+
+| Unit | Observed rate | BSS raw / cross-fitted | Skill | `value_source` |
+|---|---|---|---|---|
+| 0.5° grid cell | 0.350 | +10.1% / +8.8% | high | `model_calibrated` |
+| Korean province | 0.544 | +10.6% / +6.4% | high | `model_calibrated` |
+| First-level division (e.g. Argentine provinces) | 0.534 | +5.7% / +2.1% | low | `model_calibrated` |
+| Korean municipality | 0.066 | +12.9% / +0.9% | none | `baseline` |
+| Country | 0.741 | −1.3% / −0.7% | none | `baseline` |
+
+After cross-fitted calibration the mean prediction matches the observed rate: grid 0.351 / 0.350, provinces 0.550 / 0.544,
+first-level divisions 0.535 / 0.534, municipalities 0.068 / 0.066 (`reports/planner_30d_calibration_after.csv`).
+
+**30-day API example** (abridged; full response and field list in the [API docs](docs/api_contract.md)):
+
+```json
+// POST /forecast {"region": "SIDO_51", "horizon_days": 30}
+{"product": "FireOutlook Planner", "start": "2026-11-15", "end": "2026-12-14", "as_of": "2026-11-14",
+ "p_any": 0.619, "expected_count": 1.37, "expected_count_q10": 0.0, "expected_count_q90": 3.02,
+ "baseline": {"p_any": 0.5385, "count": 1.28},
+ "skill": "high", "count_skill": "none", "value_source": "model_calibrated",
+ "daily": [{"date": "2026-11-15", "lead_days_from_as_of": 1, "p_day": 0.0631, "base_p_day": 0.0647, "source": "daily model"}, "..."],
+ "notice": "Probability of satellite fire detections; it does not guarantee that a wildfire will occur."}
+```
+
+## 7. Validation philosophy
+
+- **Never test on what the model has seen.** FireBridge: leave-one-year-out over 14 years (2012–2025), plus leave-one-continent-out for
+  spatial transfer. Forecasts: expanding window. For test year Y, models train on years ≤ Y−2 and are calibrated and early-stopped on Y−1.
+- **Choose once, then confirm.** Planner models and ensembles are selected on 2020–2023 and confirmed on a 2024–2025 holdout **without
+  re-selection**, with January–October 2026 as an extra check.
+- **Always beat a simple baseline.** Baselines are the latitude-band and country ratios (FireBridge), the same-month rate and last year's same
+  month (monthly outlooks), climatology (daily outlooks) and persistence (Spread). A model is served only where it beats the baseline in
+  both validation and holdout. Otherwise the baseline is served and labelled (`value_source`, `skill`).
+- **Validate under operating conditions.** Spread was validated with weather that is 4 days old, as in operations, because same-day weather
+  would overstate its skill.
+- **Check that the numbers add up.** Points, cells, regions, days and months reconcile exactly for 2000–2026.
+- **Proper scores.** PR-AUC, Brier (skill) and reliability by decile for probabilities; MAE, bias and WAPE for counts.
+
+## 8. How to use
+
+**Requirements:** [uv](https://docs.astral.sh/uv/) (it installs Python and the dependencies) and the [GitHub CLI](https://cli.github.com/)
+for downloads.
+
+```bash
+git clone https://github.com/Nasa-Planetarium/Planetarium-AI.git
+```
+```bash
+cd Planetarium-AI && uv sync
+```
+
+**Get the data** (downloads, checks each file's SHA-256 against `release_manifest.csv`, unpacks):
+
+```bash
+uv run python -m planetarium.release_assets install --dest data/processed --hotspot-years 2025
+```
+```bash
+uv run python -m planetarium.release_assets verify --dest data/processed
+```
+
+**Read it** (Polars):
 
 ```python
 import polars as pl
-kr = pl.read_parquet("data/processed/aoi_month.parquet").filter(pl.col("aoi_id") == "KR")
-pts = pl.scan_parquet("data/processed/harmonized_hotspots/reference/**/*.parquet", hive_partitioning=True)         .filter(pl.col("year") == 2025, pl.col("month") == 3).collect()
+kr = (pl.read_parquet("data/processed/aoi_month.parquet").filter(pl.col("aoi_id") == "KR")
+        .join(pl.read_parquet("data/processed/aoi_month_compare.parquet")
+                .select("aoi_id", "year", "month", "verdict", "baseline_period"), on=["aoi_id", "year", "month"]))
 ```
 
-## 실행
+**Ask the Planner** (the function behind `POST /forecast`):
 
-```powershell
-# 1) uv 설치 (이미 있으면 건너뜀)
-powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"
-
-# 2) 의존성 설치 (.venv 생성)
-uv sync
-
-# 3) 전체 통합 (아카이브 MODIS·S-NPP·NOAA-20 + downloads + 최근 7일)
-uv run python -m planetarium.dataset
-```
-
-옵션:
-
-| 명령                                             | 설명                                          |
-| ------------------------------------------------ | --------------------------------------------- |
-| `--sensor modis` / `viirs-snpp` / `viirs-noaa20` | 아카이브 한 센서만 (downloads·7일은 건너뜀)   |
-| `--years 2012-2014 2020`                         | 아카이브 일부 연도만 (downloads·7일은 건너뜀) |
-| `--downloads-only`                               | `downloads/`와 `active_fire_7d/`만 처리       |
-| `--force`                                        | 이미 만든 Parquet도 다시 생성                 |
-| `--summary-only`                                 | 변환은 건너뛰고 범위·요약·중복 제거 리포트만  |
-
-NOAA-20 아카이브는 폴더가 `viirs-noaa20/`, zip 이름은 `viirs-jpss1_<year>_all_countries.zip`(FIRMS가 JPSS-1으로 부름)이고
-결과는 `viirs-noaa20_<year>.parquet`, `satellite = NOAA-20`.
-
-### FIRMS Archive Download (`downloads/`)
-
-zip이나 csv를 그대로 넣으면 됩니다. 안의 `fire_<archive|nrt>_<product>_<id>.csv` 이름으로 위성을 구분합니다.
-`fire_archive` = SP(정식), `fire_nrt` = NRT. 결과 `dl_<archive|nrt>_<slug>_<id>.parquet`.
-
-| product  | 위성             | slug                    |
-| -------- | ---------------- | ----------------------- |
-| `M-C61`  | MODIS Terra·Aqua | `modis`                 |
-| `SV-C2`  | S-NPP            | `viirs-snpp`            |
-| `J1V-C2` | NOAA-20          | `viirs-noaa20`          |
-| `J2V-C2` | NOAA-21          | `viirs-noaa21`          |
-| `LS`     | Landsat          | 건너뜀 (컬럼 뜻이 다름) |
-
-### 최근 7일 NRT (`active_fire_7d/<받은 날짜>/`)
-
-`MODIS_C6_1_Global_7d.csv`(Terra·Aqua), `J1_VIIRS_C2_Global_7d.csv`(NOAA-20), `J2_VIIRS_C2_Global_7d.csv`(NOAA-21).
-결과 `nrt7d_<slug>_<받은 날짜>.parquet`. 전 세계 파일이지만 지역 필터는 하지 않습니다(작고, 위성별 자료 유무 판정에 전 세계 감지 수가 필요).
-
-### 통합 스키마 (VIIRS 기준)
-
-MODIS는 2027년 종료 예정이라 VIIRS 원본 컬럼을 기준으로 하고 MODIS를 여기에 맞춘다.
-
-`latitude, longitude, bright_ti4, scan, track, acq_date, acq_time, satellite, instrument, confidence, version, bright_ti5, frp, daynight, type` + `confidence_modis, source, acq_datetime_utc`
-
-- `satellite`: FIRMS 표기 `N`(S-NPP) / `N20` / `N21` / `Terra` / `Aqua`. 집계 결과(cell_day 이후)는 `S-NPP`, `NOAA-20`처럼 표시 이름.
-- MODIS: `brightness`→`bright_ti4`, `bright_t31`→`bright_ti5`, 신뢰도 0~100 → `l`(<30)/`n`(30~79)/`h`(≥80), 원래 값은 `confidence_modis`.
-  MODIS와 VIIRS의 밝기온도는 채널이 달라 같은 의미로 섞지 말 것(`instrument`로 구분).
-- 날짜(KST·현지), 연·월, 픽셀 면적 등 파생값은 저장하지 않고 집계 단계에서 계산.
-
-### source 구분
-
-`version`이 숫자만(`6.1`, `61.03`, `2`)이면 `SP`, `NRT`·`RT`·`URT` 접미사가 붙으면 `NRT` (FIRMS 속성 문서 기준).
-
-### 중복 제거 (`load_hotspots()` 기본 적용)
-
-같은 관측이 여러 파일에 들어 있어 위성별로 우선순위를 둡니다: **SP > Archive Download NRT > 7일 NRT > area API(`fetch_nrt`)**.
-
-- area API 파일(`api_*`)은 SP와만 시간·지역 범위로 정리하고, NRT 파일(Archive NRT·7일·먼저 받은 API)과는 키 단위로만 정리합니다. 앞 파일에 덜 들어온 날의 빠진 점이 채워집니다.
-
-- 낮은 순위 파일의 감지는, 높은 순위 파일이 같은 위성·같은 시간 범위(첫 날 00:00 ~ 마지막 감지 시각)·같은 지역(감지 위경도 범위를 5° 단위로 바깥 반올림)을 덮으면 버립니다.
-  날짜 단위가 아니라 실제 시각 기준이라, 예를 들어 drive zip NRT가 끝난 2026-11-11 10시(UTC) 이후의 7일 파일 감지는 남습니다.
-- 같은 순위끼리는 `(satellite, latitude, longitude, acq_datetime_utc)`가 같은 행을 하나만 남깁니다.
-- 결과: `reports/firms_dedupe_summary.csv`(파일별 제거 행 수), `reports/firms_merge_summary.csv`(`rows`, `rows_after_dedupe`).
-
-```python
-import polars as pl
-from planetarium.dataset import load_hotspots
-
-korea = (
-    load_hotspots()                       # 중복 제거 적용. 원본 그대로는 load_hotspots(dedupe=False)
-    .filter(pl.col("latitude").is_between(33, 39), pl.col("longitude").is_between(124, 132), pl.col("type") == 0)
-    .collect()
-)
-```
-
-## 실시간 갱신 (`fetch_nrt --append`, 수동 1회 실행)
-
-FIRMS area API로 전 세계 최근 N일(1~5)을 받아 기존 점과 합치고 `data/processed` 작업 파일을 갱신합니다.
-`release_*` 폴더(배포 스냅샷)는 건드리지 않습니다. 정기 실행(스케줄)은 아직 설정하지 않았습니다.
-
-```powershell
-uv run python -m planetarium.fetch_nrt --status                  # 키 상태 (MAP_KEY는 .env의 FIRMS_MAP_KEY, 출력하지 않음)
-uv run python -m planetarium.fetch_nrt --fetch --days 2 --append # 전 세계 최근 2일, 호출 3회 (NOAA-20·NOAA-21·MODIS)
-uv run python -m planetarium.fetch_nrt --fetch --days 2 --append --with-spread  # + FireOutlook Spread(spread_nowcast_latest) 다시 만들기
-```
-
-순서: 받기(`data/raw/firms/api/<받은 날짜>/`) → API 파일 변환(순위 3)·범위표 → 칸×일 → 위성 상태·칸×월 → 그 연도 `harmonized_cell_month` 교체
-→ 그 달 통합 핫스팟·cell_day·residual → 진행 중인 달 month-to-date(`value_projected`, `as_of_date`) → AOI 월 합계 → 비교표 → 검증.
-결과 리포트: `reports/fetch_nrt_append_<받은 날짜>_points.csv`(위성×날짜 추가 점 수), `..._aoi.csv`(KR·ADM0_ARG·WORLD 전/후).
-
-## 격자 칸 × 날짜 집계 (`features`)
-
-통합 Parquet(중복 제거 적용)을 0.1° 칸 × 현지 태양시 날짜 × 위성 × source로 집계합니다. 다섯 위성(Terra·Aqua·S-NPP·NOAA-20·NOAA-21) 모두.
-
-- SP 자료: 식생 화재(type 0)만.
-- NRT(type 없음): SP 자료에서 type 1·2가 2개 연도 이상 나온 0.01° 칸(`static_source_cells_0.01deg.parquet`)의 감지를 뺍니다.
-
-```powershell
-uv run python -m planetarium.features            # 기본 0.1°
-uv run python -m planetarium.features --force    # 마스크와 집계 모두 다시
-```
-
-결과: `data/processed/cell_day_0.1deg/<입력과 같은 이름>.parquet`, 읽기는 `planetarium.features.load_cell_day()`.
-
-## 위성별 자료 상태 · 칸 × 월 (`monthly`)
-
-```powershell
-uv run python -m planetarium.monthly                # 상태표 + 칸×월
-uv run python -m planetarium.monthly --status-only
-```
-
-- `satellite_day_status.parquet` (위성 × UTC 날짜): `n_det_ea`(동아시아 상자 감지 수, 판정 기준), `n_det_global`(참고, 그날 전 세계 커버리지일 때만),
-  `coverage`(global / east_asia), `baseline_ea`(직전 30일 중앙값), `status`, `status_raw`, `note`, `n_sats_low_same_day`.
-  - 판정을 동아시아 상자로 하는 이유: 2026-01~09 Archive Download는 동아시아만 있어 전 세계 감지 수로는 커버리지 경계에서 가짜 결측이 생김.
-  - `missing`: 감지 0, 자료 없음, 알려진 결측일(강제; 감지가 일부 있으면 note=`partial_known_outage`).
-  - `low`: 기준선의 50% 미만 **이면서 같은 날 다른 위성은 정상**인 날. 다른 위성도 함께 낮으면 날씨·화재 활동 변화로 보고 ok(note=`low_shared_with_other_sats`),
-    비교할 위성이 없는 날은 ok(note=`low_unverified_single_sat`). 원래 규칙 결과는 `status_raw`.
-- `satellite_month_status.parquet` (위성 × 월): `obs_days`(ok 일수), `low_days`, `missing_days`, `month_status`(complete / partial).
-  S-NPP 2026-11은 마지막 감지(11-02 15:16 UTC) 때문에 partial. NOAA-20 연결(M2)은 2026-11-03부터.
-- `cell_month_0.1deg.parquet` (동아시아 칸 × 월 × 위성, 현지 날짜 기준): `n_det, n_det_conf, active_days, n_day, n_night, frp_sum, frp_max, source,
-obs_days, low_days, missing_days, days_in_month, month_status`. 감지 없는 칸·월은 행이 없으니 0/결측은 `obs_days`로 판단.
-
-## 한국 칸 목록 (`korea`)
-
-```powershell
-uv run python -m planetarium.korea
-```
-
-`data/processed/korea_cells_0.1deg.parquet`: geoBoundaries ADM0와 겹치는 0.1° 칸마다 `land_frac`(칸 면적 중 한국 육지 비율, EPSG:5179 면적),
-`is_korea`(land_frac ≥ 0.1), 겹침 면적이 가장 큰 시·도/시군구(admdongkor `*_20251231`), `island`(본토와 안 겹치는 칸), `center_in`(중심점 방식 비교용).
-행정구역 밖인 칸(비무장지대 부근)은 가장 가까운 시·도/시군구로 배정.
-
-## M1 학습 표 (`train_table`)
-
-```powershell
-uv run python -m planetarium.train_table
-```
-
-- 기간 2012-02 ~ 2025-12 정식 자료, 동아시아 상자. Aqua·Terra·S-NPP 중 하나라도 `obs_days` < 50%인 달은 제외 (`reports/train_excluded_months.csv`).
-- 행: 세 위성 중 하나라도 감지가 있는 칸·월 + 셋 다 0인 칸·월 같은 수만큼 무작위 표본(seed 42; 후보는 기간 중 감지가 한 번이라도 있던 칸 × 정상 월).
-- 타깃 `y` = S-NPP 감지 수. 특성은 MODIS에서만 (`planetarium.train_table.MODIS_FEATURES`), S-NPP 정보·MODIS 처리 버전은 넣지 않음.
-- 결과 `data/processed/train_modis_snpp.parquet`, 요약 `reports/train_table_summary.csv`.
-
-## 보정 모델 — FireBridge (이름 확정 2026-11-14, 표시 이름 확정 2026-11-15, method_version `v1-m2v-2026-11-14`)
-
-MODIS → VIIRS 변환 모델의 공식 표시 이름은 **FireBridge (MODIS-to-VIIRS Harmonizer)** (internal id: `m2v_xgb`)입니다.
-파일 이름·코드 식별자·데이터 값(`value_source`, `method_version`)은 바꾸지 않습니다 (Release·백엔드 호환).
-
-| 표시 이름 | 내부 이름 |
-|---|---|
-| **FireBridge** (MODIS-to-VIIRS Harmonizer) | `m2v_xgb` |
-| **FireBridge-Terra** | `m2v_xgb_terra` |
-| **FireBridge Uncertainty Band** | `m2v_q10_q90` |
-| **N20 Bridge** | `n20_bridge` |
-
-**FireBridge harmonizes the past; FireOutlook estimates tomorrow and next month.** 예측 모델의 공식 표시 이름은 FireOutlook 계열입니다 (파일 이름·코드 식별자·데이터 값·컬럼 값(`model` 포함)은 그대로).
-
-| 표시 이름 | 내부 이름 (파일·코드) |
-|---|---|
-| **FireOutlook Spread** | spread nowcast — `spread_nowcast_*` (코드 `planetarium/spread_ops.py`) |
-| **FireOutlook Monthly – District** | `aoi_occurrence_*` (코드 `planetarium/occurrence.py`) |
-| **FireOutlook Monthly – Grid** | `grid_occurrence_*` (코드 `planetarium/grid_occurrence.py`) |
-| **FireOutlook Recurrence** | `recurrence_nextmonth_*` (코드 `planetarium/recurrence.py`) |
-| **FireOutlook Planner** | `planner_*` (코드 `planetarium/forecast.py`, `planner_monthly.py`, `planner_daily.py` 등) — 원하는 지역 + 기간(1~7일, 1~12개월) 전망 |
-
-### FireOutlook Planner — `forecast()` / `POST /forecast` (2026-11-15)
-
-원하는 지역(aoi_id 5,051개, bbox, GeoJSON 폴리곤)과 기간(기준일 다음 날부터 12개월 뒤 달까지)의 "위성 탐지 ≥ 1건 확률"과 예상 탐지 수(q10~q90)를
-미리 계산한 0.5° 격자 예측에서 1초 안에 답한다. 7일 이내는 일 단위 모델, 그 뒤는 월 단위 모델 × 일별 기후 가중치(건수용·확률용 따로).
-한국 시군구 다음 달과 0.5° 격자 다음 달은 `/occurrence`와 같은 값을 낸다. 라우팅·검증·표시 규칙은 `docs/api_contract.md`의 `POST /forecast`.
-
-```powershell
-uv run python -m planetarium.forecast --region SIDO_51 --start 2026-11-15 --end 2026-11-21        # 강원, 내일~7일
-uv run python -m planetarium.forecast --region ADM1_ARG-1299 --start 2026-12-01 --end 2026-12-31  # 코르도바, 다음 달
-uv run python -m planetarium.forecast --region 126.5,37.0,127.5,38.0 --start 2027-03-01 --end 2027-03-15   # bbox (서,남,동,북)
-uv run python -m tests.test_forecast_consistency    # /occurrence 와 같은 값인지, 1초 안인지
+```bash
+uv run python -m planetarium.forecast --region SIDO_51 --horizon-days 30
 ```
 
 ```python
 from planetarium.forecast import forecast
-r = forecast("SIDO_51", "2026-11-15", "2026-11-21")
-r["p_any"], r["expected_count"], r["expected_count_q10"], r["expected_count_q90"], r["skill"], r["notice"]
-# (0.34, 1.29, 0.0, 2.87, 'low', '위성 탐지 기반 확률이며 산불 발생을 보장하지 않습니다. ...')
+forecast("ADM1_ARG-1299", "2026-12-01", "2026-12-31")              # Córdoba, next month
+forecast((126.5, 37.0, 127.5, 38.0), "2027-03-01", "2027-03-15")   # bbox (W, S, E, N)
 ```
 
-서비스 파일 (Release `data-v1.2-2026-11-15`): `planner_monthly_grid.parquet`, `planner_daily_grid.parquet`, `planner_sgg_monthly.parquet`,
-`planner_day_weights.npz`, `planner_aoi_weights.npz`, `planner_region_calibration.json`, `planner_region_skill.json`, `planner_count_choice.json`,
-`planner_region_counts_sf.parquet`, `planner_sgg_choice.json`, `planner_meta.json`. 일 단위 갱신은 `fetch_nrt --fetch --append --with-planner`.
+- API endpoints, fields and display rules: [docs/api_contract.md](docs/api_contract.md)
+- Rebuilding the pipeline from raw FIRMS files: [docs/developer-guide.md](docs/developer-guide.md)
+- README figures: `uv run python scripts/make_readme_figures.py` (after downloading the data)
 
-| 이름 | 별칭 | 설명 | 파일 (models/) |
-|---|---|---|---|
-| `m2v_xgb` | **FireBridge** | MODIS → VIIRS(S-NPP 기준) 환산 XGBoost (GPU, tweedie 1.1, 국가·UN 하위지역·대륙 범주형) — **채택** | `m2v_xgb.json` |
-| `m2v_xgb_terra` | **FireBridge-Terra** | Terra 단독 변형 (2000-11 ~ 2002-06 적용) | `m2v_xgb_terra.json` |
-| `m2v_q10_q90` | **FireBridge Uncertainty Band** | 10·90 분위수 구간 (`reg:quantileerror`) | `m2v_q10_q90.json` |
-| `ratio_lat` | | 위도 5° 띠 × 월 비율 기준선 | `ratio_lat.parquet`, `ratio_lat_interval.parquet` |
-| `ratio_country` | | 국가 × 월 비율 (표본 적으면 하위지역 → 위도띠) | `ratio_country.parquet` |
-| `loglinear_ridge` | | log1p 선형 Ridge | `loglinear_ridge.json` |
-| `n20_bridge` | **N20 Bridge** | NOAA-20 → S-NPP 연결 계수 (2026-11-03~) | `n20_bridge.parquet` |
+Near-real-time updates use the FIRMS area API and need your own FIRMS MAP_KEY, read from an environment variable. Never put the key in code
+or commit it.
 
-- `+zr`: 'MODIS·주변 3×3 감지가 모두 0이면 예측 0' 규칙을 켠 변형 (검증 결과 끈 쪽이 나아 끈 쪽을 씀).
-- 설정·검증 요약·채택 근거: `models/m2v_meta.json`. 검증: `reports/validation_m2v.csv`, `reports/validation_summary.csv`.
-- 그림: `reports/figures/m2v_korea_monthly.png`, `m2v_yearly_bias.png`, `m2v_feature_importance.png`.
-- 이전 이름(M1, B1, B1c, B2, M2)과 파일은 지우지 않고 남겨 두었고, 바꾼 내역은 `reports/rename_log.csv`.
+## 9. Limitations & future work
 
-`value_source` (통합 시계열): `modis_m2v_terra`(2000-11~2002-06) · `modis_m2v`(2002-07~2012-01) · `snpp_observed`(2012-02~2026-10) · `n20_bridge`(2026-11~)
+- **FireBridge does not transfer to unseen continents** (Section 4). Use the country-ratio fallback outside the training data.
+- **Industrial sources before 2012 are only partly removed** (Korea: 7% removed before 2012-02 vs 23% after). FireBridge and Recurrence were
+  trained on data that still contained them.
+- **Spread** only scores cells within about 7.5 km of today's detections (these hold 25% of tomorrow's detections in Korea and 42% in
+  Argentina). It is not a physical fire-spread simulation.
+- **Planner:** for large regions the probability is close to 1 and carries little information. Daily forecasts were validated on grid cells
+  only, and long periods treat monthly pieces as independent.
+- **Outlooks predict satellite detections**, which depend on cloud cover and overpass time. They are not official wildfire forecasts.
+- Future work: region-specific FRP conversion, department-level areas for Argentina, and daily weather inputs once a timely global source is
+  available.
 
-```powershell
-uv run python -m planetarium.modeling.m1_xgb     # ratio_lat·ratio_country·loglinear_ridge·m2v_xgb leave-year-out 비교 + 최종 모델
-uv run python -m planetarium.modeling.m2         # n20_bridge
-```
+## 10. Team, AI use, credits, references
 
-컬럼 설명과 처리 방식은 `firms-merge-guide.html` 문서를 참고하세요.
+### Team
 
-## 크레딧 (Acknowledgements)
+Team Planetarium — NASA Space Apps Challenge 2026, Seoul.
 
-- **Jonghun Shin ([@ozingmw](https://github.com/ozingmw))**: `handoff/firms-1km-backend` 브랜치 작업에서 다음 설계를 참고해 이 저장소에 통합했습니다.
-  - FIRMS CSV·API 응답 입력 처리(위성 코드 매핑, 필수 컬럼 검사, 탐지 0건인 날의 관측 범위 기록)
-  - Release 분할 파일 설치와 sha256 검증
-  - 위성별 FRP 환산 아이디어(이 저장소에서는 S-NPP 기준으로 다시 산출)
-  - 지역(bbox) 조회 도우미
-- 공식 통합 데이터셋(`value`, S-NPP 기준)은 이 저장소의 `m2v_xgb` 환산과 v1.2 Release를 기준으로 합니다. 팀원 브랜치는 참고용으로 별도 유지합니다.
+- **정가현 (Gahyun Jung)** — team lead, dataset & models
+- **신종훈 (Jonghun Shin)** — models
+
+### AI use disclosure
+
+AI coding assistants were used to help write code and documentation; all model design decisions, validation, and reported numbers were
+reviewed by the team.
+
+### Credits (Acknowledgements)
+
+- **Jonghun Shin ([@ozingmw](https://github.com/ozingmw))**: we used the following designs from the `handoff/firms-1km-backend` branch as a
+  reference and integrated them into this repository:
+  - handling of FIRMS CSV and API responses (satellite code mapping, required-column checks, recording the observed range on days with zero detections)
+  - installing split release files and checking their SHA-256
+  - the idea of converting FRP between satellites (recomputed here on the S-NPP scale)
+  - the region (bbox) query helper
+- The official harmonized dataset (`value`, S-NPP scale) is based on this repository's `m2v_xgb` (FireBridge) conversion and the v1.2 Release.
+  The teammate's branch is kept separately for reference.
+
+### References
+
+- We acknowledge the use of data from NASA's Fire Information for Resource Management System (FIRMS) (https://firms.modaps.eosdis.nasa.gov),
+  part of NASA's Earth Science Data and Information System (ESDIS).
+- Giglio, L., Schroeder, W., & Justice, C. O. (2016). The collection 6 MODIS active fire detection algorithm and fire products.
+  *Remote Sensing of Environment*, 178, 31–41. https://doi.org/10.1016/j.rse.2016.02.054
+- Schroeder, W., Oliva, P., Giglio, L., & Csiszar, I. A. (2014). The New VIIRS 375 m active fire detection data product: Algorithm description
+  and initial assessment. *Remote Sensing of Environment*, 143, 85–96. https://doi.org/10.1016/j.rse.2013.12.008
+- Giglio, L., Justice, C., Boschetti, L., & Roy, D. (2021). *MODIS/Terra+Aqua Burned Area Monthly L3 Global 500m SIN Grid V061*.
+  NASA EOSDIS LP DAAC. https://doi.org/10.5067/MODIS/MCD64A1.061
+- NASA POWER (MERRA-2, Daily 2.10.3, accessed 2026/11/14): The data was obtained from National Aeronautics and Space Administration (NASA)
+  Langley Research Center's Prediction Of Worldwide Energy Resources (POWER) project funded through the NASA Earth Science Division.
+- Van Wagner, C. E. (1987). *Development and structure of the Canadian Forest Fire Weather Index System*. Forestry Technical Report 35.
+- Boundaries: admdongkor (CC BY 4.0), geoBoundaries, Natural Earth. Wildfire statistics: Korea Forest Service.
+- Software: Polars, PyArrow, XGBoost, LightGBM, scikit-learn, statsforecast (Apache-2.0), Shapely, pyproj, uv.
+
+Full list with licenses and access dates: [docs/references.md](docs/references.md).
