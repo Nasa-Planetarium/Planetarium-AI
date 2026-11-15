@@ -1,0 +1,13 @@
+verdict,verdict_new,len
+uncertain,uncertain,67539
+similar,similar,6672
+below,below,2482
+above,above,2288
+similar,uncertain,2240
+below,uncertain,798
+above,uncertain,788
+below,similar,443
+similar,below,443
+similar,above,408
+above,similar,352
+above,below,57

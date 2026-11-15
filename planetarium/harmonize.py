@@ -335,6 +335,8 @@ def splice_harmonized_years(years: list[int], ref: pl.DataFrame, meta: dict) -> 
         df = harmonized_year(y, ref, meta)
         if "value_projected" in cols:
             df = df.with_columns(value_projected=pl.col("value"))
+        # 고정 열원 제외 열(static_exclusion)은 새 행에서 비워 둔다 → 이어서 static_exclusion.run([연도])이 다시 뺀다
+        df = df.with_columns(*[pl.lit(None, dtype=pl.Float64).alias(c) for c in cols if c.startswith("static_") and c not in df.columns])
         df.select(cols).write_parquet(tmp_dir / f"{y}.parquet", compression="zstd")
         n += df.height
     kept = pl.scan_parquet(HCM_PATH).filter(~pl.col("year").is_in(years))

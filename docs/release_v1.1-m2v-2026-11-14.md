@@ -78,6 +78,13 @@ The released values are **not changed**. This note records how far the model can
   use `ratio_country` (country → subregion → latitude band × month ratio), which had bias 0.85–1.34 in the same test.
 - Details: `reports/m2v_leave_continent_out.csv`, `reports/figures/m2v_leave_continent_out.png`, `models/m2v_meta.json` → `spatial_generalization`.
 
+## Known limitation: some industrial heat sources remain in SP `type 0` — fixed in v1.2 (2026-11-15)
+
+In v1.1, standard-processing (SP) points were kept whenever FIRMS `type = 0`, even inside `static_source_cells_0.01deg`
+(steel works, petrochemical and cement plants). Share of reference-point weight inside those cells: Korea 18.5% (2000-11 – 2012-01)
+and 23.6% (2012-02 –), Argentina 0.8% / 1.3%. **v1.1 files are unchanged.** v1.2 removes these points from all aggregates
+(Korea about 20%, Argentina about 1%); see `docs/release_v1.2-2026-11-15.md`.
+
 ## Notes
 - `harmonized_cell_month` stores non-zero cells only; a missing row means 0 when the month's `status` is `ok`.
 - 2000-11 – 2002-06 (Terra only): cell- and point-level intervals are null; intervals for this period are provided at AOI level only.

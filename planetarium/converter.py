@@ -124,6 +124,8 @@ def harmonize_file(path: str | Path, output_dir: str | Path | None = None, fmt: 
         from planetarium.harmonize import aoi_membership
         membership, _ = aoi_membership()
 
+    from planetarium.static_exclusion import is_static_expr, mask_ids
+    static_mask = mask_ids()
     with tempfile.TemporaryDirectory(dir=INTERIM_DATA_DIR) as td:
         tmp = Path(td) / "input.parquet"
         info = read_to_parquet(path, tmp)
@@ -143,8 +145,11 @@ def harmonize_file(path: str | Path, output_dir: str | Path | None = None, fmt: 
                     pl.col("date_local").is_between(first, last))
                 if h.height == 0:
                     continue
-                _write(h.select(OUT_COLS), files["harmonized_hotspots"], fmt, writers)
-                ref = h.filter("is_reference")
+                # v1.2: 고정 열원 0.01° 칸 안의 점은 표시만 하고 요약에서 뺀다 (서버 집계와 같은 규칙)
+                h = h.with_columns(is_static_source=is_static_expr(static_mask))
+                _write(h.select(*OUT_COLS, "is_static_source"), files["harmonized_hotspots"], fmt, writers)
+                stats["static"] = stats.get("static", 0) + int(h["is_static_source"].sum())
+                ref = h.filter("is_reference", ~pl.col("is_static_source"))
                 cd = ref.group_by("cell_id", "date_local").agg(
                     value=pl.col("harmonized_weight").cast(pl.Float64).sum(),
                     value_lo=pl.col("weight_lo").cast(pl.Float64).sum(),
@@ -176,10 +181,12 @@ def harmonize_file(path: str | Path, output_dir: str | Path | None = None, fmt: 
         "months": [f"{y}-{m:02d}" for y, m in months],
         "rows_out": stats["rows_out"], "reference_rows": stats["reference"], "pending_new_month_rows": stats["pending"],
         "rows_by_satellite": stats["by_satellite"],
+        "static_source_rows": stats.get("static", 0),
         "notes": [
             "summary_*는 입력 파일의 점만 더한 값 (일부 지역·기간이면 aoi_month 전체보다 작음)",
             "MODIS 기간 미감지 추정분(residual)은 점이 아니라 요약에 포함되지 않음",
             "고정 열원(type≠0, NRT는 고정 열원 마스크)은 제외됨 → rows_out < rows_unique",
+            "v1.2: SP type 0이라도 고정 열원 0.01° 칸 안의 점은 is_static_source=true로 표시하고 summary_*에서 뺌",
             "pending_new_month: 통합 표에 없는 달의 기준 점 (새 달 MODIS 예측은 변환기 2단계에서 추가 예정)",
         ],
         "seconds": round(time.perf_counter() - t0, 1),

@@ -66,13 +66,15 @@ def sample_path(region: str, year: int):
 # ── 입력 ─────────────────────────────────────────────────────────────────
 
 def load_points(region: str, first: date, last: date, sat: str = "N") -> pl.DataFrame:
-    """기준 점 중 S-NPP(VIIRS), 현지 날짜 first~last, 상자+PAD 안. is_src = 활성 칸 조건을 만족하는 점."""
+    """기준 점 중 S-NPP(VIIRS), 현지 날짜 first~last, 상자+PAD 안. is_src = 활성 칸 조건을 만족하는 점. 고정 열원 점 제외(v1.2)."""
+    from planetarium.static_exclusion import is_static_expr
     (x0, y0, x1, y1), adm0 = REGIONS[region]
     lf = pl.scan_parquet(HOTSPOT_REF / "**" / "*.parquet", hive_partitioning=True).filter(
         pl.col("year").is_between(first.year, last.year),
         pl.col("date_local").is_between(first, last),
         pl.col("satellite") == sat,
         pl.col("longitude").is_between(x0 - PAD, x1 + PAD), pl.col("latitude").is_between(y0 - PAD, y1 + PAD),
+        ~is_static_expr(),  # v1.2: 고정 열원 점 제외 (학습 표본은 제외 전 자료로 만들었음)
     )
     inside = pl.col("longitude").is_between(x0, x1) & pl.col("latitude").is_between(y0, y1)
     src = inside if adm0 is None else (pl.col("adm0_a3") == adm0)

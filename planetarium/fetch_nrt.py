@@ -207,7 +207,7 @@ def append(sources: list[str], area: str, days: int) -> None:
     """받기 → 변환(API 순위 3) → 칸×일 → 상태·칸×월 → 그 연도 칸 표 교체 → 그 달 핫스팟 → partial 반영 → AOI·비교 → 검증."""
     import polars as pl
 
-    from planetarium import analysis, dataset, features, harmonize, hotspots, monthly, verify_hotspots
+    from planetarium import analysis, dataset, features, harmonize, hotspots, monthly, static_exclusion, verify_hotspots
     from planetarium.config import REPORTS_DIR
     from planetarium.runlog import peak_memory_gb
     received = date.today()
@@ -233,6 +233,7 @@ def append(sources: list[str], area: str, days: int) -> None:
         ("칸×월 통합표 연도 교체", lambda: harmonize.main(["--splice-years", *map(str, sorted({y for y, _ in months}))])),
         ("통합 핫스팟 그 달 다시 만들기", lambda: hotspots.build_months(months)),
         ("진행 중인 달 month-to-date", lambda: hotspots.finalize_projection()),
+        ("고정 열원 점 제외 (v1.2)", lambda: static_exclusion.run(sorted({y for y, _ in months}))),
         ("AOI 월 합계", lambda: harmonize.main(["--skip-cells", "--skip-boundaries"])),
         ("과거 대비 비교표", lambda: analysis.main([])),
         ("검증 (점 가중치 + residual = 칸 값)", lambda: verify_hotspots.main([])),

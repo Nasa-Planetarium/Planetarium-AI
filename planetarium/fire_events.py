@@ -74,8 +74,9 @@ NOMINAL_PIXEL_KM2 = {"VIIRS": 0.375 ** 2, "MODIS": 1.0}
 # ── 1) 사건 묶기 ─────────────────────────────────────────────────────────
 
 def load_points(region: str, year: int) -> pl.DataFrame:
+    from planetarium.static_exclusion import is_static_expr
     return (pl.scan_parquet(REF_DIR / f"year={year}" / "**" / "*.parquet", hive_partitioning=True)
-            .filter(pl.col("adm0_a3") == REGIONS[region])
+            .filter(pl.col("adm0_a3") == REGIONS[region], ~is_static_expr())  # v1.2: 고정 열원 점 제외
             .select("latitude", "longitude", "acq_datetime_utc", "date_local", "satellite", "instrument", "frp",
                     "cell_id", "adm0_a3", "adm1_code", "harmonized_weight")
             .collect())

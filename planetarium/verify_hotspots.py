@@ -20,14 +20,16 @@ from planetarium.config import REPORTS_DIR
 from planetarium.harmonize import AOI_MONTH_PATH, HCM_BACKGROUND_DIR, HCM_PATH, aoi_membership
 from planetarium.hotspots import CELL_DAY_PATH, HOTSPOTS_DIR, RESIDUAL_PATH
 from planetarium.runlog import start_run_log
+from planetarium.static_exclusion import is_static_expr, mask_ids
 
 KEYS = ["cell_id", "year", "month"]
+MASK = mask_ids()  # v1.2: 고정 열원 0.01° 칸 안의 점은 합계에서 빠졌으므로 검증에서도 뺀다
 TOL = 1e-3
 
 
 def year_cells(y: int) -> pl.DataFrame:
     """그 해 칸·월: 점 가중치 합(w), residual(r: 기준 점 없는 칸·월), 배경(bg), 칸 값(value)."""
-    ref = pl.scan_parquet(HOTSPOTS_DIR / "reference" / f"year={y}" / "*" / "*.parquet")
+    ref = pl.scan_parquet(HOTSPOTS_DIR / "reference" / f"year={y}" / "*" / "*.parquet").filter(~is_static_expr(MASK))
     w = ref.group_by("cell_id", year=pl.col("date_local").dt.year().cast(pl.Int16),
                      month=pl.col("date_local").dt.month().cast(pl.Int8)).agg(
         w=pl.col("harmonized_weight").cast(pl.Float64).sum()).collect()

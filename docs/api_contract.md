@@ -13,6 +13,8 @@
 | `GET /spread` | `spread_nowcast_latest.parquet` | 내일 확산 가능성 (한국·아르헨티나) |
 | `GET /events` | `fire_events.parquet` | 화재 사건 (한국·아르헨티나) |
 | `GET /regime` | `aoi_month_fire_regime.parquet` | AOI × 월 불 유형 배지 |
+| `POST /harmonize` | 사용자 업로드 (서버 자료 불변) | FIRMS 파일 → 통합 결과 CSV + summary.json |
+| `GET /recurrence` | `recurrence_nextmonth_latest.parquet` (+ `recurrent_burn_sites.parquet`) | 다음 달 전망 (아르헨티나 확률, 한국 반복 횟수) |
 | `GET /fwi` | `fwi_aoi_day.parquet` (+ `fwi_clim_aoi_month.parquet`) | 지역 산불 기상 위험도 배지 (한국·아르헨티나) |
 | `GET /export.csv` | 위 결과를 CSV로 | |
 
@@ -58,6 +60,8 @@
 
 - 지도를 충분히 확대했을 때(예: bbox가 일정 면적 이하) 점 파일을 읽는다. 넓은 범위는 `harmonized_cell_day`/`harmonized_cell_month` 격자로 보여 준다.
 - `layer=reference`: `harmonized_hotspots/reference/` (합계에 쓰는 기준 위성 점).
+- **v1.2: 고정 열원 점 제외** — `harmonized_hotspots_static_flags/year=YYYY.parquet`(점 키 `satellite`·`latitude`·`longitude`·`acq_datetime_utc` → `is_static_source`)와
+  anti-join 해서 뺀다. 점 파일에는 아직 들어 있지만 칸·AOI 합계에서는 이미 빠졌다.
   `layer=all`: `reference/` + `other/` (2012-02 이후 S-NPP·NOAA-20·NOAA-21 중 기준이 아닌 점, 지도 표시용 — 합계에 쓰지 않음).
 - **점 지도에는 MODIS 기간(2000-11 ~ 2012-01) 미감지 추정분(residual)이 표시되지 않는다.**
   같은 영역·기간이라도 점 가중치 합은 `/summary` 월 합계보다 작을 수 있다 (차이 = residual). 화면에 안내 문구를 넣는다.
@@ -127,7 +131,7 @@
 
 ### `/events?aoi&start&end`
 
-- 읽는 파일: `data/processed/fire_events.parquet` (1,276,028행, 49 MB). 기준 점을 시공간으로 이은 사건
+- 읽는 파일: `data/processed/fire_events.parquet` (1,240,978행, 46 MB; v1.2 고정 열원 점 제외). 기준 점을 시공간으로 이은 사건
   (거리 ≤ 750 m VIIRS / 2 km MODIS, 현지 날짜 차 ≤ 1일). 한국 2000-11~, 아르헨티나 2000-11~.
 - 필터: 기간이 `[start, end]`와 겹치는 사건(`start_date ≤ end` 그리고 `end_date ≥ start`). `aoi`는
   시군구(`SGG_<cd>`)면 `sgg_all`에 그 이름이 있는 사건, 시도는 `sido_nm`, 국가는 `country`, 아르헨티나 1급은 `adm1_code`
@@ -159,8 +163,11 @@
 - **앱 기본 배지는 상대 등급(`fwi_rel_class`)**. 절대 등급은 상세 화면에 함께 보여 준다.
   **아르헨티나는 캐나다 절대 등급이 잘 맞지 않음** (건조 지역이 늘 `high` 이상으로 나오고, `extreme`에서 다음 날 새 감지가 오히려 줄어듦 → `reports/fwi_validation.csv`).
   상대 등급은 두 나라 모두 등급이 오를수록 다음 날 새 감지가 늘어남 → `reports/fwi_validation_relative.csv`.
-- 2026년 이후 날짜: 파일에 아직 없다(POWER 일 자료가 2025-12-31까지). 새 날짜를 계산하면 `fwi_pct`는 비우고,
-  `fwi_clim_aoi_month.parquet`(AOI × 달 경계값 `q25`·`q75`·`q90`)로 상대 등급만 정한다.
+- 2026년 날짜(`fwi extend`로 이어 계산): `fwi_pct`는 비어 있고, 상대 등급은
+  `fwi_clim_aoi_month.parquet`(AOI × 달 경계값 `q25`·`q75`·`q90`, 2012~2025)로 정한다.
+- **기준일 = 마지막 POWER 자료일** (현재 2026-11-11, 오늘보다 약 4일 늦음). `date`를 안 주면 그 AOI의 마지막 날을 돌려주고,
+  응답에 `as_of_date`(= 그 날짜)를 넣는다. **화면에 기준일을 꼭 표시** (예: "산불 기상 위험도 · 11월 11일 기준").
+  기준일보다 뒤의 날짜를 요청하면 값 대신 `null` + `as_of_date`.
 - 표시 문구(권장): "기상으로 본 산불 위험도(캐나다 FWI, NASA POWER 일 자료 근사). 실제 발화·확산을 예측하지 않음."
 
 ```json
@@ -168,3 +175,83 @@
 {"aoi_id": "SGG_47730", "name": "경상북도 의성군", "date": "2025-03-25",
  "fwi_mean": 22.3, "fwi_class": "very_high", "fwi_pct": 97.4, "fwi_rel_class": "well_above_normal", "badge": "fwi_rel_class"}
 ```
+
+### `POST /harmonize` — 사용자 FIRMS 파일 변환 (2026-11-15)
+
+- 하는 일: 사용자가 올린 **FIRMS 원본 CSV 또는 zip**을 통합 핫스팟 형식으로 바꾸고 요약을 돌려준다. 서버 데이터는 바꾸지 않는다.
+- 내부 호출: `planetarium.converter.harmonize_file(path, output_dir, fmt="csv")` (CLI: `uv run python -m planetarium.harmonize --input <파일…> --output <폴더> --format csv`).
+- 요청: `multipart/form-data`
+  - `file` (필수): `.csv` 또는 `.zip` 하나. MODIS C6.1 / VIIRS 375 m C2, 연간 아카이브·Archive Download·최근 7일·area API 형식 모두.
+    zip은 안의 MODIS/VIIRS CSV를 모두 읽고 Landsat·readme는 건너뜀.
+  - `format` (선택): `csv`(기본) | `parquet`.
+- 응답: `200 application/zip` — 아래 4개 파일. 오류는 `400`(형식 아님·Landsat만 있음·빈 파일), `413`(크기 초과).
+
+| 파일 | 내용 |
+|---|---|
+| `harmonized_hotspots.csv` | 통합 핫스팟과 같은 컬럼 (`harmonized_weight`, `weight_lo/hi`, `weight_source`, `is_reference`, `cell_id`, `date_local` …) |
+| `summary_cell_day.csv` | 0.1° 칸 × 현지 날짜: 기준 점 가중치 합 `value`, `value_lo/hi`, `n_points`, `pending` |
+| `summary_aoi_month.csv` | AOI × 월: 기준 점 가중치의 면적 가중 합 `value`, `n_points` (입력 파일에 든 점만) |
+| `summary.json` | `rows_in`, `rows_unique`, `rows_out`, `reference_rows`, `pending_new_month_rows`, `months`, `rows_by_satellite`, `notes`, `seconds`, `peak_memory_gb` |
+
+- 규칙
+  - 같은 키(위성·위도·경도·관측 시각) 중복은 하나만. 고정 열원 제외: SP는 `type 0`만, NRT는 고정 열원 0.01° 칸 제외 (→ `rows_out < rows_unique`).
+  - v1.2: SP `type 0`이라도 고정 열원 0.01° 칸 안의 점은 `is_static_source = true`로 표시하고 요약(`summary_*`)에서 뺀다 (`summary.json`의 `static_source_rows`).
+  - 점 가중치: 서버에 같은 점이 있으면 그 가중치를 그대로, 없으면 그 달 규칙(VIIRS 기준 위성 = 1, NOAA-20 연결 비율, MODIS = m2v 예측)으로.
+  - 서버 통합표에 없는 달의 기준 점은 `weight_source = pending_new_month`, `harmonized_weight = null` (새 달 MODIS 예측은 아직 없음).
+  - 2012년 이후 MODIS 점은 `is_reference = false`, `weight_source = m2v_predicted`로 함께 나온다. 서버의 `harmonized_hotspots`에는
+    VIIRS 시대 MODIS 점이 들어 있지 않으므로 비교할 때는 빼고 본다.
+  - 요약은 **입력 파일의 점만** 더한 값: 일부 지역·기간이면 `aoi_month`보다 작고, MODIS 기간 미감지 추정분(residual)은 들어가지 않는다.
+- 처리량(실측 2026-11-15, 전 세계 7일 파일): VIIRS 44만 행 1.4~2.1초, MODIS 8.8만 행 13.8초, 최대 메모리 3.7 GB.
+  권장 제한: 업로드 200 MB, 그 이상은 비동기(`202` + `GET /harmonize/{job_id}`)로.
+- 검증 (2026-11-15): 최근 7일 파일 3개(NOAA-20·NOAA-21·MODIS, 2026-11-06~11-13 UTC)를 변환해 서버 통합 핫스팟과 키로 비교.
+  NOAA-20 417,173점·NOAA-21 414,778점이 양쪽에 있고, **기준 여부 불일치 0, 가중치 차이 최대 0.0**, 가중치 합 같음 (421,383.5 / 432,352.4).
+  서버에만 있는 점: NOAA-20 1,532개·NOAA-21 4개(모두 11-13, 이후 받은 API 파일분). 변환기에만 있는 점: NOAA-20 8개(11-11 러시아 남부 한 장면).
+
+### 다음 달 평년 수준 (예측 아님) — `/calendar` 또는 `/compare` 응답에 덧붙임
+
+- 뜻: **"예년 이맘때(다음 달)에는 보통 이 정도"** — 2001~2025 같은 달 값의 중앙값과 25~75% 범위. 예측이 아니다.
+- 계산 규칙은 `aoi_month_compare`의 기준 분포와 같다: 같은 달, 2001~2025, `status == ok`인 해만.
+  - 가장 간단한 방법: `aoi_month`에서 `aoi_id`, `month = 다음 달`, `year ∈ [2001, 2025]`, `status = ok`인 `value`의 중앙값·25%·75%.
+  - `aoi_month_compare`의 직전 같은 달 행(예: 2025-12)의 `baseline_median`·`baseline_p25`·`baseline_p75`를 써도 된다.
+    다만 그 행은 자기 해(2025)를 뺀 24년 기준이라 값이 조금 다르다 (KR 12월: 29.4 대 29.5).
+- 응답 필드(권장): `next_month_normal = {"month": 12, "median": …, "p25": …, "p75": …, "n_years": 25, "label": "평년 수준(예측 아님)"}`.
+- 표시 문구: "다음 달 평년 수준 — 지난 25년 같은 달의 가운데 값(예측 아님)". 범위(p25~p75)는 막대로 함께.
+- 예 (2026-12 기준, aoi_month 2001~2025 12월):
+
+| AOI | 중앙값 | 25% | 75% | 해 수 |
+|---|---|---|---|---|
+| KR | 29.4 | 28.0 | 35.2 | 25 |
+| ADM0_ARG | 9,992 | 6,609 | 13,658 | 25 |
+
+- 한국 값에는 산업 열원으로 보이는 감지가 섞여 있다(알려진 한계, `backend-handoff.md`). 아르헨티나는 1% 남짓.
+- 아르헨티나 칸 단위 다음 달 확률은 `/recurrence`, 한국은 반복 횟수(`/recurrence`)를 쓴다.
+
+### `/recurrence?aoi|bbox` — 확정 (2026-11-15)
+
+- 읽는 파일: `data/processed/recurrence_nextmonth_latest.parquet` (0.1° 칸; 설명 `models/recurrence_nextmonth_meta.json`).
+  **고정 열원 칸(`static_source_cells`와 겹치는 0.1° 칸)은 파일에서 이미 뺐다** (아르헨티나 744칸, 한국 160칸).
+- 대상 달: `year`·`month` (현재 2026-12). 직전 달은 진행 중 값(월말 추정)을 쓰므로 응답에 `as_of_date`(마지막 반영일)를 넣는다.
+- 나라마다 레이어가 다르다 (`layer` 컬럼):
+
+| 나라 | `layer` | 보여 줄 값 | 표시 |
+|---|---|---|---|
+| 아르헨티나 | `probability` | `p_active` (다음 달 VIIRS 기준 감지값 ≥ 1일 확률, XGBoost) | "과거 반복 패턴 기반 전망" + 예측 정확도. 단계 < 10% / 10~40% / ≥ 40% |
+| 한국 | `recurrence_count` | `active_years` / `n_years` (지난 해들 중 이 달 활성 횟수) | **"지난 25년 중 12월에 N번 활성"** — **확률이라고 부르지 않는다**. `p_active`는 비어 있음 |
+
+- 예측 정확도(아르헨티나, 확장 창 2016~2025, 고정 열원 칸 제외): PR-AUC 0.57 (반복률만 0.49), ROC-AUC 0.92, 확률 보정 양호
+  → `reports/recurrence_metrics_no_static.csv`, `reports/figures/recurrence_calibration.png`.
+- 필수 문구: 아르헨티나 "과거에 불이 반복된 곳·시기를 바탕으로 한 확률. 기상 예보나 발화 예측이 아니며, 처음 불이 나는 곳은 낮게 나옴."
+  / 한국 "위성 감지 기록에서 이 달에 불이 관측된 해의 수. 앞으로의 발생 확률이 아님."
+- 함께 주는 값: `active_years_last3`(최근 3년 같은 달 활성 횟수), `rec`(= active_years / n_years).
+- 상습 연소 지점 `recurrent_burn_sites.parquet` (고정 열원 칸 제외본): 같은 달 2001~2025 유효한 해의 70% 이상 활성인 칸·달
+  (`rate`, `n_active`, `n_years`, `admin_name`). 현재 한국 6건(화천·철원·연천 3~4월), 아르헨티나 6,404건.
+
+```json
+// GET /recurrence?aoi=ADM0_ARG  (상위 1칸)
+{"target_month": "2026-12", "as_of_date": "2026-11-14", "layer": "probability", "model": "recurrence_nextmonth_xgb",
+ "cells": [{"cell_lat": -38.15, "cell_lon": -68.95, "p_active": 0.78, "active_years": 10, "n_years": 25, "active_years_last3": 1}]}
+// GET /recurrence?aoi=KR  (상위 1칸)
+{"target_month": "2026-12", "as_of_date": "2026-11-14", "layer": "recurrence_count",
+ "cells": [{"cell_lat": 33.25, "cell_lon": 126.35, "p_active": null, "active_years": 4, "n_years": 25, "active_years_last3": 0}]}
+```
+
